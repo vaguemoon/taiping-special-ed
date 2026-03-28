@@ -8,6 +8,27 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <link rel="stylesheet" href="shared.css">
+<script>
+(function() {
+  var THEMES = {
+    blue:   { bg:'#eef5fc', blue:'#4a90d9', dk:'#2d6fa8', lt:'#e8f4fd' },
+    green:  { bg:'#edfbf4', blue:'#27ae60', dk:'#1e8449', lt:'#d5f5e3' },
+    purple: { bg:'#f3f0fc', blue:'#8e44ad', dk:'#6c3483', lt:'#e8daef' },
+    orange: { bg:'#fff8f0', blue:'#e67e22', dk:'#ca6f1e', lt:'#fdebd0' },
+    teal:   { bg:'#f0fafa', blue:'#16a085', dk:'#0e6655', lt:'#d1f2eb' },
+    pink:   { bg:'#fff0f8', blue:'#d63384', dk:'#a0255e', lt:'#fce4ec' }
+  };
+  try {
+    var id = localStorage.getItem('theme') || 'blue';
+    var t  = THEMES[id] || THEMES.blue;
+    var r  = document.documentElement.style;
+    r.setProperty('--bg',      t.bg);
+    r.setProperty('--blue',    t.blue);
+    r.setProperty('--blue-dk', t.dk);
+    r.setProperty('--blue-lt', t.lt);
+  } catch(e) {}
+})();
+</script>
 <style>
 /* chinese.html 獨有變數 */
 :root {
@@ -465,112 +486,22 @@ body {
 .btn-float-submit { background:linear-gradient(135deg,#c22,var(--red)); color:white; }
 .btn-float-prac   { background:linear-gradient(135deg,var(--blue),var(--blue-dk)); color:white; }
 
-/* Toast */
-.toast {
+/* Toast — chinese.html 版：覆寫 shared.css，改為頂部顯示（避免被浮動按鈕遮住） */
+#toast {
   position:fixed; top:70px; left:50%;
   transform:translateX(-50%) translateY(-16px);
-  background:white; border-radius:20px; padding:12px 26px;
-  box-shadow:0 8px 30px rgba(0,0,0,.14);
-  font-size:1.05rem; font-weight:900;
-  opacity:0; transition:all .35s cubic-bezier(.34,1.56,.64,1);
-  z-index:300; pointer-events:none; white-space:nowrap;
+  background:#1e2d3d; color:white;
+  border-radius:20px; padding:11px 22px;
+  font-size:.92rem; font-weight:700;
+  opacity:0; transition:opacity .28s, transform .28s;
+  z-index:9000; pointer-events:none; white-space:nowrap; max-width:90vw;
 }
-.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
 @keyframes sparkle { 0%,100%{transform:scale(1)} 50%{transform:scale(1.3)} }
 
-/* ══ 個人資料頁面 ══ */
-#screen-profile { background:var(--bg); }
-.profile-topbar {
-  display:flex; align-items:center; gap:10px;
-  padding:14px 18px; background:white;
-  border-bottom:1px solid var(--border);
-  position:sticky; top:0; z-index:10;
-}
-.profile-body { padding:20px 18px; max-width:480px; margin:0 auto; }
-
-/* 頭像選擇 */
-.avatar-grid {
-  display:grid; grid-template-columns:repeat(5,1fr); gap:10px;
-  margin-bottom:8px;
-}
-.avatar-btn {
-  font-size:2rem; border:3px solid transparent;
-  border-radius:14px; background:white; cursor:pointer;
-  padding:8px; transition:all .18s; line-height:1;
-  aspect-ratio:1;
-}
-.avatar-btn.selected {
-  border-color:var(--blue);
-  background:var(--blue-lt);
-  transform:scale(1.1);
-  box-shadow:0 0 0 3px rgba(37,99,235,.15);
-}
-
-/* 等級卡 */
-.level-card {
-  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
-  border-radius:16px; padding:20px; color:white;
-  display:flex; align-items:center; gap:16px;
-  margin-bottom:16px;
-  box-shadow:0 6px 20px rgba(37,99,235,.3);
-}
-.level-icon { font-size:3rem; line-height:1; }
-.level-info { flex:1; }
-.level-title { font-size:1.2rem; font-weight:900; margin-bottom:2px; }
-.level-sub   { font-size:.8rem; opacity:.85; font-weight:600; }
-.level-progress {
-  height:10px; background:rgba(255,255,255,.25);
-  border-radius:20px; overflow:hidden; margin-top:10px;
-}
-.level-progress-fill {
-  height:100%; background:white; border-radius:20px;
-  transition:width .6s cubic-bezier(.34,1.56,.64,1);
-}
-
-/* 成就格 */
-.achievement-grid {
-  display:grid; grid-template-columns:1fr 1fr; gap:10px;
-  margin-bottom:16px;
-}
-.achievement-item {
-  background:white; border-radius:14px; padding:14px;
-  border:1.5px solid var(--border);
-  display:flex; flex-direction:column; align-items:center; gap:6px;
-  box-shadow:var(--shadow);
-}
-.achievement-icon { font-size:1.8rem; }
-.achievement-num  { font-size:1.6rem; font-weight:900; color:var(--blue-dk); line-height:1; }
-.achievement-lbl  { font-size:.72rem; font-weight:700; color:var(--muted); text-align:center; }
-
-/* 個人資料卡 */
-.profile-card {
-  background:white; border-radius:14px; padding:18px;
-  border:1.5px solid var(--border); box-shadow:var(--shadow);
-  margin-bottom:16px;
-}
-.profile-card-title {
-  font-size:.82rem; font-weight:800; color:var(--muted);
-  margin-bottom:12px; letter-spacing:.5px;
-}
-.profile-input {
-  width:100%; border:2px solid var(--border); border-radius:10px;
-  padding:11px 14px; font-size:1rem; font-family:inherit;
-  outline:none; transition:border-color .2s; color:var(--text);
-  background:var(--bg);
-}
-.profile-input:focus { border-color:var(--blue); background:white; }
-.btn-profile-save {
-  width:100%; padding:13px; border:none; border-radius:12px;
-  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
-  color:white; font-size:1rem; font-weight:800;
-  cursor:pointer; font-family:inherit; transition:all .15s;
-  box-shadow:0 4px 12px rgba(37,99,235,.3);
-  margin-top:4px;
-}
-.btn-profile-save:active { transform:scale(.97); }
-
-/* 首頁頂部個人按鈕 */
+/* ══ 首頁課程選擇 ══ */
+/* 首頁頂部個人按鈕（chinese 專用） */
 .btn-profile-entry {
   display:flex; align-items:center; gap:6px;
   padding:7px 12px; border-radius:20px;
@@ -579,8 +510,6 @@ body {
   font-weight:800; color:var(--blue-dk); transition:all .15s;
 }
 .btn-profile-entry:active { transform:scale(.96); }
-
-/* ══ 首頁課程選擇 ══ */
 .home-mode-row {
   display:flex; gap:12px; margin:0 18px 16px; flex-wrap:wrap;
 }

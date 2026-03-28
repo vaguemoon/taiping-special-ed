@@ -7,6 +7,28 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <link rel="stylesheet" href="shared.css">
+<script>
+// 同步套用主題（在任何 DOM 渲染前執行，防止 CSS 變數閃爍）
+(function() {
+  var THEMES = {
+    blue:   { bg:'#eef5fc', blue:'#4a90d9', dk:'#2d6fa8', lt:'#e8f4fd' },
+    green:  { bg:'#edfbf4', blue:'#27ae60', dk:'#1e8449', lt:'#d5f5e3' },
+    purple: { bg:'#f3f0fc', blue:'#8e44ad', dk:'#6c3483', lt:'#e8daef' },
+    orange: { bg:'#fff8f0', blue:'#e67e22', dk:'#ca6f1e', lt:'#fdebd0' },
+    teal:   { bg:'#f0fafa', blue:'#16a085', dk:'#0e6655', lt:'#d1f2eb' },
+    pink:   { bg:'#fff0f8', blue:'#d63384', dk:'#a0255e', lt:'#fce4ec' }
+  };
+  try {
+    var id = localStorage.getItem('theme') || 'blue';
+    var t  = THEMES[id] || THEMES.blue;
+    var r  = document.documentElement.style;
+    r.setProperty('--bg',      t.bg);
+    r.setProperty('--blue',    t.blue);
+    r.setProperty('--blue-dk', t.dk);
+    r.setProperty('--blue-lt', t.lt);
+  } catch(e) {}
+})();
+</script>
 <style>
 body { height:100vh; overflow:hidden; }
 
@@ -167,104 +189,6 @@ body { height:100vh; overflow:hidden; }
   border-radius:50%; animation:spin .7s linear infinite; margin-right:6px; vertical-align:middle;
 }
 @keyframes spin { to { transform:rotate(360deg); } }
-
-/* 彈窗 */
-.overlay {
-  position:fixed; inset:0; background:rgba(18,32,46,.5); backdrop-filter:blur(4px);
-  z-index:200; display:flex; align-items:center; justify-content:center;
-  opacity:0; pointer-events:none; transition:opacity .25s;
-}
-.overlay.show { opacity:1; pointer-events:all; }
-.overlay-box { background:white; border-radius:var(--radius); padding:28px 24px; max-width:300px; width:90%; text-align:center; box-shadow:var(--shadow-lg); animation:popIn .3s both; }
-.overlay-icon  { font-size:2.2rem; margin-bottom:9px; }
-.overlay-title { font-size:1.02rem; font-weight:900; color:var(--text); margin-bottom:5px; }
-.overlay-sub   { font-size:.82rem; color:var(--muted); font-weight:600; margin-bottom:18px; }
-.overlay-btns  { display:flex; gap:9px; }
-.overlay-btns button { flex:1; padding:11px; border:none; border-radius:11px; font-family:'Nunito',sans-serif; font-weight:800; font-size:.9rem; cursor:pointer; transition:all .15s; }
-.btn-cancel  { background:#f1f5f9; color:var(--muted); }
-.btn-confirm { background:linear-gradient(135deg,var(--red),#c0392b); color:white; }
-.btn-cancel:active,.btn-confirm:active { transform:scale(.96); }
-
-@keyframes popIn { 0%{opacity:0;transform:scale(.88) translateY(10px)} 100%{opacity:1;transform:scale(1) translateY(0)} }
-
-/* ── 個人資料畫面 ── */
-#screen-profile { background:var(--bg); }
-.profile-topbar {
-  display:flex; align-items:center; gap:10px;
-  padding:14px 18px; background:white;
-  border-bottom:1px solid var(--border);
-  position:sticky; top:0; z-index:10;
-}
-.profile-body { padding:20px 18px; max-width:480px; margin:0 auto; }
-.avatar-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:8px; }
-.avatar-btn {
-  font-size:2rem; border:3px solid transparent;
-  border-radius:14px; background:white; cursor:pointer;
-  padding:8px; transition:all .18s; line-height:1; aspect-ratio:1;
-}
-.avatar-btn.selected {
-  border-color:var(--blue); background:var(--blue-lt);
-  transform:scale(1.1); box-shadow:0 0 0 3px rgba(74,144,217,.15);
-}
-.level-card {
-  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
-  border-radius:16px; padding:20px; color:white;
-  display:flex; align-items:center; gap:16px;
-  margin-bottom:16px; box-shadow:0 6px 20px rgba(44,111,168,.3);
-}
-.level-icon { font-size:3rem; line-height:1; }
-.level-info { flex:1; }
-.level-title { font-size:1.2rem; font-weight:900; margin-bottom:2px; }
-.level-sub   { font-size:.8rem; opacity:.85; font-weight:600; }
-.level-progress { height:10px; background:rgba(255,255,255,.25); border-radius:20px; overflow:hidden; margin-top:10px; }
-.level-progress-fill { height:100%; background:white; border-radius:20px; transition:width .6s; }
-.achievement-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
-.achievement-item {
-  background:white; border-radius:14px; padding:14px;
-  border:1.5px solid var(--border);
-  display:flex; flex-direction:column; align-items:center; gap:6px;
-  box-shadow:var(--shadow);
-}
-.achievement-icon { font-size:1.8rem; }
-.achievement-num  { font-size:1.6rem; font-weight:900; color:var(--blue-dk); line-height:1; }
-.achievement-lbl  { font-size:.72rem; font-weight:700; color:var(--muted); text-align:center; }
-.profile-card {
-  background:white; border-radius:14px; padding:18px;
-  border:1.5px solid var(--border); box-shadow:var(--shadow); margin-bottom:16px;
-}
-.profile-card-title { font-size:.82rem; font-weight:800; color:var(--muted); margin-bottom:12px; letter-spacing:.5px; }
-.profile-input {
-  width:100%; border:2px solid var(--border); border-radius:10px;
-  padding:11px 14px; font-size:1rem; font-family:inherit;
-  outline:none; transition:border-color .2s; color:var(--text); background:var(--bg);
-}
-.profile-input:focus { border-color:var(--blue); background:white; }
-.btn-profile-save {
-  width:100%; padding:13px; border:none; border-radius:12px;
-  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
-  color:white; font-size:1rem; font-weight:800;
-  cursor:pointer; font-family:'Nunito',sans-serif; transition:all .15s;
-  box-shadow:0 4px 12px rgba(44,111,168,.3); margin-top:4px;
-}
-.btn-profile-save:active { transform:scale(.97); }
-.btn-back-profile {
-  background:var(--blue-lt); border:none; border-radius:14px;
-  padding:9px 18px; font-size:.95rem; font-weight:900;
-  color:var(--blue-dk); cursor:pointer; transition:all .15s;
-  font-family:'Nunito',sans-serif;
-}
-.btn-back-profile:active { transform:scale(.95); }
-.logout-row {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:14px 18px; background:white; border-top:1px solid var(--border);
-  margin-top:8px;
-}
-.btn-logout-profile {
-  background:#fff0f0; color:var(--red); border:none; border-radius:11px;
-  padding:10px 20px; font-size:.9rem; font-weight:800; cursor:pointer;
-  font-family:'Nunito',sans-serif; transition:all .15s;
-}
-.btn-logout-profile:active { transform:scale(.95); }
 
 @media(max-width:400px){
   .subjects-grid{gap:10px}
