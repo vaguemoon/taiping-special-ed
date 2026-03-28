@@ -6,40 +6,9 @@
 <title>臺東縣太平國小資源班學習系統</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="shared.css">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
-
-:root {
-  --blue:     #4a90d9;
-  --blue-dk:  #2d6fa8;
-  --blue-lt:  #e8f4fd;
-  --green:    #52c97a;
-  --green-dk: #389959;
-  --orange:   #ff8c42;
-  --red:      #e84444;
-  --yellow:   #ffd54f;
-  --bg:       #eef5fc;
-  --text:     #1e2d3d;
-  --muted:    #7a99b5;
-  --white:    #ffffff;
-  --border:   #d4e8f8;
-  --radius:   22px;
-  --shadow:   0 6px 28px rgba(44,100,160,.13);
-  --shadow-lg:0 12px 48px rgba(44,100,160,.2);
-}
-
-* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
-body { font-family:'Nunito','Noto Sans TC',sans-serif; background:var(--bg); color:var(--text); height:100vh; overflow:hidden; }
-
-.app { position:relative; width:100vw; height:100vh; overflow:hidden; }
-.screen {
-  position:absolute; inset:0; overflow-y:auto;
-  transition:transform .38s cubic-bezier(.77,0,.175,1), opacity .38s ease;
-  will-change:transform,opacity;
-}
-.screen.active { transform:translateX(0);     opacity:1;  pointer-events:all; }
-.screen.right  { transform:translateX(100%);  opacity:.3; pointer-events:none; }
-.screen.left   { transform:translateX(-100%); opacity:.3; pointer-events:none; }
+body { height:100vh; overflow:hidden; }
 
 /* ── 登入畫面 ── */
 #screen-login {
@@ -533,25 +502,8 @@ body { font-family:'Nunito','Noto Sans TC',sans-serif; background:var(--bg); col
   </div>
 </div>
 
+<script src="shared.js"></script>
 <script>
-// ── Firebase ──
-var firebaseConfig = {
-  apiKey: "AIzaSyBLhonzZkR1ORDPKgxmaVLFUwvPiEMpdj0",
-  authDomain: "tainping-hanzi-app.firebaseapp.com",
-  projectId: "tainping-hanzi-app",
-  storageBucket: "tainping-hanzi-app.firebasestorage.app",
-  messagingSenderId: "158917910126",
-  appId: "1:158917910126:web:e52a1d0456d1fd4fe6907f"
-};
-var db = null;
-function initFirebase() {
-  if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') { setTimeout(initFirebase,150); return; }
-  try {
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-  } catch(e) { db=null; setTimeout(initFirebase,300); }
-}
-
 // ── 狀態 ──
 var currentStudent = null;
 var loginPin = '';
@@ -561,18 +513,6 @@ var TEACHER_PASSWORD = '381418';
 // [修正#5] sessionStorage 讓子頁面讀取，不需重新登入
 function saveSession(s) { sessionStorage.setItem('hub_student', JSON.stringify(s)); }
 function clearSession()  { sessionStorage.removeItem('hub_student'); sessionStorage.removeItem('return_to'); }
-
-// ── 畫面切換 ──
-var SCREENS = ['screen-login','screen-hub','screen-profile'];
-function goTo(id) {
-  var order = SCREENS.indexOf(id);
-  SCREENS.forEach(function(sid,i){
-    var el = document.getElementById(sid); if (!el) return;
-    if (sid===id)     el.className='screen active';
-    else if (i<order) el.className='screen left';
-    else              el.className='screen right';
-  });
-}
 
 // [修正#2] 身份 Tab
 function switchRole(role) {
@@ -776,57 +716,6 @@ function saveProfile() {
     .catch(function(e){ showToast('❌ 儲存失敗：'+e.message); });
 }
 
-// ── 音效 ──
-var soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
-function applySound() {
-  var btn  = document.getElementById('sound-toggle-btn');
-  var knob = document.getElementById('sound-toggle-knob');
-  if (!btn || !knob) return;
-  btn.style.background = soundEnabled ? 'var(--green)' : '#cbd5e1';
-  knob.style.left      = soundEnabled ? '29px' : '3px';
-}
-function toggleSound() {
-  soundEnabled = !soundEnabled;
-  localStorage.setItem('soundEnabled', soundEnabled);
-  applySound();
-}
-
-// ── 主題 ──
-var THEMES = [
-  { id:'blue',   name:'藍天',   bg:'#eef5fc', blue:'#4a90d9', blueDk:'#2d6fa8', blueLt:'#e8f4fd' },
-  { id:'green',  name:'森林',   bg:'#edfbf4', blue:'#27ae60', blueDk:'#1e8449', blueLt:'#d5f5e3' },
-  { id:'purple', name:'薰衣草', bg:'#f3f0fc', blue:'#8e44ad', blueDk:'#6c3483', blueLt:'#e8daef' },
-  { id:'orange', name:'夕陽',   bg:'#fff8f0', blue:'#e67e22', blueDk:'#ca6f1e', blueLt:'#fdebd0' },
-  { id:'teal',   name:'青空',   bg:'#f0fafa', blue:'#16a085', blueDk:'#0e6655', blueLt:'#d1f2eb' },
-  { id:'pink',   name:'粉紅',   bg:'#fff0f8', blue:'#d63384', blueDk:'#a0255e', blueLt:'#fce4ec' },
-];
-var currentTheme = localStorage.getItem('theme') || 'blue';
-function applyTheme(themeId) {
-  var t = THEMES.find(function(th){ return th.id===themeId; }) || THEMES[0];
-  var r = document.documentElement.style;
-  r.setProperty('--bg',      t.bg);
-  r.setProperty('--blue',    t.blue);
-  r.setProperty('--blue-dk', t.blueDk);
-  r.setProperty('--blue-lt', t.blueLt);
-  currentTheme = themeId;
-  localStorage.setItem('theme', themeId);
-  renderThemeGrid();
-}
-function renderThemeGrid() {
-  var grid = document.getElementById('theme-grid');
-  if (!grid) return;
-  grid.innerHTML = '';
-  THEMES.forEach(function(t) {
-    var btn = document.createElement('button');
-    btn.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:12px;border:2.5px solid '
-      +(t.id===currentTheme?'var(--blue)':'var(--border)')+';background:'+(t.id===currentTheme?'var(--blue-lt)':'white')+';cursor:pointer;font-family:inherit;transition:all .15s;';
-    btn.innerHTML = '<span style="font-size:1.4rem;display:inline-block;width:28px;height:28px;border-radius:50%;background:'+t.blue+'"></span>'
-      +'<span style="font-size:.7rem;font-weight:800;color:var(--text)">'+t.name+'</span>';
-    btn.addEventListener('click', function(){ applyTheme(t.id); });
-    grid.appendChild(btn);
-  });
-}
-
 // ── 近期活動 ──
 function loadActivity() {
   if (!db||!currentStudent) return;
@@ -884,12 +773,6 @@ function doLogout() {
   document.getElementById('activity-list').innerHTML='<div class="activity-empty">登入後查看學習記錄 📖</div>';
   hideLogoutConfirm(); switchRole('student'); goTo('screen-login');
   showToast('已登出，掰掰！👋');
-}
-
-// ── Toast ──
-function showToast(msg) {
-  var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
-  setTimeout(function(){ t.classList.remove('show'); },2800);
 }
 
 // ── 啟動 ──

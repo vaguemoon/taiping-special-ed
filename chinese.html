@@ -5,48 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>太平國小國字學習系統</title>
 <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<link rel="stylesheet" href="shared.css">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700;900&display=swap');
-
+/* chinese.html 獨有變數 */
 :root {
-  --blue:     #4a90d9;
-  --blue-dk:  #2d6fa8;
-  --blue-lt:  #e8f4fd;
-  --green:    #52c97a;
-  --green-dk: #389959;
-  --orange:   #ff8c42;
-  --red:      #e84444;
-  --purple:   #9b7fe8;
-  --yellow:   #ffd54f;
-  --bg:       #eef5fc;
-  --text:     #1e2d3d;
-  --muted:    #7a99b5;
-  --white:    #ffffff;
-  --radius:   22px;
-  --shadow:   0 6px 28px rgba(44,100,160,.13);
-  --shadow-lg:0 12px 48px rgba(44,100,160,.2);
-
-  /* 響應式格子大小
-     直式平板：取「畫面寬/2 - padding」與「可視高度 - UI」的較小值
-     橫式平板：有更多寬度可用 */
-  --grid: min(
-    calc((100vw - 80px) / 2),
-    calc(100vh - 320px),
-    420px
-  );
+  --purple: #9b7fe8;
+  --grid: min(calc((100vw - 80px) / 2), calc(100vh - 320px), 420px);
 }
-
-/* 在小螢幕（手機）上，格子改為整排顯示 */
 @media (max-width: 600px) {
-  :root {
-    --grid: min(calc(100vw - 48px), calc(100vh - 380px), 340px);
-  }
+  :root { --grid: min(calc(100vw - 48px), calc(100vh - 380px), 340px); }
 }
-
-* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+body { height:100vh; overflow:hidden; }
 
 body {
   font-family:'Nunito','Noto Sans TC',sans-serif;
@@ -1267,41 +1238,9 @@ body {
 
 <div class="toast" id="toast"></div>
 
+<script src="shared.js"></script>
 <script>
 'use strict';
-
-// ═══════════════════════════════════════
-//  Firebase 初始化
-// ═══════════════════════════════════════
-var firebaseConfig = {
-  apiKey: "AIzaSyBLhonzZkR1ORDPKgxmaVLFUwvPiEMpdj0",
-  authDomain: "tainping-hanzi-app.firebaseapp.com",
-  projectId: "tainping-hanzi-app",
-  storageBucket: "tainping-hanzi-app.firebasestorage.app",
-  messagingSenderId: "158917910126",
-  appId: "1:158917910126:web:e52a1d0456d1fd4fe6907f"
-};
-var db = null;  // Firebase 載入後才初始化
-
-function initFirebase() {
-  // 輪詢直到 firebase 全域物件與 firestore 方法都就緒
-  if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
-    setTimeout(initFirebase, 150);
-    return;
-  }
-  try {
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-    db = firebase.firestore();
-    console.log('Firebase ready ✓');
-  } catch(e) {
-    console.warn('Firebase init error, retrying...', e);
-    db = null;
-    setTimeout(initFirebase, 300);
-  }
-}
-
 
 // ═══════════════════════════════════════
 //  學生狀態（由 Hub 登入，不在此頁登入）
@@ -1471,7 +1410,7 @@ var dAllStrokes    = [];
 var charStrokes    = {};
 
 // ═══════════════════════════════════════
-//  畫面切換
+//  畫面切換（chinese.html 專用，有音效）
 // ═══════════════════════════════════════
 var SCREENS = ['home','menu','exam','mode','learn'];
 
@@ -2722,19 +2661,9 @@ function pulseExamBtn() {
 }
 
 // ═══════════════════════════════════════
-//  Toast
-// ═══════════════════════════════════════
-function showToast(html) {
-  var t=document.getElementById('toast');
-  t.innerHTML=html; t.classList.add('show');
-  setTimeout(function(){ t.classList.remove('show'); },2600);
-}
-
-// ═══════════════════════════════════════
-//  [修正#6] 回到 Hub 首頁
+//  回到 Hub 首頁
 // ═══════════════════════════════════════
 function goBackToHub() {
-  // sessionStorage 已保有登入資料，回到 index.html 會自動恢復登入狀態
   window.location.href = 'index.html';
 }
 
@@ -2746,17 +2675,16 @@ function waitHW(cb) {
   else setTimeout(function(){ waitHW(cb); },100);
 }
 window.addEventListener('load', function(){
-  initFirebase();
+  initFirebase();          // shared.js
+  applyTheme(currentTheme); // shared.js：跨頁主題同步
+  applySound();            // shared.js
   waitHW(function(){});
-  applyTheme(currentTheme);
-  applySound();
   initSoundWrapper();
 
   // ── 從 Hub sessionStorage 讀取登入資料，直接進入學習畫面 ──
   try {
     var saved = sessionStorage.getItem('hub_student');
     if (saved) {
-      // 顯示 loading overlay
       var overlay = document.getElementById('loading-overlay');
       if (overlay) overlay.style.display = 'flex';
 
@@ -2765,7 +2693,6 @@ window.addEventListener('load', function(){
         if (!db) { setTimeout(autoLogin, 200); return; }
         var id = hubStudent.name + '_' + hubStudent.pin;
 
-        // 並行讀取學生資料和學習進度
         Promise.all([
           db.collection('students').doc(id).get(),
           db.collection('students').doc(id).collection('progress').doc('hanzi').get(),
@@ -2780,7 +2707,6 @@ window.addEventListener('load', function(){
           var sData = studentDoc.data();
           var pData = progressDoc.exists ? progressDoc.data() : {};
 
-          // 設定學生狀態（不呼叫 onLoginSuccess，直接設定）
           currentStudent = {
             name:             hubStudent.name,
             pin:              hubStudent.pin,
@@ -2792,42 +2718,33 @@ window.addEventListener('load', function(){
           };
           charStatus = pData.charStatus || {};
 
-          // 教師設定的生字
           if (lessonDoc.exists && lessonDoc.data().chars && lessonDoc.data().chars.length) {
             var inp = document.getElementById('char-input');
             if (inp) inp.value = lessonDoc.data().chars.join('');
           }
 
-          // 更新頭像
           updateHomeAvatar();
-          // 預載課程
           setTimeout(loadCurriculumVersions, 500);
 
-          // 隱藏 loading 遮罩，顯示 screen-home
-          var overlay = document.getElementById('loading-overlay');
-          var homeEl  = document.getElementById('screen-home');
-          if (overlay) overlay.style.display = 'none';
-          if (homeEl)  homeEl.className      = 'screen active';
+          var ov  = document.getElementById('loading-overlay');
+          var homeEl = document.getElementById('screen-home');
+          if (ov)     ov.style.display   = 'none';
+          if (homeEl) homeEl.className   = 'screen active';
           currentScreen = 'home';
 
           showToast('👋 歡迎 ' + (currentStudent.nickname || currentStudent.name) + '！');
 
         }).catch(function() {
-          var overlay = document.getElementById('loading-overlay');
-          if (overlay) overlay.style.display = 'none';
+          var ov = document.getElementById('loading-overlay');
+          if (ov) ov.style.display = 'none';
           window.location.href = 'index.html';
         });
       })();
     }
   } catch(e) {
-    var overlay = document.getElementById('loading-overlay');
-    if (overlay) overlay.style.display = 'none';
+    var ov = document.getElementById('loading-overlay');
+    if (ov) ov.style.display = 'none';
   }
-});
-
-// 也在 DOMContentLoaded 時嘗試初始化（雙保險）
-document.addEventListener('DOMContentLoaded', function(){
-  initFirebase();
 });
 </script>
 </body>
