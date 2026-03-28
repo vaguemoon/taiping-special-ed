@@ -123,6 +123,7 @@ body {
   grid-template-columns:repeat(auto-fill, minmax(130px,1fr));
   gap:14px;
   align-items:start;
+  align-content:start;
 }
 .char-card {
   background:var(--white); border-radius:var(--radius);
@@ -133,6 +134,7 @@ body {
   transition:transform .18s, box-shadow .18s;
   border:3px solid transparent; position:relative; overflow:hidden;
   user-select:none;
+  height:fit-content;
 }
 .char-card:active { transform:scale(.93); }
 .char-card:hover  { transform:translateY(-4px); box-shadow:var(--shadow-lg); }
