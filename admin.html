@@ -419,7 +419,6 @@ body {
     <!-- 分頁 -->
     <div class="admin-tabs">
       <button class="admin-tab active" id="tab-overview"    onclick="switchTab('overview')">📊 班級總覽</button>
-      <button class="admin-tab"        id="tab-lesson"     onclick="switchTab('lesson')">📝 設定生字</button>
       <button class="admin-tab"        id="tab-curriculum" onclick="switchTab('curriculum')">📚 課程管理</button>
     </div>
 
@@ -458,41 +457,6 @@ body {
         </div>
         <div id="student-course-wrap">
           <div class="loading-wrap"><div class="spinner"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 設定生字 -->
-    <div id="panel-lesson" style="display:none">
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-title">📋 目前的生字</div>
-        <div id="current-lesson-display">
-          <div class="loading-wrap"><div class="spinner"></div></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">✏️ 設定今日生字</div>
-        <div class="lesson-grid">
-          <div>
-            <label style="font-size:.8rem;font-weight:800;color:var(--muted);display:block;margin-bottom:8px">輸入漢字（最多 20 個）</label>
-            <input class="lesson-input-area" id="lesson-input"
-              type="text" maxlength="20"
-              placeholder="例如：山水火土木"
-              oninput="updateLessonPreview()">
-          </div>
-          <div>
-            <label style="font-size:.8rem;font-weight:800;color:var(--muted);display:block;margin-bottom:8px">預覽</label>
-            <div class="lesson-preview" id="lesson-preview">
-              <span class="lesson-empty">輸入文字後這裡會顯示預覽</span>
-            </div>
-          </div>
-        </div>
-        <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
-          <button class="btn-save-lesson" onclick="saveLesson()">
-            <span>💾</span><span>儲存並套用</span>
-          </button>
-          <span style="font-size:.8rem;color:var(--muted);font-weight:600">儲存後所有學生下次登入會自動載入這組生字</span>
         </div>
       </div>
     </div>
@@ -684,7 +648,6 @@ function initFirebase() {
 function onFirebaseReady() {
   console.log('Firebase ready, loading data...');
   loadCourseOverview();
-  loadCurrentLesson();
 }
 
 function showFirebaseError(msg) {
@@ -700,32 +663,21 @@ function showFirebaseError(msg) {
 
 window.addEventListener('load', initFirebase);
 
-// ══ 驗證教師身份 ══
-// admin.html 啟動時必須有 sessionStorage.adminAuth，否則擋回 Hub 登入
-(function checkAdminAuth() {
-  var ADMIN_PASSWORD = '381418';
-  var auth = sessionStorage.getItem('adminAuth');
-  if (auth !== ADMIN_PASSWORD) {
-    // 無效或未登入，導回 Hub
-    window.location.replace('index.html');
-  }
-})();
-
 // ══ 登入 ══
+
+
 function doLogout() {
-  sessionStorage.removeItem('adminAuth'); // 清除教師身份
   window.location.href = 'index.html';
 }
 
 // ══ 分頁切換 ══
 function switchTab(tab) {
-  ['overview','lesson','curriculum'].forEach(function(t) {
+  ['overview','curriculum'].forEach(function(t) {
     document.getElementById('panel-'+t).style.display = t===tab ? '' : 'none';
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
   });
   document.getElementById('panel-student').style.display = 'none';
   if (tab === 'overview')   loadCourseOverview();
-  if (tab === 'lesson')     loadCurrentLesson();
   if (tab === 'curriculum') loadVersions();
 }
 
@@ -1195,61 +1147,6 @@ function backToOverview() {
 }
 
 // ══ 生字設定 ══
-function loadCurrentLesson() {
-  if (!db) { setTimeout(loadCurrentLesson, 500); return; }
-  db.collection('settings').doc('lesson').get().then(function(doc) {
-    var el = document.getElementById('current-lesson-display');
-    if (!el) return;  // 面板尚未顯示，略過
-    if (doc.exists && doc.data().chars && doc.data().chars.length) {
-      var chars   = doc.data().chars;
-      var updated = doc.data().updatedAt
-        ? new Date(doc.data().updatedAt.seconds*1000).toLocaleString('zh-TW')
-        : '';
-      el.innerHTML = '<div class="current-lesson-banner">'
-        +'<span style="font-size:1.1rem">📋</span>'
-        +'<div>'
-        +'<div style="font-size:.82rem;font-weight:700">目前生字（'+updated+' 設定）</div>'
-        +'<div style="font-size:1.2rem;letter-spacing:4px;margin-top:4px">'+chars.join('')+'</div>'
-        +'</div></div>';
-    } else {
-      el.innerHTML = '<div style="color:var(--muted);font-size:.88rem;font-weight:600">尚未設定生字。</div>';
-    }
-  });
-}
-
-function updateLessonPreview() {
-  var raw    = document.getElementById('lesson-input').value;
-  var chars  = Array.from(new Set(raw.replace(/\s/g,'').split('').filter(Boolean)));
-  var prev   = document.getElementById('lesson-preview');
-  if (!chars.length) {
-    prev.innerHTML = '<span class="lesson-empty">輸入文字後這裡會顯示預覽</span>';
-    return;
-  }
-  prev.innerHTML = chars.map(function(c){
-    return '<div class="lesson-char-chip">'+c+'</div>';
-  }).join('');
-}
-
-function saveLesson() {
-  if (!db) { showToast('系統連線中，請稍候…'); return; }
-  var raw   = document.getElementById('lesson-input').value;
-  var chars = Array.from(new Set(raw.replace(/\s/g,'').split('').filter(Boolean)));
-  if (!chars.length) { showToast('請先輸入生字！'); return; }
-
-  db.collection('settings').doc('lesson').set({
-    chars:     chars,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).then(function() {
-    showToast('✅ 生字已儲存！學生下次登入將自動載入。');
-    loadCurrentLesson();
-    document.getElementById('lesson-input').value = '';
-    document.getElementById('lesson-preview').innerHTML =
-      '<span class="lesson-empty">輸入文字後這裡會顯示預覽</span>';
-  }).catch(function(e) {
-    showToast('❌ 儲存失敗：'+e.message);
-  });
-}
-
 // ═══════════════════════════════════════
 //  課程管理
 // ═══════════════════════════════════════

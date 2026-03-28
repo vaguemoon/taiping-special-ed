@@ -306,6 +306,20 @@ body { font-family:'Nunito','Noto Sans TC',sans-serif; background:var(--bg); col
 </style>
 </head>
 <body>
+<script>
+// 同步執行：若有 Hub sessionStorage（從子頁面返回），立即隱藏登入畫面避免閃爍
+(function() {
+  try {
+    var saved = sessionStorage.getItem('hub_student');
+    if (saved) {
+      JSON.parse(saved);
+      var style = document.createElement('style');
+      style.textContent = '#screen-login { opacity:0 !important; pointer-events:none !important; }';
+      document.head.appendChild(style);
+    }
+  } catch(e) {}
+})();
+</script>
 <div class="app">
 
 <!-- ════ 登入畫面 ════ -->
@@ -888,9 +902,19 @@ window.addEventListener('load',function(){
     var saved=sessionStorage.getItem('hub_student');
     if (saved){
       currentStudent=JSON.parse(saved);
+      // 移除早期注入的隱藏 style，切換到正確畫面
+      var hideStyle = document.querySelector('style[data-hide-login]');
+      if (!hideStyle) {
+        // 找到 head 中沒有 id 的 style（就是我們注入的那個）
+        var styles = document.head.querySelectorAll('style');
+        styles.forEach(function(s){
+          if (s.textContent.indexOf('screen-login') !== -1 && s.textContent.indexOf('opacity') !== -1) {
+            s.remove();
+          }
+        });
+      }
       updateHubUI();
       loadActivity();
-      // 若帶著 ?screen=profile 進來（從子頁面點個人資料）
       if (window.location.search.indexOf('screen=profile') !== -1) {
         loadProfileData(function(){ goTo('screen-profile'); });
       } else {

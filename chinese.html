@@ -86,15 +86,6 @@ body {
 .btn-back:active { transform:scale(.95); }
 /* star-badge removed */
 
-/* 目前登入學生顯示 */
-.student-badge {
-  display:none; align-items:center; gap:8px;
-  background:var(--blue-lt); border-radius:20px; padding:5px 14px;
-  font-size:.85rem; font-weight:800; color:var(--blue-dk);
-  cursor:pointer;
-}
-.student-badge.show { display:flex; }
-
 #screen-home {
   background:linear-gradient(160deg,#dbeeff 0%,#eef5fc 60%);
   display:flex; flex-direction:column;
@@ -910,7 +901,6 @@ body {
       <button class="btn-profile-entry" id="btn-profile-entry" onclick="goToProfile()">
         <span id="home-avatar-display">🐣</span>
       </button>
-      <button class="btn-back" style="font-size:.82rem;padding:8px 14px" onclick="confirmLogout()">登出</button>
     </div>
   </div>
   <div class="home-hero">
