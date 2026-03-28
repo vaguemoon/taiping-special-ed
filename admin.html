@@ -700,10 +700,20 @@ function showFirebaseError(msg) {
 
 window.addEventListener('load', initFirebase);
 
+// ══ 驗證教師身份 ══
+// admin.html 啟動時必須有 sessionStorage.adminAuth，否則擋回 Hub 登入
+(function checkAdminAuth() {
+  var ADMIN_PASSWORD = '381418';
+  var auth = sessionStorage.getItem('adminAuth');
+  if (auth !== ADMIN_PASSWORD) {
+    // 無效或未登入，導回 Hub
+    window.location.replace('index.html');
+  }
+})();
+
 // ══ 登入 ══
-
-
 function doLogout() {
+  sessionStorage.removeItem('adminAuth'); // 清除教師身份
   window.location.href = 'index.html';
 }
 

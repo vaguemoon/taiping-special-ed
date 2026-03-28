@@ -448,17 +448,8 @@
   </div>
 </nav>
 
-<!-- PAGE: COVER -->
-<div id="page-cover" class="page active">
-  <div class="cover-card">
-    <span class="cover-emoji">🦸</span>
-    <div class="cover-title">成為<em>乘法</em><br>小英雄！</div>
-    <div class="cover-sub">練習乘法，收集星星，解鎖關卡 🚀</div>
-    <!-- 姓名由 Hub 登入帶入，不需再輸入 -->
-    <div id="cover-name-display" style="font-family:'Nunito',sans-serif;font-weight:900;font-size:1.1rem;color:var(--blue-dark);margin-bottom:4px"></div>
-    <button class="btn-primary" id="btn-start">開始冒險 ✨</button>
-  </div>
-</div>
+<!-- PAGE: COVER（從 Hub 進入時永遠跳過，保留空殼以防萬一）-->
+<div id="page-cover" class="page" style="display:none"></div>
 
 <!-- PAGE: STAGE SELECT -->
 <div id="page-stages" class="page">
@@ -618,8 +609,13 @@ load();
 
 // ===== PAGES =====
 function showPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.page').forEach(function(p) {
+    p.classList.remove('active');
+    p.style.display = '';
+  });
+  var target = document.getElementById(id);
+  target.style.display = '';
+  target.classList.add('active');
   document.getElementById('main-nav').style.display = id === 'page-cover' ? 'none' : '';
 }
 
@@ -635,24 +631,15 @@ function setMode(m) {
   document.getElementById('btn-fill').classList.toggle('active', m === 'fill');
 }
 
-// ===== START =====
-document.getElementById('btn-start').onclick = () => {
-  const n = document.getElementById('player-name').value.trim();
-  playerName = n || '小英雄';
-  save();
-  updateNav();
-  goToStages();
-};
-
 // ===== NAV =====
 function updateNav() {
   document.getElementById('nav-star-num').textContent = totalStars;
 }
-document.getElementById('btn-dark').onclick = () => {
+document.getElementById('btn-dark').onclick = function() {
   document.body.classList.toggle('dark');
   document.getElementById('btn-dark').textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
 };
-document.getElementById('btn-home').onclick = () => goToStages();
+// btn-hub 的 onclick 已直接寫在 HTML 上（window.location.href='index.html'），不需再綁定
 
 // ===== STAGES =====
 function renderStages() {

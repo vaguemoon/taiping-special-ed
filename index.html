@@ -285,16 +285,14 @@ body { font-family:'Nunito','Noto Sans TC',sans-serif; background:var(--bg); col
     <div class="login-switch">還沒有帳號？<a onclick="showToast('請聯絡老師為您建立帳號 🙏')">請聯絡老師</a></div>
   </div>
 
-  <!-- [修正#2] 教師登入卡（獨立、明顯） -->
+  <!-- 教師登入卡：只需密碼 -->
   <div class="login-card" id="card-teacher" style="display:none">
     <div class="login-card-title">🏫 教師登入</div>
-    <div class="teacher-field login-field">
-      <label class="login-label">帳號</label>
-      <input class="login-input" type="text" id="teacher-account" placeholder="教師帳號" autocomplete="off" onkeydown="if(event.key==='Enter')doTeacherLogin()">
-    </div>
-    <div class="teacher-field login-field" style="margin-bottom:0">
-      <label class="login-label">密碼</label>
-      <input class="login-input" type="password" id="teacher-pwd" placeholder="教師密碼" onkeydown="if(event.key==='Enter')doTeacherLogin()">
+    <div class="login-field" style="margin-bottom:0">
+      <label class="login-label">教師密碼</label>
+      <input class="login-input" type="password" id="teacher-pwd"
+             placeholder="請輸入教師密碼" autocomplete="off"
+             onkeydown="if(event.key==='Enter')doTeacherLogin()">
     </div>
     <button class="btn-login" style="margin-top:14px" onclick="doTeacherLogin()">進入管理後台 →</button>
     <div class="login-error" id="teacher-error"></div>
@@ -387,7 +385,8 @@ function initFirebase() {
 // ── 狀態 ──
 var currentStudent = null;
 var loginPin = '';
-var TEACHER_PASSWORD = 'taip2024'; // ← 教師密碼，可自行修改
+// 教師密碼：與 admin.html 統一，只需密碼不需帳號
+var TEACHER_PASSWORD = '381418';
 
 // [修正#5] sessionStorage 讓子頁面讀取，不需重新登入
 function saveSession(s) { sessionStorage.setItem('hub_student', JSON.stringify(s)); }
@@ -461,16 +460,21 @@ function doStudentLogin() {
   });
 }
 
-// [修正#2] 教師登入
+// [修正] 教師登入：只驗密碼，存 adminAuth 到 sessionStorage，admin.html 以此驗證
 function doTeacherLogin() {
-  var account=(document.getElementById('teacher-account').value||'').trim();
-  var pwd=(document.getElementById('teacher-pwd').value||'').trim();
-  var errEl=document.getElementById('teacher-error');
+  var pwd = (document.getElementById('teacher-pwd').value || '').trim();
+  var errEl = document.getElementById('teacher-error');
   errEl.classList.remove('show');
-  if (!account || pwd!==TEACHER_PASSWORD) {
-    errEl.textContent='帳號或密碼錯誤，請再試一次。'; errEl.classList.add('show'); return;
+  if (pwd !== TEACHER_PASSWORD) {
+    errEl.textContent = '密碼錯誤，請再試一次。';
+    errEl.classList.add('show');
+    document.getElementById('teacher-pwd').value = '';
+    document.getElementById('teacher-pwd').focus();
+    return;
   }
-  window.location.href='admin.html';
+  // 存入 sessionStorage，admin.html 啟動時讀取驗證
+  sessionStorage.setItem('adminAuth', TEACHER_PASSWORD);
+  window.location.href = 'admin.html';
 }
 
 // ── Hub UI ──
