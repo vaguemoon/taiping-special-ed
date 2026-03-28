@@ -200,19 +200,16 @@ body { height:100vh; overflow:hidden; }
 </head>
 <body>
 <script>
-// 同步執行：若有登入 session，先藏住整個畫面，等 JS goTo 完成後再顯示
-(function() {
-  try {
-    var saved = sessionStorage.getItem('hub_student');
-    if (saved) {
-      JSON.parse(saved); // 驗證 JSON 合法
-      var style = document.createElement('style');
-      style.id = 'anti-flash';
-      style.textContent = '.app { opacity:0 !important; }';
-      document.head.appendChild(style);
-    }
-  } catch(e) {}
+// 防閃爍：記錄是否有 session，供 HTML 裡的 anti-flash 判斷
+window.__hasSession = (function() {
+  try { return !!sessionStorage.getItem('hub_student'); } catch(e) { return false; }
 })();
+</script>
+<!-- 防閃爍 overlay：有 session 時預設覆蓋，等 JS 切換畫面後再淡出 -->
+<div id="anti-flash" style="position:fixed;inset:0;background:var(--bg,#eef5fc);z-index:99999;transition:opacity .2s;display:none"></div>
+<script>
+// 有 session 就立刻顯示 overlay（同步，不等 load）
+if (window.__hasSession) document.getElementById('anti-flash').style.display = '';
 </script>
 <div class="app">
 
@@ -706,13 +703,15 @@ window.addEventListener('load', function() {
   applyTheme(currentTheme);
   applySound();
 
+  // 解除防閃爍 overlay：等畫面切換動畫（.38s）結束後淡出
   function revealApp() {
     var af = document.getElementById('anti-flash');
-    if (af) {
-      // 加上淡入 transition 再移除，讓畫面平順出現
-      document.querySelector('.app').style.transition = 'opacity .2s';
-      af.remove();
-    }
+    if (!af) return;
+    // 等 screen transition 結束（.38s）再淡出 overlay
+    setTimeout(function() {
+      af.style.opacity = '0';
+      setTimeout(function() { af.remove(); }, 200);
+    }, 380);
   }
 
   try {
@@ -724,15 +723,15 @@ window.addEventListener('load', function() {
       if (window.location.search.indexOf('screen=profile') !== -1) {
         loadProfileData(function() {
           goTo('screen-profile');
-          requestAnimationFrame(revealApp);
+          revealApp();
         });
       } else {
         goTo('screen-hub');
-        requestAnimationFrame(revealApp);
+        revealApp();
       }
     }
   } catch(e) {
-    revealApp(); // 出錯時也要確保畫面可見
+    revealApp();
   }
 });
 </script>
