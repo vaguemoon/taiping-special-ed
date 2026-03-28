@@ -86,103 +86,6 @@ body {
 .btn-back:active { transform:scale(.95); }
 /* star-badge removed */
 
-/* ══════════════════════════
-   畫面一：首頁
-══════════════════════════ */
-/* ══ 登入畫面 ══ */
-#screen-login {
-  background:linear-gradient(160deg,#1a3a5c 0%,#2d6fa8 60%,#4a90d9 100%);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  min-height:100vh; padding:24px;
-}
-.login-logo {
-  text-align:center; margin-bottom:32px; color:white;
-}
-.login-logo-icon { font-size:4rem; margin-bottom:10px; }
-.login-school { font-size:.9rem; letter-spacing:2px; opacity:.8; margin-bottom:4px; }
-.login-title  { font-size:1.8rem; font-weight:900; }
-.login-title span { color:var(--yellow); }
-
-.login-card {
-  background:white; border-radius:var(--radius);
-  padding:28px 24px; box-shadow:0 16px 48px rgba(0,0,0,.25);
-  width:100%; max-width:380px;
-}
-.login-card-title {
-  font-size:1rem; font-weight:900; color:var(--blue-dk);
-  text-align:center; margin-bottom:20px;
-}
-.login-field { margin-bottom:16px; }
-.login-label {
-  font-size:.82rem; font-weight:800; color:var(--muted);
-  margin-bottom:6px; display:block;
-}
-.login-input {
-  width:100%; border:2.5px solid #d4e8f8; border-radius:12px;
-  padding:13px 16px; font-size:1.1rem;
-  font-family:'Noto Sans TC',sans-serif; outline:none;
-  transition:border-color .2s; color:var(--text);
-}
-.login-input:focus { border-color:var(--blue); }
-
-/* PIN 碼大按鍵 */
-.pin-display {
-  display:flex; gap:8px; justify-content:center; margin-bottom:16px;
-}
-.pin-dot {
-  width:18px; height:18px; border-radius:50%;
-  border:3px solid #c8d8ec; background:transparent;
-  transition:all .15s;
-}
-.pin-dot.filled { background:var(--blue); border-color:var(--blue); }
-
-.pin-pad {
-  display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
-  margin-bottom:16px;
-}
-.pin-btn {
-  padding:16px; border:2.5px solid #d4e8f8; border-radius:14px;
-  background:white; font-size:1.4rem; font-weight:900;
-  color:var(--text); cursor:pointer; transition:all .15s;
-  font-family:'Nunito',sans-serif;
-}
-.pin-btn:active { background:var(--blue-lt); transform:scale(.95); }
-.pin-btn-del {
-  background:#fff0f0; color:var(--red); border-color:#ffb3b3;
-  font-size:1.1rem;
-}
-.pin-btn-ok {
-  background:var(--green); color:white; border-color:var(--green);
-  font-size:1rem;
-}
-
-.btn-login {
-  width:100%; padding:14px; border:none; border-radius:14px;
-  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
-  color:white; font-size:1.05rem; font-weight:900;
-  cursor:pointer; transition:all .15s;
-  font-family:'Nunito',sans-serif;
-  box-shadow:0 4px 14px rgba(45,111,168,.35);
-  margin-top:4px;
-}
-.btn-login:active { transform:scale(.97); }
-.btn-login:disabled { background:#b0c8e8; cursor:not-allowed; box-shadow:none; }
-
-.login-error {
-  background:#fff0f0; color:var(--red); border-radius:10px;
-  padding:10px 14px; font-size:.88rem; font-weight:700;
-  text-align:center; margin-top:10px; display:none;
-}
-.login-error.show { display:block; }
-
-.login-switch {
-  text-align:center; margin-top:14px;
-  font-size:.85rem; font-weight:600; color:var(--muted);
-}
-.login-switch a {
-  color:var(--blue); font-weight:800; cursor:pointer; text-decoration:none;
-}
-
 /* 目前登入學生顯示 */
 .student-badge {
   display:none; align-items:center; gap:8px;
@@ -752,8 +655,6 @@ body {
 }
 
 /* 教師入口 input placeholder */
-#teacher-pwd::placeholder { color:rgba(255,255,255,.45); }
-#teacher-pwd:focus { border-color:rgba(255,255,255,.7) !important; }
 
 /* ══ 輪次結算面板 ══ */
 .round-section {
@@ -999,114 +900,7 @@ body {
   <div style="width:40px;height:40px;border:4px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .8s linear infinite"></div>
 </div>
 
-<script>
-// 同步執行：若有 Hub sessionStorage，立即隱藏登入畫面並顯示 loading 遮罩
-// 這段必須在 DOM 最前面執行，避免任何閃爍
-(function() {
-  try {
-    var saved = sessionStorage.getItem('hub_student');
-    if (saved) {
-      JSON.parse(saved); // 確認 JSON 有效
-      // 立即把 screen-login 設為隱形（不可見但還在 DOM）
-      document.addEventListener('DOMContentLoaded', function() {
-        var loginEl = document.getElementById('screen-login');
-        if (loginEl) loginEl.className = 'screen right';
-        var overlay = document.getElementById('loading-overlay');
-        if (overlay) overlay.style.display = 'flex';
-      });
-    }
-  } catch(e) {}
-})();
-</script>
-<div class="screen active" id="screen-login">
-  <div class="login-logo">
-    <div class="login-logo-icon">✏️</div>
-    <div class="login-school">臺東縣太平國小</div>
-    <div class="login-title">國字<span>學習</span>系統</div>
-  </div>
-
-  <div class="login-card">
-    <!-- 登入表單 -->
-    <div id="login-form-wrap">
-      <div class="login-card-title">👤 學生登入</div>
-      <div class="login-field">
-        <label class="login-label">姓名</label>
-        <input class="login-input" id="login-name" type="text"
-          placeholder="請輸入你的名字" maxlength="10"
-          oninput="onLoginNameInput()">
-      </div>
-      <div class="login-field">
-        <label class="login-label">PIN 碼（4位數字）</label>
-        <div class="pin-display" id="pin-display">
-          <div class="pin-dot" id="pd0"></div>
-          <div class="pin-dot" id="pd1"></div>
-          <div class="pin-dot" id="pd2"></div>
-          <div class="pin-dot" id="pd3"></div>
-        </div>
-        <div class="pin-pad">
-          <button class="pin-btn" onclick="pinInput('1')">1</button>
-          <button class="pin-btn" onclick="pinInput('2')">2</button>
-          <button class="pin-btn" onclick="pinInput('3')">3</button>
-          <button class="pin-btn" onclick="pinInput('4')">4</button>
-          <button class="pin-btn" onclick="pinInput('5')">5</button>
-          <button class="pin-btn" onclick="pinInput('6')">6</button>
-          <button class="pin-btn" onclick="pinInput('7')">7</button>
-          <button class="pin-btn" onclick="pinInput('8')">8</button>
-          <button class="pin-btn" onclick="pinInput('9')">9</button>
-          <button class="pin-btn pin-btn-del" onclick="pinDelete()">⌫</button>
-          <button class="pin-btn" onclick="pinInput('0')">0</button>
-          <button class="pin-btn pin-btn-ok" onclick="doLogin()">✓</button>
-        </div>
-      </div>
-      <button class="btn-login" id="btn-login" onclick="doLogin()" disabled>登　入</button>
-      <div class="login-error" id="login-error"></div>
-      <div class="login-switch">
-        第一次使用？<a onclick="showRegister()">點這裡註冊</a>
-      </div>
-    </div>
-
-    <!-- 註冊表單 -->
-    <div id="register-form-wrap" style="display:none">
-      <div class="login-card-title">📝 新學生註冊</div>
-      <div class="login-field">
-        <label class="login-label">姓名</label>
-        <input class="login-input" id="reg-name" type="text"
-          placeholder="請輸入你的名字" maxlength="10">
-      </div>
-      <div class="login-field">
-        <label class="login-label">設定 PIN 碼（4位數字）</label>
-        <div class="pin-display" id="reg-pin-display">
-          <div class="pin-dot" id="rpd0"></div>
-          <div class="pin-dot" id="rpd1"></div>
-          <div class="pin-dot" id="rpd2"></div>
-          <div class="pin-dot" id="rpd3"></div>
-        </div>
-        <div class="pin-pad">
-          <button class="pin-btn" onclick="regPinInput('1')">1</button>
-          <button class="pin-btn" onclick="regPinInput('2')">2</button>
-          <button class="pin-btn" onclick="regPinInput('3')">3</button>
-          <button class="pin-btn" onclick="regPinInput('4')">4</button>
-          <button class="pin-btn" onclick="regPinInput('5')">5</button>
-          <button class="pin-btn" onclick="regPinInput('6')">6</button>
-          <button class="pin-btn" onclick="regPinInput('7')">7</button>
-          <button class="pin-btn" onclick="regPinInput('8')">8</button>
-          <button class="pin-btn" onclick="regPinInput('9')">9</button>
-          <button class="pin-btn pin-btn-del" onclick="regPinDelete()">⌫</button>
-          <button class="pin-btn" onclick="regPinInput('0')">0</button>
-          <button class="pin-btn pin-btn-ok" onclick="doRegister()">✓</button>
-        </div>
-      </div>
-      <button class="btn-login" id="btn-register" onclick="doRegister()">註　冊</button>
-      <div class="login-error" id="register-error"></div>
-      <div class="login-switch">
-        已有帳號？<a onclick="showLogin()">點這裡登入</a>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-<div class="screen right" id="screen-home">
+<div class="screen active" id="screen-home">
   <div class="topbar">
     <div class="topbar-left">
       <button class="btn-back" onclick="goBackToHub()">← 回首頁</button>
@@ -1518,291 +1312,11 @@ function initFirebase() {
   }
 }
 
+
 // ═══════════════════════════════════════
-//  登入狀態
+//  學生狀態（由 Hub 登入，不在此頁登入）
 // ═══════════════════════════════════════
-var currentStudent = null;  // { name, pin, id }
-var loginPin    = '';
-var regPin      = '';
-
-// ── PIN 碼輸入 ──
-function pinInput(d) {
-  if (AC) sfxTap();
-  if (loginPin.length >= 4) return;
-  loginPin += d;
-  updatePinDisplay('pd', loginPin);
-  if (loginPin.length === 4) {
-    var name = document.getElementById('login-name').value.trim();
-    if (name) doLogin();
-  }
-}
-function pinDelete() {
-  if (AC) sfxTap();
-  loginPin = loginPin.slice(0,-1);
-  updatePinDisplay('pd', loginPin);
-  updateLoginBtn();
-}
-function onLoginNameInput() {
-  updateLoginBtn();
-}
-function updateLoginBtn() {
-  var name = document.getElementById('login-name').value.trim();
-  var btn  = document.getElementById('btn-login');
-  if (btn) btn.disabled = !(name && loginPin.length === 4);
-}
-function updatePinDisplay(prefix, pin) {
-  for (var i=0;i<4;i++) {
-    var dot = document.getElementById(prefix+i);
-    if (dot) dot.classList.toggle('filled', i < pin.length);
-  }
-  updateLoginBtn();
-}
-
-// ── 登入 ──
-function doLogin() {
-  var name = document.getElementById('login-name').value.trim();
-  if (!name || loginPin.length < 4) return;
-  var errEl = document.getElementById('login-error');
-  errEl.classList.remove('show');
-  errEl.textContent = '';
-
-  if (!db) {
-    errEl.textContent = '系統連線中，請稍候…';
-    errEl.classList.add('show');
-    setTimeout(function(){ doLogin(); }, 800);
-    return;
-  }
-  errEl.classList.remove('show');
-
-  var id = name + '_' + loginPin;
-  // 先確認學生存在，再讀取漢字進度
-  db.collection('students').doc(id).get().then(function(doc) {
-    if (!doc.exists) {
-      sfxWrong();
-      loginPin = '';
-      updatePinDisplay('pd', loginPin);
-      errEl.textContent = '找不到這個帳號，請確認姓名和 PIN 碼，或是先註冊。';
-      errEl.classList.add('show');
-      return;
-    }
-    var studentDocData = doc.data();  // 包含 nickname, avatar 等個人資料
-    // 讀取漢字學習進度
-    return db.collection('students').doc(id)
-      .collection('progress').doc('hanzi')
-      .get().then(function(progressDoc) {
-        var progressData = progressDoc.exists ? progressDoc.data() : { charStatus:{} };
-        // 把個人資料合併進去
-        progressData.nickname = studentDocData.nickname || '';
-        progressData.avatar   = studentDocData.avatar   || '';
-        onLoginSuccess({ name:name, pin:loginPin, id:id }, progressData);
-      });
-  }).catch(function(e) {
-    sfxWrong();
-    errEl.textContent = '連線失敗，請檢查網路後再試。';
-    errEl.classList.add('show');
-  });
-}
-
-function onLoginSuccess(student, data) {
-  sfxCelebrate();
-  currentStudent = student;
-  // 載入個人化資料（nickname, avatar, streak）
-  if (data.nickname) currentStudent.nickname = data.nickname;
-  if (data.avatar)   currentStudent.avatar   = data.avatar;
-  currentStudent.streak           = data.streak || 0;
-  currentStudent.lessonsCompleted = data.lessonsCompleted || 0;
-
-  // 還原學生的 charStatus
-  if (data.charStatus) charStatus = data.charStatus;
-
-  // 登出按鈕顯示
-  var badge = document.getElementById('student-badge');
-  if (badge) badge.classList.add('show');
-
-  // 從 Firebase 載入教師設定的生字
-  loadLessonFromFirebase(function(lessonChars) {
-    if (lessonChars && lessonChars.length) {
-      var input = document.getElementById('char-input');
-      if (input) input.value = lessonChars.join('');
-      showToast('👋 歡迎 ' + student.name + '！今日生字已載入。');
-    } else {
-      showToast('👋 歡迎回來，' + student.name + '！');
-    }
-    // 只有在非 Hub 自動登入（currentScreen 不是 home）時才做切換動畫
-    if (currentScreen !== 'home') goTo('home');
-    setTimeout(loadCurriculumVersions, 800);
-    setTimeout(updateHomeAvatar, 200);
-  });
-}
-
-// 從 Firebase 讀取教師設定的生字
-function loadLessonFromFirebase(callback) {
-  if (!db) { callback(null); return; }
-  db.collection('settings').doc('lesson').get()
-    .then(function(doc) {
-      if (doc.exists && doc.data().chars && doc.data().chars.length) {
-        callback(doc.data().chars);
-      } else {
-        callback(null);
-      }
-    })
-    .catch(function() { callback(null); });
-}
-
-// ── 登出 ──
-
-// 音效開關（chinese.html 仍需要音效，但設定由 index.html 管理）
-var soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
-
-// 覆寫所有音效函數，讓音效開關生效
-var _origSfxTap       = null;
-var _origSfxCorrect   = null;
-var _origSfxWrong     = null;
-var _origSfxPass      = null;
-var _origSfxCelebrate = null;
-var _origSfxSwipe     = null;
-
-function initSoundWrapper() {
-  setTimeout(function() {
-    if (typeof sfxTap === 'function' && !_origSfxTap) {
-      _origSfxTap       = sfxTap;
-      _origSfxCorrect   = sfxCorrect;
-      _origSfxWrong     = sfxWrong;
-      _origSfxPass      = sfxPass;
-      _origSfxCelebrate = sfxCelebrate;
-      _origSfxSwipe     = sfxSwipe;
-      sfxTap       = function(){ if(soundEnabled) _origSfxTap(); };
-      sfxCorrect   = function(){ if(soundEnabled) _origSfxCorrect(); };
-      sfxWrong     = function(){ if(soundEnabled) _origSfxWrong(); };
-      sfxPass      = function(){ if(soundEnabled) _origSfxPass(); };
-      sfxCelebrate = function(){ if(soundEnabled) _origSfxCelebrate(); };
-      sfxSwipe     = function(){ if(soundEnabled) _origSfxSwipe(); };
-    }
-  }, 1000);
-}
-
-// 主題套用（chinese.html 需要套用 index.html 儲存的主題）
-var currentTheme = localStorage.getItem('theme') || 'blue';
-var THEMES_MAP = {
-  blue:   { bg:'#eef5fc', blue:'#4a90d9', blueDk:'#2d6fa8', blueLt:'#e8f4fd' },
-  green:  { bg:'#edfbf4', blue:'#27ae60', blueDk:'#1e8449', blueLt:'#d5f5e3' },
-  purple: { bg:'#f3f0fc', blue:'#8e44ad', blueDk:'#6c3483', blueLt:'#e8daef' },
-  orange: { bg:'#fff8f0', blue:'#e67e22', blueDk:'#ca6f1e', blueLt:'#fdebd0' },
-  teal:   { bg:'#f0fafa', blue:'#16a085', blueDk:'#0e6655', blueLt:'#d1f2eb' },
-  pink:   { bg:'#fff0f8', blue:'#d63384', blueDk:'#a0255e', blueLt:'#fce4ec' },
-};
-function applyTheme(themeId) {
-  var t = THEMES_MAP[themeId] || THEMES_MAP.blue;
-  var r = document.documentElement.style;
-  r.setProperty('--bg',      t.bg);
-  r.setProperty('--blue',    t.blue);
-  r.setProperty('--blue-dk', t.blueDk);
-  r.setProperty('--blue-lt', t.blueLt);
-  r.setProperty('--border',  '#d4e8f8');
-  r.setProperty('--shadow',  '0 6px 28px rgba(44,100,160,.13)');
-}
-
-// 更新頂部頭像（從 sessionStorage 讀取）
-function updateHomeAvatar() {
-  try {
-    var s = JSON.parse(sessionStorage.getItem('hub_student') || '{}');
-    var av = s.avatar || '🐣';
-    var avEl = document.getElementById('home-avatar-display');
-    if (avEl) avEl.textContent = av;
-  } catch(e) {}
-}
-
-function confirmLogout() {
-  sfxTap();
-  if (confirm('確定要登出嗎？')) { doLogout(); }
-}
-function doLogout() {
-  sessionStorage.removeItem('hub_student');
-  sessionStorage.removeItem('return_to');
-  window.location.href = 'index.html';
-}
-
-// ── 登入/註冊 切換 ──
-
-function showRegister() {
-  sfxTap();
-  document.getElementById('login-form-wrap').style.display    = 'none';
-  document.getElementById('register-form-wrap').style.display = '';
-  regPin = '';
-  updateRegPinDisplay();
-}
-function showLogin() {
-  sfxTap();
-  document.getElementById('register-form-wrap').style.display = 'none';
-  document.getElementById('login-form-wrap').style.display    = '';
-}
-
-// ── 註冊 PIN 輸入 ──
-function regPinInput(d) {
-  if (AC) sfxTap();
-  if (regPin.length >= 4) return;
-  regPin += d;
-  updateRegPinDisplay();
-}
-function regPinDelete() {
-  if (AC) sfxTap();
-  regPin = regPin.slice(0,-1);
-  updateRegPinDisplay();
-}
-function updateRegPinDisplay() {
-  for (var i=0;i<4;i++) {
-    var dot = document.getElementById('rpd'+i);
-    if (dot) dot.classList.toggle('filled', i < regPin.length);
-  }
-}
-
-// ── 註冊 ──
-function doRegister() {
-  var name   = document.getElementById('reg-name').value.trim();
-  var errEl  = document.getElementById('register-error');
-  errEl.classList.remove('show');
-
-  if (!name)           { errEl.textContent='請輸入姓名。'; errEl.classList.add('show'); return; }
-  if (regPin.length<4) { errEl.textContent='請輸入完整的 4 位 PIN 碼。'; errEl.classList.add('show'); return; }
-
-  // 如果 db 還沒就緒，等待後重試
-  if (!db) {
-    errEl.textContent = '系統連線中，請稍候…';
-    errEl.classList.add('show');
-    setTimeout(function(){ doRegister(); }, 800);
-    return;
-  }
-  errEl.classList.remove('show');
-
-  var id = name + '_' + regPin;
-  db.collection('students').doc(id).get().then(function(doc) {
-    if (doc.exists) {
-      sfxWrong();
-      errEl.textContent = '這個姓名和 PIN 碼已被使用，請換一個 PIN 碼。';
-      errEl.classList.add('show');
-    } else {
-      // 建立新學生
-      // 建立學生基本資料（students/{id}）
-      return db.collection('students').doc(id).set({
-        name:      name,
-        pin:       regPin,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(function() {
-        // 建立漢字學習進度子集合（students/{id}/progress/hanzi）
-        return db.collection('students').doc(id)
-          .collection('progress').doc('hanzi')
-          .set({ charStatus:{}, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
-      }).then(function() {
-        sfxCelebrate();
-        showToast('🎉 註冊成功！歡迎 ' + name + '！');
-        onLoginSuccess({ name:name, pin:regPin, id:id }, { charStatus:{} });
-      });
-    }
-  }).catch(function(e) {
-    errEl.textContent = '連線失敗，請檢查網路後再試。';
-    errEl.classList.add('show');
-  });
-}
+var currentStudent = null;
 
 // ═══════════════════════════════════════
 //  存檔：儲存學習進度到 Firebase
@@ -3248,37 +2762,66 @@ window.addEventListener('load', function(){
   applySound();
   initSoundWrapper();
 
-  // ── [修正#5] 從 Hub sessionStorage 讀取登入資料，不需重新登入 ──
+  // ── 從 Hub sessionStorage 讀取登入資料，直接進入學習畫面 ──
   try {
     var saved = sessionStorage.getItem('hub_student');
     if (saved) {
+      // 顯示 loading overlay
+      var overlay = document.getElementById('loading-overlay');
+      if (overlay) overlay.style.display = 'flex';
+
       var hubStudent = JSON.parse(saved);
-      // 等 Firebase 就緒後自動登入
       (function autoLogin() {
         if (!db) { setTimeout(autoLogin, 200); return; }
         var id = hubStudent.name + '_' + hubStudent.pin;
-        db.collection('students').doc(id).get().then(function(doc) {
-          if (!doc.exists) { window.location.href = 'index.html'; return; }
-          var studentDocData = doc.data();
-          db.collection('students').doc(id)
-            .collection('progress').doc('hanzi')
-            .get().then(function(progressDoc) {
-              var progressData = progressDoc.exists ? progressDoc.data() : { charStatus:{} };
-              progressData.nickname = studentDocData.nickname || '';
-              progressData.avatar   = studentDocData.avatar   || '';
-              onLoginSuccess({ name:hubStudent.name, pin:hubStudent.pin, id:id }, progressData);
-              // 隱藏 loading 遮罩、強制顯示 screen-home
-              // （不透過 goTo，因為 currentScreen 起始值是 'home'，
-              //   onLoginSuccess 內的 goTo('home') 不需切換，直接確保畫面正確）
-              var overlay = document.getElementById('loading-overlay');
-              if (overlay) overlay.style.display = 'none';
-              // 確保 screen-home 是 active，screen-login 隱藏
-              var loginEl = document.getElementById('screen-login');
-              var homeEl  = document.getElementById('screen-home');
-              if (loginEl) loginEl.className = 'screen left';
-              if (homeEl)  homeEl.className  = 'screen active';
-              currentScreen = 'home';
-            });
+
+        // 並行讀取學生資料和學習進度
+        Promise.all([
+          db.collection('students').doc(id).get(),
+          db.collection('students').doc(id).collection('progress').doc('hanzi').get(),
+          db.collection('settings').doc('lesson').get()
+        ]).then(function(results) {
+          var studentDoc  = results[0];
+          var progressDoc = results[1];
+          var lessonDoc   = results[2];
+
+          if (!studentDoc.exists) { window.location.href = 'index.html'; return; }
+
+          var sData = studentDoc.data();
+          var pData = progressDoc.exists ? progressDoc.data() : {};
+
+          // 設定學生狀態（不呼叫 onLoginSuccess，直接設定）
+          currentStudent = {
+            name:             hubStudent.name,
+            pin:              hubStudent.pin,
+            id:               id,
+            nickname:         sData.nickname || '',
+            avatar:           sData.avatar   || '🐣',
+            streak:           pData.streak   || 0,
+            lessonsCompleted: pData.lessonsCompleted || 0
+          };
+          charStatus = pData.charStatus || {};
+
+          // 教師設定的生字
+          if (lessonDoc.exists && lessonDoc.data().chars && lessonDoc.data().chars.length) {
+            var inp = document.getElementById('char-input');
+            if (inp) inp.value = lessonDoc.data().chars.join('');
+          }
+
+          // 更新頭像
+          updateHomeAvatar();
+          // 預載課程
+          setTimeout(loadCurriculumVersions, 500);
+
+          // 隱藏 loading 遮罩，顯示 screen-home
+          var overlay = document.getElementById('loading-overlay');
+          var homeEl  = document.getElementById('screen-home');
+          if (overlay) overlay.style.display = 'none';
+          if (homeEl)  homeEl.className      = 'screen active';
+          currentScreen = 'home';
+
+          showToast('👋 歡迎 ' + (currentStudent.nickname || currentStudent.name) + '！');
+
         }).catch(function() {
           var overlay = document.getElementById('loading-overlay');
           if (overlay) overlay.style.display = 'none';
@@ -3286,8 +2829,10 @@ window.addEventListener('load', function(){
         });
       })();
     }
-    // 沒有 sessionStorage → 顯示登入畫面（正常流程）
-  } catch(e) { /* 忽略，顯示正常登入畫面 */ }
+  } catch(e) {
+    var overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.style.display = 'none';
+  }
 });
 
 // 也在 DOMContentLoaded 時嘗試初始化（雙保險）

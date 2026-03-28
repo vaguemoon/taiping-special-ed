@@ -23,7 +23,6 @@
     --shadow-card: 0 6px 28px rgba(44,100,160,.13);
     --shadow-strong: 0 12px 48px rgba(44,100,160,.20);
     --grad-btn: linear-gradient(135deg, #4a90d9, #2d6fa8);
-    --grad-cover: linear-gradient(160deg, #1a3a5c, #2d6fa8, #4a90d9);
   }
   body.dark {
     --bg: #12202e;
@@ -407,8 +406,6 @@
   </div>
 </nav>
 
-<!-- PAGE: COVER（從 Hub 進入時永遠跳過，保留空殼以防萬一）-->
-<div id="page-cover" class="page" style="display:none"></div>
 
 <!-- PAGE: STAGE SELECT -->
 <div id="page-stages" class="page">
@@ -575,7 +572,7 @@ function showPage(id) {
   var target = document.getElementById(id);
   target.style.display = '';
   target.classList.add('active');
-  document.getElementById('main-nav').style.display = id === 'page-cover' ? 'none' : '';
+  document.getElementById('main-nav').style.display = '';
 }
 
 function goToStages() {
