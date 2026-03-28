@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>乘法小英雄 🌟</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #4a90d9;
+    --blue-dark: #2d6fa8;
+    --orange: #ff8c42;
+    --yellow: #ffd54f;
+    --bg: #eef5fc;
+    --card: #ffffff;
+    --text: #1a3a5c;
+    --text-light: #5a7a99;
+    --radius-card: 22px;
+    --radius-btn: 13px;
+    --shadow-card: 0 6px 28px rgba(44,100,160,.13);
+    --shadow-strong: 0 12px 48px rgba(44,100,160,.20);
+    --grad-btn: linear-gradient(135deg, #4a90d9, #2d6fa8);
+    --grad-cover: linear-gradient(160deg, #1a3a5c, #2d6fa8, #4a90d9);
+  }
+  body.dark {
+    --bg: #12202e;
+    --card: #1c3148;
+    --text: #e8f4fd;
+    --text-light: #8bbad6;
+    --shadow-card: 0 6px 28px rgba(0,0,0,.35);
+    --shadow-strong: 0 12px 48px rgba(0,0,0,.50);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background .3s, color .3s;
+  }
+
+  /* ===== NAV ===== */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--card);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 28px;
+    box-shadow: 0 2px 12px rgba(44,100,160,.10);
+    transition: background .3s;
+  }
+  .nav-title {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900; font-size: 1.35rem;
+    color: var(--blue-dark);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .nav-title span { font-size: 1.4rem; }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .star-count {
+    background: var(--yellow);
+    color: #7a5200;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800; font-size: .95rem;
+    padding: 5px 14px; border-radius: 20px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .btn-icon {
+    background: #e8f4fd; border: none; cursor: pointer;
+    width: 38px; height: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; transition: transform .15s;
+    color: var(--blue-dark);
+  }
+  body.dark .btn-icon { background: #243e57; }
+  .btn-icon:hover { transform: scale(.95); }
+
+  /* ===== PAGES ===== */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ===== COVER ===== */
+  #page-cover {
+    min-height: 100vh;
+    background: var(--grad-cover);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .cover-card {
+    background: white;
+    border-radius: var(--radius-card);
+    padding: 48px 40px;
+    max-width: 440px; width: 100%;
+    text-align: center;
+    box-shadow: var(--shadow-strong);
+    animation: popIn .5s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .cover-emoji { font-size: 4rem; margin-bottom: 16px; display: block; }
+  .cover-title {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900; font-size: 2rem;
+    color: #1a3a5c; line-height: 1.2; margin-bottom: 10px;
+  }
+  .cover-title em { color: #ffd54f; font-style: normal; }
+  .cover-sub {
+    color: #5a7a99; font-size: 1rem; margin-bottom: 32px;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+  .cover-name-row {
+    display: flex; gap: 10px; margin-bottom: 28px;
+  }
+  .cover-name-row input {
+    flex: 1;
+    padding: 13px 18px;
+    border: 2.5px solid #d0e6f7;
+    border-radius: var(--radius-btn);
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem; font-weight: 700;
+    color: #1a3a5c; outline: none;
+    transition: border-color .2s;
+  }
+  .cover-name-row input:focus { border-color: var(--blue); }
+  .btn-primary {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800; font-size: 1.05rem;
+    background: var(--grad-btn); color: white;
+    border: none; cursor: pointer;
+    padding: 14px 28px; border-radius: var(--radius-btn);
+    width: 100%; transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 4px 16px rgba(45,111,168,.30);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(45,111,168,.40); }
+  .btn-primary:active { transform: scale(.97); }
+
+  /* ===== MAIN LAYOUT ===== */
+  .main-wrap { max-width: 740px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  /* ===== STAGE SELECT ===== */
+  .section-title {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900; font-size: 1.3rem;
+    color: var(--text); margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .stages-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    margin-bottom: 32px;
+  }
+  .stage-card {
+    background: var(--card);
+    border-radius: var(--radius-card);
+    padding: 20px 14px;
+    text-align: center;
+    box-shadow: var(--shadow-card);
+    cursor: pointer;
+    transition: transform .18s, box-shadow .18s;
+    border: 2.5px solid transparent;
+    position: relative;
+    overflow: hidden;
+  }
+  .stage-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-strong); }
+  .stage-card.locked { opacity: .55; cursor: not-allowed; }
+  .stage-card.locked:hover { transform: none; box-shadow: var(--shadow-card); }
+  .stage-card.active-stage { border-color: var(--blue); }
+  .stage-emoji { font-size: 2.2rem; display: block; margin-bottom: 8px; }
+  .stage-name {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800; font-size: .95rem;
+    color: var(--text);
+  }
+  .stage-range {
+    font-size: .78rem; color: var(--text-light);
+    margin-top: 4px;
+  }
+  .stage-stars {
+    margin-top: 8px; font-size: .85rem;
+  }
+  .lock-badge {
+    position: absolute; top: 8px; right: 8px;
+    font-size: .8rem; background: #ddd; border-radius: 8px;
+    padding: 1px 6px;
+  }
+  .stage-progress {
+    margin-top: 8px;
+    height: 5px; background: #e0edf8; border-radius: 10px; overflow: hidden;
+  }
+  .stage-progress-fill {
+    height: 100%; background: var(--grad-btn); border-radius: 10px;
+    transition: width .4s;
+  }
+
+  /* ===== QUIZ CARD ===== */
+  .quiz-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .quiz-stage-label {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800; color: var(--blue-dark);
+    font-size: 1rem;
+  }
+  .quiz-progress-bar {
+    flex: 1; height: 8px; background: #d0e6f7;
+    border-radius: 10px; margin: 0 14px; overflow: hidden;
+  }
+  .quiz-progress-fill {
+    height: 100%; background: var(--grad-btn); border-radius: 10px;
+    transition: width .4s;
+  }
+  .quiz-score-badge {
+    background: var(--yellow); color: #7a5200;
+    font-family: 'Nunito', sans-serif; font-weight: 800;
+    padding: 4px 12px; border-radius: 14px; font-size: .88rem;
+  }
+
+  .quiz-card {
+    background: var(--card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-strong);
+    padding: 36px 32px;
+    text-align: center;
+    margin-bottom: 24px;
+    animation: popIn .35s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .dot-grid {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 6px; margin-bottom: 24px; min-height: 90px;
+    justify-content: center;
+  }
+  .dot-row { display: flex; gap: 6px; }
+  .dot {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--blue);
+    animation: dotPop .3s both;
+    flex-shrink: 0;
+  }
+  .question-text {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900; font-size: 3rem;
+    color: var(--text); letter-spacing: 2px;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+  .question-hint {
+    font-size: .9rem; color: var(--text-light);
+    margin-bottom: 28px;
+    font-family: 'Noto Sans TC', sans-serif;
+  }
+
+  /* Multiple Choice */
+  .choices-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+  .choice-btn {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800; font-size: 1.5rem;
+    background: #e8f4fd; color: var(--blue-dark);
+    border: 2.5px solid transparent;
+    border-radius: var(--radius-btn);
+    padding: 20px 10px; cursor: pointer;
+    transition: transform .15s, background .15s, border-color .15s;
+    box-shadow: 0 2px 8px rgba(44,100,160,.07);
+  }
+  body.dark .choice-btn { background: #243e57; }
+  .choice-btn:hover:not(:disabled) { transform: translateY(-3px); border-color: var(--blue); background: #d6ebf8; }
+  body.dark .choice-btn:hover:not(:disabled) { background: #2d5070; }
+  .choice-btn:active:not(:disabled) { transform: scale(.95); }
+  .choice-btn.correct { background: #d4f5e2 !important; border-color: #27ae60 !important; color: #1a7a40 !important; }
+  .choice-btn.wrong { background: #fde8e8 !important; border-color: #e74c3c !important; color: #c0392b !important; animation: shake .4s; }
+  .choice-btn:disabled { cursor: default; }
+
+  /* Fill-in */
+  .fill-area {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .fill-input {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900; font-size: 2.5rem;
+    width: 160px; text-align: center;
+    border: 3px solid #d0e6f7;
+    border-radius: var(--radius-btn);
+    padding: 14px 10px;
+    color: var(--text); background: var(--card);
+    outline: none; transition: border-color .2s;
+  }
+  .fill-input:focus { border-color: var(--blue); }
+  .fill-input.correct { border-color: #27ae60; background: #d4f5e2; color: #1a7a40; }
+  .fill-input.wrong { border-color: #e74c3c; background: #fde8e8; animation: shake .4s; }
+  .btn-submit {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800; font-size: 1.1rem;
+    background: var(--grad-btn); color: white;
+    border: none; cursor: pointer;
+    padding: 14px 40px; border-radius: var(--radius-btn);
+    box-shadow: 0 4px 16px rgba(45,111,168,.30);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .btn-submit:hover { transform: translateY(-2px); }
+  .btn-submit:active { transform: scale(.96); }
+
+  /* Feedback */
+  .feedback-msg {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800; font-size: 1.1rem;
+    padding: 14px 24px;
+    border-radius: var(--radius-btn);
+    margin-top: 18px;
+    display: none;
+  }
+  .feedback-msg.show { display: block; animation: popIn .3s both; }
+  .feedback-msg.ok { background: #d4f5e2; color: #1a7a40; }
+  .feedback-msg.no { background: #fde8e8; color: #c0392b; }
+
+  /* Mode toggle */
+  .mode-toggle {
+    display: flex; gap: 10px; margin-bottom: 24px;
+  }
+  .btn-mode {
+    flex: 1;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800; font-size: .95rem;
+    padding: 11px 10px; border-radius: var(--radius-btn);
+    border: 2.5px solid #d0e6f7;
+    background: #e8f4fd; color: var(--blue-dark);
+    cursor: pointer; transition: all .15s;
+  }
+  body.dark .btn-mode { background: #243e57; border-color: #2d5070; }
+  .btn-mode.active { background: var(--grad-btn); color: white; border-color: transparent; }
+
+  /* ===== RESULT CARD ===== */
+  .result-card {
+    background: var(--card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-strong);
+    padding: 40px 32px;
+    text-align: center;
+    animation: popIn .45s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .result-trophy { font-size: 4rem; display: block; margin-bottom: 14px; }
+  .result-title {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900; font-size: 1.8rem;
+    color: var(--text); margin-bottom: 8px;
+  }
+  .result-score-big {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900; font-size: 3.5rem;
+    color: var(--blue); margin: 16px 0;
+  }
+  .result-stars { font-size: 2rem; margin-bottom: 20px; }
+  .result-msg { color: var(--text-light); font-size: .95rem; margin-bottom: 28px; }
+  .result-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn-secondary {
+    flex: 1;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800; font-size: 1rem;
+    background: #e8f4fd; color: var(--blue-dark);
+    border: none; cursor: pointer;
+    padding: 13px 20px; border-radius: var(--radius-btn);
+    transition: transform .15s;
+  }
+  body.dark .btn-secondary { background: #243e57; color: #8bbad6; }
+  .btn-secondary:hover { transform: translateY(-2px); }
+  .btn-secondary:active { transform: scale(.97); }
+
+  /* ===== ACHIEVEMENT ===== */
+  .achievement-overlay {
+    position: fixed; inset: 0; z-index: 999;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(18,32,46,.55); backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none; transition: opacity .3s;
+  }
+  .achievement-overlay.show { opacity: 1; pointer-events: all; }
+  .achievement-box {
+    background: white; border-radius: var(--radius-card);
+    padding: 40px 36px; text-align: center;
+    box-shadow: var(--shadow-strong); max-width: 320px;
+    animation: popIn .45s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .achievement-emoji { font-size: 3.5rem; display: block; margin-bottom: 12px; }
+  .achievement-title {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900; font-size: 1.4rem;
+    color: #1a3a5c; margin-bottom: 8px;
+  }
+  .achievement-desc { color: #5a7a99; font-size: .9rem; margin-bottom: 24px; }
+
+  /* ===== CONFETTI ===== */
+  .confetti-container {
+    position: fixed; inset: 0; pointer-events: none; z-index: 998;
+    overflow: hidden;
+  }
+  .confetti-piece {
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    animation: confettiFall linear both;
+  }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes popIn {
+    0% { opacity: 0; transform: scale(.85) translateY(12px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%,60% { transform: translateX(-8px); }
+    40%,80% { transform: translateX(8px); }
+  }
+  @keyframes dotPop {
+    0% { opacity: 0; transform: scale(0); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: .3; }
+  }
+  @keyframes starBurst {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.6); }
+    100% { transform: scale(1); }
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 480px) {
+    .stages-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .quiz-card { padding: 24px 18px; }
+    .question-text { font-size: 2.2rem; }
+    .choice-btn { font-size: 1.2rem; padding: 16px 8px; }
+    .cover-card { padding: 32px 22px; }
+    .main-wrap { padding: 20px 14px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="main-nav" style="display:none">
+  <div class="nav-title"><span>🌟</span> 乘法小英雄</div>
+  <div class="nav-right">
+    <div class="star-count" id="nav-stars">⭐ <span id="nav-star-num">0</span></div>
+    <button class="btn-icon" id="btn-dark" title="深色模式">🌙</button>
+    <button class="btn-icon" id="btn-home" title="回首頁">🏠</button>
+  </div>
+</nav>
+
+<!-- PAGE: COVER -->
+<div id="page-cover" class="page active">
+  <div class="cover-card">
+    <span class="cover-emoji">🦸</span>
+    <div class="cover-title">成為<em>乘法</em><br>小英雄！</div>
+    <div class="cover-sub">練習乘法，收集星星，解鎖關卡 🚀</div>
+    <div class="cover-name-row">
+      <input type="text" id="player-name" placeholder="輸入你的名字" maxlength="8">
+    </div>
+    <button class="btn-primary" id="btn-start">開始冒險 ✨</button>
+  </div>
+</div>
+
+<!-- PAGE: STAGE SELECT -->
+<div id="page-stages" class="page">
+  <div class="main-wrap">
+    <div class="section-title">⚔️ 選擇關卡</div>
+    <div class="mode-toggle">
+      <button class="btn-mode active" id="btn-mc" onclick="setMode('mc')">🎯 選擇題</button>
+      <button class="btn-mode" id="btn-fill" onclick="setMode('fill')">✏️ 填空題</button>
+    </div>
+    <div class="stages-grid" id="stages-grid"></div>
+    <div class="section-title">📊 我的成績</div>
+    <div id="stats-area" style="background:var(--card);border-radius:var(--radius-card);padding:22px 24px;box-shadow:var(--shadow-card);">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center;">
+        <div>
+          <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:2rem;color:var(--blue)" id="stat-total">0</div>
+          <div style="font-size:.82rem;color:var(--text-light)">總題數</div>
+        </div>
+        <div>
+          <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:2rem;color:#27ae60" id="stat-correct">0</div>
+          <div style="font-size:.82rem;color:var(--text-light)">答對數</div>
+        </div>
+        <div>
+          <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:2rem;color:var(--orange)" id="stat-stars">0</div>
+          <div style="font-size:.82rem;color:var(--text-light)">總星星</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: QUIZ -->
+<div id="page-quiz" class="page">
+  <div class="main-wrap">
+    <div class="quiz-header">
+      <div class="quiz-stage-label" id="quiz-stage-label">初級</div>
+      <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quiz-prog" style="width:0%"></div></div>
+      <div class="quiz-score-badge">⭐ <span id="quiz-score">0</span></div>
+    </div>
+    <div class="quiz-card" id="quiz-card">
+      <div class="dot-grid" id="dot-grid"></div>
+      <div class="question-text" id="question-text">3 × 4 = ?</div>
+      <div class="question-hint" id="question-hint">用點點數數看！</div>
+      <div id="answer-area"></div>
+      <div class="feedback-msg" id="feedback-msg"></div>
+    </div>
+    <button class="btn-secondary" id="btn-quit-quiz" style="width:100%" onclick="goToStages()">← 回選關卡</button>
+  </div>
+</div>
+
+<!-- PAGE: RESULT -->
+<div id="page-result" class="page">
+  <div class="main-wrap">
+    <div class="result-card" id="result-card">
+      <span class="result-trophy" id="result-trophy">🏆</span>
+      <div class="result-title" id="result-title">太棒了！</div>
+      <div class="result-score-big" id="result-score-big">8/10</div>
+      <div class="result-stars" id="result-stars">⭐⭐⭐</div>
+      <div class="result-msg" id="result-msg"></div>
+      <div class="result-btns">
+        <button class="btn-secondary" onclick="replayStage()">🔄 再玩一次</button>
+        <button class="btn-primary" style="flex:1" onclick="goToStages()">🏠 選關卡</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENT OVERLAY -->
+<div class="achievement-overlay" id="achievement-overlay">
+  <div class="achievement-box">
+    <span class="achievement-emoji" id="ach-emoji">🎉</span>
+    <div class="achievement-title" id="ach-title">連對3題！</div>
+    <div class="achievement-desc" id="ach-desc">你太厲害了！繼續加油！</div>
+    <button class="btn-primary" style="width:100%" onclick="closeAch()">繼續 →</button>
+  </div>
+</div>
+
+<!-- CONFETTI -->
+<div class="confetti-container" id="confetti"></div>
+
+<script>
+// ===== STATE =====
+let playerName = '';
+let totalStars = 0;
+let totalAnswered = 0;
+let totalCorrect = 0;
+let mode = 'mc'; // mc | fill
+let currentStageIdx = 0;
+let questions = [];
+let qIdx = 0;
+let sessionScore = 0;
+let sessionTotal = 0;
+let consecutiveCorrect = 0;
+let answerLocked = false;
+let currentAnswer = 0;
+
+const STAGES = [
+  { name: '初級', emoji: '🥚', range: '×1 ~ ×5', tables: [1,2,3,4,5], unlock: 0 },
+  { name: '中級', emoji: '🐣', range: '×6 ~ ×9', tables: [6,7,8,9], unlock: 15 },
+  { name: '高級', emoji: '🐔', range: '×1 ~ ×9', tables: [1,2,3,4,5,6,7,8,9], unlock: 40 },
+];
+const stageProgress = [0, 0, 0]; // 0–100
+
+// ===== SAVE/LOAD =====
+function save() {
+  localStorage.setItem('mh_stars', totalStars);
+  localStorage.setItem('mh_answered', totalAnswered);
+  localStorage.setItem('mh_correct', totalCorrect);
+  localStorage.setItem('mh_progress', JSON.stringify(stageProgress));
+  localStorage.setItem('mh_name', playerName);
+}
+function load() {
+  totalStars = parseInt(localStorage.getItem('mh_stars') || '0');
+  totalAnswered = parseInt(localStorage.getItem('mh_answered') || '0');
+  totalCorrect = parseInt(localStorage.getItem('mh_correct') || '0');
+  const sp = localStorage.getItem('mh_progress');
+  if (sp) { const arr = JSON.parse(sp); arr.forEach((v,i) => stageProgress[i] = v); }
+  playerName = localStorage.getItem('mh_name') || '';
+}
+load();
+
+// ===== PAGES =====
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('main-nav').style.display = id === 'page-cover' ? 'none' : '';
+}
+
+function goToStages() {
+  renderStages();
+  updateStats();
+  showPage('page-stages');
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-mc').classList.toggle('active', m === 'mc');
+  document.getElementById('btn-fill').classList.toggle('active', m === 'fill');
+}
+
+// ===== START =====
+document.getElementById('btn-start').onclick = () => {
+  const n = document.getElementById('player-name').value.trim();
+  playerName = n || '小英雄';
+  save();
+  updateNav();
+  goToStages();
+};
+
+// ===== NAV =====
+function updateNav() {
+  document.getElementById('nav-star-num').textContent = totalStars;
+}
+document.getElementById('btn-dark').onclick = () => {
+  document.body.classList.toggle('dark');
+  document.getElementById('btn-dark').textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+};
+document.getElementById('btn-home').onclick = () => goToStages();
+
+// ===== STAGES =====
+function renderStages() {
+  const grid = document.getElementById('stages-grid');
+  grid.innerHTML = '';
+  STAGES.forEach((s, i) => {
+    const locked = totalStars < s.unlock;
+    const prog = stageProgress[i];
+    const starsEarned = Math.floor(prog / 34);
+    const starStr = '⭐'.repeat(starsEarned) + '☆'.repeat(3 - starsEarned);
+    grid.innerHTML += `
+      <div class="stage-card ${locked ? 'locked' : ''}" onclick="${locked ? '' : `startStage(${i})`}">
+        ${locked ? `<div class="lock-badge">🔒 ${s.unlock}⭐</div>` : ''}
+        <span class="stage-emoji">${s.emoji}</span>
+        <div class="stage-name">${s.name}</div>
+        <div class="stage-range">${s.range}</div>
+        <div class="stage-stars">${starStr}</div>
+        <div class="stage-progress"><div class="stage-progress-fill" style="width:${prog}%"></div></div>
+      </div>`;
+  });
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = totalAnswered;
+  document.getElementById('stat-correct').textContent = totalCorrect;
+  document.getElementById('stat-stars').textContent = totalStars;
+  updateNav();
+}
+
+// ===== GENERATE QUESTIONS =====
+function genQuestions(tables) {
+  let qs = [];
+  tables.forEach(t => {
+    for (let n = 1; n <= 9; n++) qs.push({ a: t, b: n, ans: t * n });
+  });
+  // shuffle, pick 10
+  for (let i = qs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [qs[i], qs[j]] = [qs[j], qs[i]];
+  }
+  return qs.slice(0, 10);
+}
+
+function genChoices(correct, max) {
+  const choices = new Set([correct]);
+  while (choices.size < 4) {
+    const delta = Math.floor(Math.random() * 20) - 10;
+    const c = Math.max(1, correct + delta);
+    if (c !== correct && c <= max) choices.add(c);
+  }
+  return [...choices].sort(() => Math.random() - .5);
+}
+
+// ===== START STAGE =====
+function startStage(idx) {
+  currentStageIdx = idx;
+  questions = genQuestions(STAGES[idx].tables);
+  qIdx = 0; sessionScore = 0; sessionTotal = 0; consecutiveCorrect = 0;
+  document.getElementById('quiz-stage-label').textContent = STAGES[idx].emoji + ' ' + STAGES[idx].name;
+  showPage('page-quiz');
+  renderQuestion();
+}
+
+// ===== RENDER QUESTION =====
+function renderQuestion() {
+  if (qIdx >= questions.length) { showResult(); return; }
+  answerLocked = false;
+  const q = questions[qIdx];
+  currentAnswer = q.ans;
+
+  // progress bar
+  document.getElementById('quiz-prog').style.width = (qIdx / questions.length * 100) + '%';
+  document.getElementById('quiz-score').textContent = sessionScore;
+
+  // dot grid
+  renderDots(q.a, q.b);
+
+  // question
+  document.getElementById('question-text').textContent = `${q.a} × ${q.b} = ?`;
+  document.getElementById('question-hint').textContent = `${q.a} 排，每排 ${q.b} 個，共幾個？`;
+
+  // feedback
+  const fb = document.getElementById('feedback-msg');
+  fb.className = 'feedback-msg'; fb.textContent = '';
+
+  // answer area
+  const area = document.getElementById('answer-area');
+  // Re-animate card
+  const card = document.getElementById('quiz-card');
+  card.style.animation = 'none';
+  void card.offsetWidth;
+  card.style.animation = 'popIn .35s cubic-bezier(.34,1.56,.64,1) both';
+
+  if (mode === 'mc') {
+    const choices = genChoices(q.ans, q.a * 9 + 20);
+    area.innerHTML = `<div class="choices-grid">
+      ${choices.map(c => `<button class="choice-btn" onclick="checkMC(${c}, this)">${c}</button>`).join('')}
+    </div>`;
+  } else {
+    area.innerHTML = `<div class="fill-area">
+      <input class="fill-input" id="fill-input" type="number" placeholder="?" min="1" max="99" autofocus>
+      <button class="btn-submit" onclick="checkFill()">確認 ✓</button>
+    </div>`;
+    const inp = document.getElementById('fill-input');
+    inp.focus();
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') checkFill(); });
+  }
+}
+
+function renderDots(rows, cols) {
+  const grid = document.getElementById('dot-grid');
+  // limit display for large numbers
+  if (rows * cols > 36) { grid.innerHTML = `<div style="font-size:1.8rem;">🔢</div>`; return; }
+  grid.innerHTML = '';
+  const colors = ['#4a90d9','#ff8c42','#27ae60','#9b59b6','#e74c3c'];
+  for (let r = 0; r < rows; r++) {
+    const row = document.createElement('div');
+    row.className = 'dot-row';
+    for (let c = 0; c < cols; c++) {
+      const d = document.createElement('div');
+      d.className = 'dot';
+      d.style.background = colors[r % colors.length];
+      d.style.animationDelay = (r * cols + c) * 0.03 + 's';
+      row.appendChild(d);
+    }
+    grid.appendChild(row);
+  }
+}
+
+// ===== CHECK ANSWERS =====
+function checkMC(val, btn) {
+  if (answerLocked) return;
+  answerLocked = true;
+  sessionTotal++;
+  totalAnswered++;
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach(b => b.disabled = true);
+  if (val === currentAnswer) {
+    btn.classList.add('correct');
+    onCorrect();
+  } else {
+    btn.classList.add('wrong');
+    btns.forEach(b => { if (parseInt(b.textContent) === currentAnswer) b.classList.add('correct'); });
+    onWrong();
+  }
+}
+
+function checkFill() {
+  if (answerLocked) return;
+  const inp = document.getElementById('fill-input');
+  const val = parseInt(inp.value);
+  if (isNaN(val) || inp.value === '') return;
+  answerLocked = true;
+  sessionTotal++;
+  totalAnswered++;
+  inp.disabled = true;
+  document.querySelector('.btn-submit').disabled = true;
+  if (val === currentAnswer) {
+    inp.classList.add('correct');
+    onCorrect();
+  } else {
+    inp.classList.add('wrong');
+    onWrong();
+  }
+}
+
+function onCorrect() {
+  sessionScore++;
+  totalCorrect++;
+  consecutiveCorrect++;
+  totalStars++;
+  updateNav(); save();
+  showFeedback(true);
+  if (consecutiveCorrect === 3) {
+    setTimeout(() => showAchievement('🔥', '連對3題！', `${playerName}，你真的很厲害！繼續保持！`), 400);
+  } else if (consecutiveCorrect === 5) {
+    setTimeout(() => showAchievement('⚡', '連對5題！', '超強的！你就是乘法小英雄！'), 400);
+  } else {
+    setTimeout(nextQ, 1200);
+  }
+}
+
+function onWrong() {
+  consecutiveCorrect = 0;
+  save();
+  showFeedback(false);
+  setTimeout(nextQ, 1800);
+}
+
+function showFeedback(ok) {
+  const fb = document.getElementById('feedback-msg');
+  if (ok) {
+    const msgs = ['太棒了！🎉', '答對囉！👏', '厲害！✨', '正確！🌟', '你好聰明！💪'];
+    fb.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+    fb.className = 'feedback-msg ok show';
+  } else {
+    fb.textContent = `再想想！正確答案是 ${currentAnswer} 喔 😊`;
+    fb.className = 'feedback-msg no show';
+  }
+}
+
+function nextQ() {
+  qIdx++;
+  renderQuestion();
+}
+
+// ===== RESULT =====
+function showResult() {
+  const pct = sessionScore / questions.length;
+  let trophy, title, msg, earned;
+  if (pct >= .9) { trophy = '🏆'; title = '完美！太厲害了！'; msg = '你已經是乘法小英雄啦！'; earned = 3; }
+  else if (pct >= .6) { trophy = '🥈'; title = '做得很好！'; msg = '再練習幾次就能拿滿分！'; earned = 2; }
+  else { trophy = '💪'; title = '繼續加油！'; msg = '不怕錯，練習就會進步！'; earned = 1; }
+
+  // update stage progress
+  const newProg = Math.min(100, stageProgress[currentStageIdx] + Math.round(pct * 50));
+  stageProgress[currentStageIdx] = newProg;
+  save();
+
+  document.getElementById('result-trophy').textContent = trophy;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-score-big').textContent = `${sessionScore}/${questions.length}`;
+  document.getElementById('result-stars').textContent = '⭐'.repeat(earned) + '☆'.repeat(3 - earned);
+  document.getElementById('result-msg').textContent = msg;
+  showPage('page-result');
+  if (pct >= .8) launchConfetti();
+}
+
+function replayStage() { startStage(currentStageIdx); }
+
+// ===== ACHIEVEMENT =====
+function showAchievement(emoji, title, desc) {
+  document.getElementById('ach-emoji').textContent = emoji;
+  document.getElementById('ach-title').textContent = title;
+  document.getElementById('ach-desc').textContent = desc;
+  document.getElementById('achievement-overlay').classList.add('show');
+  launchConfetti();
+}
+function closeAch() {
+  document.getElementById('achievement-overlay').classList.remove('show');
+  setTimeout(nextQ, 200);
+}
+
+// ===== CONFETTI =====
+function launchConfetti() {
+  const container = document.getElementById('confetti');
+  container.innerHTML = '';
+  const colors = ['#4a90d9','#ff8c42','#ffd54f','#27ae60','#e74c3c','#9b59b6'];
+  for (let i = 0; i < 55; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + 'vw';
+    piece.style.top = '-20px';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.width = (8 + Math.random() * 8) + 'px';
+    piece.style.height = (8 + Math.random() * 8) + 'px';
+    piece.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+    piece.style.animationDelay = Math.random() * .8 + 's';
+    piece.style.borderRadius = Math.random() > .5 ? '50%' : '2px';
+    container.appendChild(piece);
+  }
+  setTimeout(() => { container.innerHTML = ''; }, 4000);
+}
+
+// ===== INIT =====
+if (playerName) {
+  updateNav();
+  goToStages();
+}
+</script>
+</body>
+</html>

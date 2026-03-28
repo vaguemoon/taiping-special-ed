@@ -1,0 +1,3518 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>太平國小國字學習系統</title>
+<script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@400;700;900&display=swap');
+
+:root {
+  --blue:     #4a90d9;
+  --blue-dk:  #2d6fa8;
+  --blue-lt:  #e8f4fd;
+  --green:    #52c97a;
+  --green-dk: #389959;
+  --orange:   #ff8c42;
+  --red:      #e84444;
+  --purple:   #9b7fe8;
+  --yellow:   #ffd54f;
+  --bg:       #eef5fc;
+  --text:     #1e2d3d;
+  --muted:    #7a99b5;
+  --white:    #ffffff;
+  --radius:   22px;
+  --shadow:   0 6px 28px rgba(44,100,160,.13);
+  --shadow-lg:0 12px 48px rgba(44,100,160,.2);
+
+  /* 響應式格子大小
+     直式平板：取「畫面寬/2 - padding」與「可視高度 - UI」的較小值
+     橫式平板：有更多寬度可用 */
+  --grid: min(
+    calc((100vw - 80px) / 2),
+    calc(100vh - 320px),
+    420px
+  );
+}
+
+/* 在小螢幕（手機）上，格子改為整排顯示 */
+@media (max-width: 600px) {
+  :root {
+    --grid: min(calc(100vw - 48px), calc(100vh - 380px), 340px);
+  }
+}
+
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  background:var(--bg); color:var(--text);
+  height:100vh; overflow:hidden;
+}
+
+/* ══ 畫面切換 ══ */
+.app { position:relative; width:100vw; height:100vh; overflow:hidden; }
+.screen {
+  position:absolute; inset:0;
+  overflow-y:auto;
+  transition:transform .38s cubic-bezier(.77,0,.175,1), opacity .38s ease;
+  will-change:transform,opacity;
+}
+.screen.active { transform:translateX(0);    opacity:1;  pointer-events:all; }
+.screen.right  { transform:translateX(100%); opacity:.3; pointer-events:none; }
+.screen.left   { transform:translateX(-100%);opacity:.3; pointer-events:none; }
+
+/* ══ 頂部導覽列 ══ */
+.topbar {
+  background:var(--white); padding:11px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+  box-shadow:0 2px 12px rgba(0,0,0,.06);
+  position:sticky; top:0; z-index:50; gap:10px;
+}
+.topbar-left { display:flex; align-items:center; gap:10px; }
+.topbar-title { font-size:.95rem; font-weight:900; color:var(--blue-dk); }
+.topbar-title span { color:var(--orange); }
+.btn-back {
+  background:var(--blue-lt); border:none; border-radius:14px;
+  padding:10px 20px; font-size:1rem; font-weight:900;
+  color:var(--blue-dk); cursor:pointer; transition:all .15s;
+  font-family:'Nunito',sans-serif;
+  box-shadow:0 2px 8px rgba(74,144,217,.18);
+}
+.btn-back:active { transform:scale(.95); }
+/* star-badge removed */
+
+/* ══════════════════════════
+   畫面一：首頁
+══════════════════════════ */
+/* ══ 登入畫面 ══ */
+#screen-login {
+  background:linear-gradient(160deg,#1a3a5c 0%,#2d6fa8 60%,#4a90d9 100%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:100vh; padding:24px;
+}
+.login-logo {
+  text-align:center; margin-bottom:32px; color:white;
+}
+.login-logo-icon { font-size:4rem; margin-bottom:10px; }
+.login-school { font-size:.9rem; letter-spacing:2px; opacity:.8; margin-bottom:4px; }
+.login-title  { font-size:1.8rem; font-weight:900; }
+.login-title span { color:var(--yellow); }
+
+.login-card {
+  background:white; border-radius:var(--radius);
+  padding:28px 24px; box-shadow:0 16px 48px rgba(0,0,0,.25);
+  width:100%; max-width:380px;
+}
+.login-card-title {
+  font-size:1rem; font-weight:900; color:var(--blue-dk);
+  text-align:center; margin-bottom:20px;
+}
+.login-field { margin-bottom:16px; }
+.login-label {
+  font-size:.82rem; font-weight:800; color:var(--muted);
+  margin-bottom:6px; display:block;
+}
+.login-input {
+  width:100%; border:2.5px solid #d4e8f8; border-radius:12px;
+  padding:13px 16px; font-size:1.1rem;
+  font-family:'Noto Sans TC',sans-serif; outline:none;
+  transition:border-color .2s; color:var(--text);
+}
+.login-input:focus { border-color:var(--blue); }
+
+/* PIN 碼大按鍵 */
+.pin-display {
+  display:flex; gap:8px; justify-content:center; margin-bottom:16px;
+}
+.pin-dot {
+  width:18px; height:18px; border-radius:50%;
+  border:3px solid #c8d8ec; background:transparent;
+  transition:all .15s;
+}
+.pin-dot.filled { background:var(--blue); border-color:var(--blue); }
+
+.pin-pad {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:10px;
+  margin-bottom:16px;
+}
+.pin-btn {
+  padding:16px; border:2.5px solid #d4e8f8; border-radius:14px;
+  background:white; font-size:1.4rem; font-weight:900;
+  color:var(--text); cursor:pointer; transition:all .15s;
+  font-family:'Nunito',sans-serif;
+}
+.pin-btn:active { background:var(--blue-lt); transform:scale(.95); }
+.pin-btn-del {
+  background:#fff0f0; color:var(--red); border-color:#ffb3b3;
+  font-size:1.1rem;
+}
+.pin-btn-ok {
+  background:var(--green); color:white; border-color:var(--green);
+  font-size:1rem;
+}
+
+.btn-login {
+  width:100%; padding:14px; border:none; border-radius:14px;
+  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
+  color:white; font-size:1.05rem; font-weight:900;
+  cursor:pointer; transition:all .15s;
+  font-family:'Nunito',sans-serif;
+  box-shadow:0 4px 14px rgba(45,111,168,.35);
+  margin-top:4px;
+}
+.btn-login:active { transform:scale(.97); }
+.btn-login:disabled { background:#b0c8e8; cursor:not-allowed; box-shadow:none; }
+
+.login-error {
+  background:#fff0f0; color:var(--red); border-radius:10px;
+  padding:10px 14px; font-size:.88rem; font-weight:700;
+  text-align:center; margin-top:10px; display:none;
+}
+.login-error.show { display:block; }
+
+.login-switch {
+  text-align:center; margin-top:14px;
+  font-size:.85rem; font-weight:600; color:var(--muted);
+}
+.login-switch a {
+  color:var(--blue); font-weight:800; cursor:pointer; text-decoration:none;
+}
+
+/* 目前登入學生顯示 */
+.student-badge {
+  display:none; align-items:center; gap:8px;
+  background:var(--blue-lt); border-radius:20px; padding:5px 14px;
+  font-size:.85rem; font-weight:800; color:var(--blue-dk);
+  cursor:pointer;
+}
+.student-badge.show { display:flex; }
+
+#screen-home {
+  background:linear-gradient(160deg,#dbeeff 0%,#eef5fc 60%);
+  display:flex; flex-direction:column;
+}
+.home-hero { padding:40px 24px 24px; text-align:center; }
+.home-school { font-size:.95rem; font-weight:700; color:var(--muted); letter-spacing:2px; margin-bottom:8px; }
+.home-title  { font-size:1.9rem; font-weight:900; color:var(--blue-dk); line-height:1.3; }
+.home-title span { color:var(--orange); }
+.home-card {
+  background:var(--white); margin:0 18px 20px;
+  border-radius:var(--radius); padding:24px 20px; box-shadow:var(--shadow-lg);
+}
+.home-card-label { font-size:.82rem; font-weight:800; color:var(--muted); letter-spacing:1px; margin-bottom:12px; }
+.char-input-row { display:flex; flex-direction:column; gap:10px; }
+.char-input {
+  flex:1; border:2.5px solid #d4e8f8; border-radius:12px;
+  padding:12px 16px; font-size:1.2rem;
+  font-family:'Noto Sans TC',sans-serif; outline:none;
+  transition:border-color .2s; color:var(--text); letter-spacing:4px;
+}
+.char-input:focus { border-color:var(--blue); }
+.btn-start {
+  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
+  color:white; border:none; border-radius:12px;
+  padding:14px; font-size:1.05rem; font-weight:900;
+  cursor:pointer; transition:all .15s; width:100%;
+  font-family:'Nunito',sans-serif; box-shadow:0 4px 14px rgba(45,111,168,.35);
+}
+.btn-start:active { transform:scale(.96); }
+.home-tip {
+  background:#f0f8ff; border-radius:12px; padding:12px 16px;
+  font-size:.84rem; color:var(--muted); font-weight:600; line-height:1.7; margin-top:12px;
+}
+
+/* ══════════════════════════
+   畫面二：生字選單
+══════════════════════════ */
+#screen-menu { background:var(--bg); }
+.menu-body {
+  padding:16px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(130px,1fr));
+  gap:14px;
+}
+.char-card {
+  background:var(--white); border-radius:var(--radius);
+  padding:20px 12px 16px;
+  box-shadow:var(--shadow);
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  cursor:pointer;
+  transition:transform .18s, box-shadow .18s;
+  border:3px solid transparent; position:relative; overflow:hidden;
+  user-select:none;
+}
+.char-card:active { transform:scale(.93); }
+.char-card:hover  { transform:translateY(-4px); box-shadow:var(--shadow-lg); }
+.char-card.mastered  { border-color:var(--green); }
+.char-card.practiced { border-color:var(--yellow); }
+.char-card-glyph  { font-size:3.6rem; font-family:'Noto Serif TC',serif; font-weight:900; color:var(--text); line-height:1; }
+.char-card-status { font-size:.72rem; font-weight:800; padding:3px 10px; border-radius:20px; }
+.status-new       { background:var(--blue-lt); color:var(--blue-dk); }
+.status-practiced { background:#fff8e1; color:#b07800; }
+.status-mastered  { background:#e8f8ee; color:var(--green-dk); }
+.char-card-check  {
+  position:absolute; top:8px; right:8px;
+  width:20px; height:20px; border-radius:50%;
+  background:var(--green); color:white;
+  font-size:.68rem; font-weight:900;
+  display:none; align-items:center; justify-content:center;
+}
+.char-card.mastered .char-card-check { display:flex; }
+
+/* 點擊音效漣漪 */
+.char-card-ripple {
+  position:absolute; border-radius:50%;
+  background:rgba(74,144,217,.25);
+  animation:ripple .5s ease-out forwards;
+  pointer-events:none;
+}
+@keyframes ripple { 0%{transform:scale(0);opacity:1} 100%{transform:scale(4);opacity:0} }
+
+/* ══════════════════════════
+   畫面三：學習頁
+══════════════════════════ */
+#screen-learn {
+  background:var(--bg);
+  display:flex; flex-direction:column;
+  height:100%;
+}
+
+.mode-banner {
+  background:var(--white); padding:9px 16px;
+  display:flex; align-items:center; gap:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,.05);
+  flex-shrink:0;
+}
+.mode-icon  { font-size:1.5rem; }
+.mode-info-title { font-size:.95rem; font-weight:900; }
+.mode-info-sub   { font-size:.72rem; color:var(--muted); font-weight:600; }
+
+/* 捲動區：padding-bottom 留給底部按鈕 */
+.learn-body {
+  flex:1; overflow-y:auto;
+  padding:16px 16px 110px;
+  display:flex; flex-direction:column; align-items:center;
+}
+
+/* ══ 九宮格共用 ══ */
+.nine-grid {
+  width:var(--grid); height:var(--grid);
+  border:3px solid #c8d8ec; border-radius:18px;
+  background-color:white; flex-shrink:0;
+  background-image:
+    linear-gradient(to right,  rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to bottom, rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to right,  #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom, #c8d8ec 1px,transparent 1px);
+  background-size:
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    33.333% 33.333%,
+    33.333% 33.333%;
+}
+
+/* ══ 練習模式 ══ */
+/* ══ 練習面板：單格 + Tab 切換（手機友善） ══ */
+.practice-wrap {
+  display:flex; flex-direction:column; align-items:center;
+  gap:10px; width:100%;
+}
+.practice-col { display:flex; flex-direction:column; align-items:center; gap:8px; }
+.grid-label   { font-size:.82rem; font-weight:800; color:var(--muted); }
+
+/* Tab 列 */
+.practice-tab-bar {
+  display:flex; width:var(--grid); border-radius:14px; overflow:hidden;
+  border:2.5px solid #c8d8ec; background:#f5f9fd; flex-shrink:0;
+}
+.practice-tab {
+  flex:1; padding:12px 8px; border:none; background:transparent;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:.92rem; font-weight:800; color:var(--muted);
+  cursor:pointer; transition:all .2s; border-radius:11px;
+  display:flex; align-items:center; justify-content:center; gap:5px;
+}
+.practice-tab.active {
+  background:var(--blue); color:white;
+  box-shadow:0 2px 8px rgba(74,144,217,.35);
+}
+
+/* 單格容器：ref 和 quiz 疊放在同一位置 */
+.practice-grid-wrap {
+  position:relative; width:var(--grid); height:var(--grid); flex-shrink:0;
+}
+.practice-grid-wrap > * {
+  position:absolute; top:0; left:0;
+  width:var(--grid); height:var(--grid);
+  transition:opacity .25s ease;
+}
+.practice-grid-wrap > .hidden-panel { opacity:0; pointer-events:none; }
+
+/* 範例格 */
+#ref-target {
+  border:3px solid #c8d8ec; border-radius:18px;
+  background-color:white; overflow:visible;
+  background-image:
+    linear-gradient(to right,  rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to bottom, rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to right,  #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom, #c8d8ec 1px,transparent 1px);
+  background-size:
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    33.333% 33.333%, 33.333% 33.333%;
+}
+#ref-target > * { position:relative; z-index:1; }
+
+/* Quiz 格 */
+.quiz-box {
+  width:var(--grid); height:var(--grid);
+  border:3px solid #c8d8ec; border-radius:18px;
+  background-color:white; flex-shrink:0; position:relative;
+  cursor:crosshair;
+  background-image:
+    linear-gradient(to right,  rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to bottom, rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to right,  #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom, #c8d8ec 1px,transparent 1px);
+  background-size:
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    33.333% 33.333%, 33.333% 33.333%;
+}
+.quiz-box svg { border-radius:15px; }
+
+.btn-replay {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  padding:10px 0; border-radius:13px; border:none;
+  width:var(--grid); background:var(--blue); color:white;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:.92rem; font-weight:800; cursor:pointer; transition:all .15s;
+}
+.btn-replay:active { transform:scale(.97); background:var(--blue-dk); }
+
+/* 回饋框 */
+.feedback-box {
+  width:var(--grid);
+  border-radius:14px; padding:13px 14px;
+  font-size:1rem; font-weight:800; text-align:center;
+  min-height:72px; display:flex; align-items:center; justify-content:center;
+  line-height:1.6; transition:all .3s; border:3px solid transparent;
+}
+.fb-idle    { background:var(--blue-lt); color:var(--muted); border-color:#d0e8f8; }
+.fb-ok      { background:#e8f8ee; color:var(--green-dk); border-color:var(--green); }
+.fb-wrong   { background:#fff0f0; color:var(--red); border-color:#ffb3b3; }
+.fb-praise  { background:#fff8e1; color:#8a6200; border-color:var(--yellow); }
+.fb-big     { font-size:1.15rem; animation:popIn .4s cubic-bezier(.34,1.56,.64,1); }
+@keyframes popIn { 0%{transform:scale(.88);opacity:.5} 100%{transform:scale(1);opacity:1} }
+
+.btn-ctrl {
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  padding:11px 14px; border-radius:12px; border:none;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:.9rem; font-weight:800; cursor:pointer; transition:all .15s;
+}
+.btn-ctrl:active { transform:scale(.96); }
+.btn-clear { background:#fff3e0; color:var(--orange); }
+.btn-next  { background:var(--blue); color:white; }
+.btn-next:disabled { background:#b0c8e8; cursor:not-allowed; opacity:.7; }
+
+/* 閃光 */
+@keyframes flashGreen {
+  0%  { border-color:var(--green); box-shadow:0 0 0 0 rgba(82,201,122,.7); }
+  60% { box-shadow:0 0 0 18px rgba(82,201,122,0); }
+  100%{ border-color:#c8d8ec; box-shadow:none; }
+}
+@keyframes flashRed {
+  0%  { border-color:var(--red); box-shadow:0 0 0 0 rgba(232,68,68,.7); }
+  60% { box-shadow:0 0 0 18px rgba(232,68,68,0); }
+  100%{ border-color:#c8d8ec; box-shadow:none; }
+}
+.flash-green { animation:flashGreen .55s ease forwards; }
+.flash-red   { animation:flashRed   .55s ease forwards; }
+
+/* 練習控制列 */
+.practice-ctrl {
+  display:flex; gap:10px; width:var(--grid); margin-top:4px; flex-wrap:wrap;
+}
+.practice-ctrl .btn-ctrl { flex:1; min-width:100px; }
+
+/* ══ 默寫模式 ══ */
+.dict-wrap {
+  display:flex; flex-direction:column; align-items:center;
+  gap:14px; width:100%;
+}
+.dict-info {
+  background:var(--white); border-radius:14px; padding:14px 20px;
+  box-shadow:var(--shadow); width:100%; max-width:600px; text-align:center;
+}
+.dict-info-title { font-size:.95rem; font-weight:900; margin-bottom:4px; }
+.dict-info-sub   { font-size:.82rem; color:var(--muted); font-weight:600; line-height:1.7; }
+
+/* 默寫 Canvas 格 */
+.dict-canvas-wrap {
+  width:var(--grid); height:var(--grid);
+  border:3px solid #c8d8ec; border-radius:18px;
+  background-color:white; position:relative; overflow:hidden; flex-shrink:0;
+  background-image:
+    linear-gradient(to right,  rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to bottom, rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to right,  #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom, #c8d8ec 1px,transparent 1px);
+  background-size:
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    33.333% 33.333%,
+    33.333% 33.333%;
+}
+#dict-canvas {
+  display:block; touch-action:none; cursor:crosshair;
+  width:100%; height:100%;
+}
+
+/* 默寫控制列 */
+.dict-ctrl { display:flex; gap:10px; }
+
+/* 結果面板 */
+.result-panel {
+  display:none; flex-direction:column; align-items:center; gap:16px;
+  background:var(--white); border-radius:var(--radius);
+  padding:20px; box-shadow:var(--shadow); width:100%; max-width:600px;
+}
+.result-panel.show { display:flex; animation:popIn .4s cubic-bezier(.34,1.56,.64,1); }
+
+/* 默寫對照：左右並排 */
+/* 對照格：固定 140px，左右排列不換行 */
+.compare-wrap {
+  display:flex; gap:12px; align-items:flex-start;
+  justify-content:center; flex-wrap:nowrap; width:100%;
+}
+.compare-col {
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  flex-shrink:0;
+}
+.compare-lbl {
+  font-size:.78rem; font-weight:800; color:var(--muted);
+}
+.compare-student-wrap {
+  width:140px; height:140px;
+  border:3px solid #c8d8ec; border-radius:14px; overflow:hidden;
+  flex-shrink:0; background-color:white;
+  background-image:
+    linear-gradient(to right, rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to bottom,rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to right, #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom,#c8d8ec 1px,transparent 1px);
+  background-size:33.333% 33.333%, 33.333% 33.333%,
+                  33.333% 33.333%, 33.333% 33.333%;
+}
+#compare-student { display:block; width:140px; height:140px; }
+.compare-ref-wrap {
+  width:140px; height:140px;
+  border:3px solid #c8d8ec; border-radius:14px;
+  background-color:white; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background-image:
+    linear-gradient(to right, #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom,#c8d8ec 1px,transparent 1px);
+  background-size:33.333% 33.333%, 33.333% 33.333%;
+}
+#compare-ref {
+  font-family:'Noto Serif TC',serif; font-weight:900;
+  color:var(--text); line-height:1;
+  font-size:90px;
+}
+.compare-arrow {
+  font-size:1.4rem; color:var(--muted);
+  align-self:center; flex-shrink:0;
+}
+
+/* 自評按鈕 */
+.self-eval-title {
+  font-size:.92rem; font-weight:900; color:var(--text); text-align:center;
+}
+.self-eval-btns {
+  display:flex; gap:10px; flex-wrap:wrap; justify-content:center; width:100%;
+}
+.btn-eval {
+  flex:1; min-width:120px;
+  padding:20px 10px; border-radius:20px; border:none;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:1.3rem; font-weight:900; cursor:pointer; transition:all .15s;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  box-shadow:0 4px 16px rgba(0,0,0,.12);
+}
+.btn-eval:active { transform:scale(.93); }
+.btn-eval-icon  { font-size:2.6rem; }
+.btn-eval-great { background:#e8f8ee; color:var(--green-dk); border:3px solid var(--green); }
+.btn-eval-retry { background:#fff0f0; color:var(--red);      border:3px solid #ffb3b3; }
+
+.result-retry-btn {
+  padding:11px 22px; border-radius:12px; border:none;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:.92rem; font-weight:800; cursor:pointer; transition:all .15s;
+  background:#fff3e0; color:var(--orange);
+}
+.result-retry-btn:active { transform:scale(.96); }
+
+/* ══ 底部大按鈕（練習模式：全寬；默寫模式：右下角浮動） ══ */
+
+/* 練習模式：全寬底部列 */
+.bottom-bar {
+  position:fixed; bottom:0; left:0; right:0; z-index:60;
+  padding:10px 16px 16px;
+  background:linear-gradient(to top,rgba(238,245,252,1) 60%,rgba(238,245,252,0));
+  display:flex; flex-direction:column; gap:8px;
+}
+.btn-big {
+  width:100%; padding:16px;
+  border:none; border-radius:16px;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:1.15rem; font-weight:900; cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  box-shadow:0 5px 18px rgba(0,0,0,.14);
+}
+.btn-big:active { transform:scale(.97); }
+.btn-big-exam { background:linear-gradient(135deg,#c22,var(--red)); color:white; }
+.btn-big-prac { background:linear-gradient(135deg,var(--blue),var(--blue-dk)); color:white; }
+.btn-big-icon { font-size:1.5rem; }
+
+/* 默寫模式：右下角浮動小按鈕組 */
+.dict-float-bar {
+  position:fixed; bottom:20px; right:16px; z-index:60;
+  display:flex; flex-direction:column; gap:8px; align-items:flex-end;
+}
+.btn-float {
+  border:none; border-radius:50px;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-size:.88rem; font-weight:900; cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; gap:8px;
+  padding:11px 18px;
+  box-shadow:0 4px 16px rgba(0,0,0,.22);
+  white-space:nowrap;
+}
+.btn-float:active { transform:scale(.95); }
+.btn-float-submit { background:linear-gradient(135deg,#c22,var(--red)); color:white; }
+.btn-float-prac   { background:linear-gradient(135deg,var(--blue),var(--blue-dk)); color:white; }
+
+/* Toast */
+.toast {
+  position:fixed; top:70px; left:50%;
+  transform:translateX(-50%) translateY(-16px);
+  background:white; border-radius:20px; padding:12px 26px;
+  box-shadow:0 8px 30px rgba(0,0,0,.14);
+  font-size:1.05rem; font-weight:900;
+  opacity:0; transition:all .35s cubic-bezier(.34,1.56,.64,1);
+  z-index:300; pointer-events:none; white-space:nowrap;
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+@keyframes sparkle { 0%,100%{transform:scale(1)} 50%{transform:scale(1.3)} }
+
+/* ══ 個人資料頁面 ══ */
+#screen-profile { background:var(--bg); }
+.profile-topbar {
+  display:flex; align-items:center; gap:10px;
+  padding:14px 18px; background:white;
+  border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:10;
+}
+.profile-body { padding:20px 18px; max-width:480px; margin:0 auto; }
+
+/* 頭像選擇 */
+.avatar-grid {
+  display:grid; grid-template-columns:repeat(5,1fr); gap:10px;
+  margin-bottom:8px;
+}
+.avatar-btn {
+  font-size:2rem; border:3px solid transparent;
+  border-radius:14px; background:white; cursor:pointer;
+  padding:8px; transition:all .18s; line-height:1;
+  aspect-ratio:1;
+}
+.avatar-btn.selected {
+  border-color:var(--blue);
+  background:var(--blue-lt);
+  transform:scale(1.1);
+  box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+
+/* 等級卡 */
+.level-card {
+  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
+  border-radius:16px; padding:20px; color:white;
+  display:flex; align-items:center; gap:16px;
+  margin-bottom:16px;
+  box-shadow:0 6px 20px rgba(37,99,235,.3);
+}
+.level-icon { font-size:3rem; line-height:1; }
+.level-info { flex:1; }
+.level-title { font-size:1.2rem; font-weight:900; margin-bottom:2px; }
+.level-sub   { font-size:.8rem; opacity:.85; font-weight:600; }
+.level-progress {
+  height:10px; background:rgba(255,255,255,.25);
+  border-radius:20px; overflow:hidden; margin-top:10px;
+}
+.level-progress-fill {
+  height:100%; background:white; border-radius:20px;
+  transition:width .6s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* 成就格 */
+.achievement-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:10px;
+  margin-bottom:16px;
+}
+.achievement-item {
+  background:white; border-radius:14px; padding:14px;
+  border:1.5px solid var(--border);
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  box-shadow:var(--shadow);
+}
+.achievement-icon { font-size:1.8rem; }
+.achievement-num  { font-size:1.6rem; font-weight:900; color:var(--blue-dk); line-height:1; }
+.achievement-lbl  { font-size:.72rem; font-weight:700; color:var(--muted); text-align:center; }
+
+/* 個人資料卡 */
+.profile-card {
+  background:white; border-radius:14px; padding:18px;
+  border:1.5px solid var(--border); box-shadow:var(--shadow);
+  margin-bottom:16px;
+}
+.profile-card-title {
+  font-size:.82rem; font-weight:800; color:var(--muted);
+  margin-bottom:12px; letter-spacing:.5px;
+}
+.profile-input {
+  width:100%; border:2px solid var(--border); border-radius:10px;
+  padding:11px 14px; font-size:1rem; font-family:inherit;
+  outline:none; transition:border-color .2s; color:var(--text);
+  background:var(--bg);
+}
+.profile-input:focus { border-color:var(--blue); background:white; }
+.btn-profile-save {
+  width:100%; padding:13px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
+  color:white; font-size:1rem; font-weight:800;
+  cursor:pointer; font-family:inherit; transition:all .15s;
+  box-shadow:0 4px 12px rgba(37,99,235,.3);
+  margin-top:4px;
+}
+.btn-profile-save:active { transform:scale(.97); }
+
+/* 首頁頂部個人按鈕 */
+.btn-profile-entry {
+  display:flex; align-items:center; gap:6px;
+  padding:7px 12px; border-radius:20px;
+  background:var(--blue-lt); border:1.5px solid #bfdbfe;
+  cursor:pointer; font-family:inherit; font-size:.82rem;
+  font-weight:800; color:var(--blue-dk); transition:all .15s;
+}
+.btn-profile-entry:active { transform:scale(.96); }
+
+/* ══ 首頁課程選擇 ══ */
+.home-mode-row {
+  display:flex; gap:12px; margin:0 18px 16px; flex-wrap:wrap;
+}
+.home-mode-btn {
+  flex:1; min-width:130px;
+  background:white; border:2.5px solid var(--border);
+  border-radius:var(--radius); padding:16px 12px;
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  cursor:pointer; transition:all .18s; font-family:inherit;
+}
+.home-mode-btn:active { transform:scale(.96); }
+.home-mode-btn-active {
+  border-color:var(--blue); background:var(--blue-lt);
+  box-shadow:0 0 0 3px rgba(74,144,217,.15);
+}
+.home-mode-icon  { font-size:1.8rem; }
+.home-mode-title { font-size:.95rem; font-weight:900; color:var(--text); }
+.home-mode-sub   { font-size:.72rem; font-weight:600; color:var(--muted); }
+
+.curriculum-select {
+  width:100%; border:2px solid #d4e8f8; border-radius:10px;
+  padding:11px 14px; font-size:.95rem; font-family:'Noto Sans TC',sans-serif;
+  outline:none; background:white; color:var(--text);
+  transition:border-color .2s;
+}
+.curriculum-select:focus { border-color:var(--blue); }
+
+.lesson-chars-chip {
+  display:inline-flex; align-items:center; gap:4px;
+  background:var(--blue-lt); border:1.5px solid #bfdbfe;
+  border-radius:8px; padding:5px 12px;
+  font-size:1.1rem; font-family:'Noto Serif TC',serif;
+  font-weight:900; letter-spacing:4px; color:var(--text);
+}
+
+/* 教師入口 input placeholder */
+#teacher-pwd::placeholder { color:rgba(255,255,255,.45); }
+#teacher-pwd:focus { border-color:rgba(255,255,255,.7) !important; }
+
+/* ══ 輪次結算面板 ══ */
+.round-section {
+  width:100%; margin-bottom:8px;
+}
+.round-section-title {
+  font-size:.92rem; font-weight:900; padding:8px 14px;
+  border-radius:10px; margin-bottom:10px; text-align:center;
+}
+.round-pass-title { background:#e8f8ee; color:var(--green-dk); }
+.round-fail-title { background:#fff0f0; color:var(--red); }
+
+/* ══ 測驗語音按鈕 ══ */
+.exam-voice-wrap {
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  margin:4px 0 16px;
+}
+.btn-exam-voice {
+  display:flex; align-items:center; gap:12px;
+  background:linear-gradient(135deg,var(--blue),var(--blue-dk));
+  color:white; border:none; border-radius:20px;
+  padding:16px 36px; cursor:pointer; transition:all .15s;
+  box-shadow:0 4px 16px rgba(74,144,217,.4);
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+}
+.btn-exam-voice:active { transform:scale(.95); }
+.btn-exam-voice.playing { background:linear-gradient(135deg,#389959,#52c97a); }
+.exam-voice-icon  { font-size:2rem; }
+.exam-voice-label { font-size:1.1rem; font-weight:900; }
+.exam-voice-hint  { font-size:.8rem; font-weight:700; color:var(--muted); }
+
+/* ══ 生字選單進度概覽列 ══ */
+.menu-progress-bar {
+  margin:12px 16px 0;
+  background:white; border-radius:14px;
+  padding:14px 16px; box-shadow:var(--shadow);
+}
+.menu-progress-title {
+  font-size:.8rem; font-weight:800; color:var(--muted);
+  margin-bottom:10px;
+}
+.progress-track {
+  height:14px; background:#eef2f8; border-radius:20px;
+  overflow:hidden; display:flex;
+}
+.progress-seg {
+  height:100%; transition:width .6s cubic-bezier(.34,1.56,.64,1);
+}
+.progress-seg.mastered  { background:var(--green); }
+.progress-seg.practiced { background:var(--yellow); }
+.progress-seg.new       { background:#d0e4f5; }
+.progress-counts {
+  display:flex; gap:12px; margin-top:8px; flex-wrap:wrap;
+}
+.progress-count-item {
+  display:flex; align-items:center; gap:5px;
+  font-size:.78rem; font-weight:800;
+}
+.progress-count-dot {
+  width:10px; height:10px; border-radius:50%; flex-shrink:0;
+}
+
+/* ══ 生字選單底部測驗按鈕 ══ */
+.menu-exam-bar {
+  position:sticky; bottom:0;
+  padding:10px 16px 20px;
+  background:linear-gradient(to top,rgba(238,245,252,1) 60%,rgba(238,245,252,0));
+}
+
+/* 全部完成後測驗按鈕：閃爍 + 持續呼吸 */
+@keyframes examBtnPulse {
+  0%   { transform:scale(1);    box-shadow:0 5px 18px rgba(0,0,0,.14); }
+  30%  { transform:scale(1.04); box-shadow:0 0 0 10px rgba(255,180,0,.5), 0 0 32px rgba(255,140,0,.55); }
+  60%  { transform:scale(1);    box-shadow:0 0 0 20px rgba(255,180,0,0); }
+  100% { transform:scale(1);    box-shadow:0 5px 18px rgba(0,0,0,.14); }
+}
+@keyframes examBtnBreath {
+  0%,100% { transform:scale(1);    box-shadow:0 5px 18px rgba(0,0,0,.14); }
+  50%     { transform:scale(1.03); box-shadow:0 0 24px rgba(255,140,0,.5); }
+}
+@keyframes examBtnShine {
+  0%,100% { background:linear-gradient(135deg,#c22,var(--red)); }
+  50%     { background:linear-gradient(135deg,#ff6b00,#ffb300); }
+}
+/* 閃爍 3 次後轉呼吸 */
+.btn-exam-pulse {
+  animation:examBtnPulse 0.7s ease 3, examBtnShine 0.7s ease 3;
+}
+.btn-exam-breathe {
+  animation:examBtnBreath 1.8s ease-in-out infinite,
+            examBtnShine  3.6s ease-in-out infinite;
+}
+
+/* ══ 測驗畫面 ══ */
+.exam-progress-bar-wrap {
+  height:8px; background:#dde8f5; flex-shrink:0;
+}
+.exam-progress-fill {
+  height:100%; background:linear-gradient(90deg,var(--blue),var(--purple,#9b7fe8));
+  transition:width .4s ease; border-radius:0 4px 4px 0;
+}
+.exam-q-header {
+  text-align:center; margin-bottom:14px;
+}
+.exam-q-num {
+  font-size:1rem; font-weight:900; color:var(--blue-dk); margin-bottom:4px;
+}
+.exam-q-hint {
+  font-size:.82rem; font-weight:600; color:var(--muted);
+}
+
+/* 成績單 */
+.exam-score-header {
+  text-align:center; padding:20px 0 16px;
+}
+.exam-score-icon  { font-size:3.5rem; margin-bottom:8px; }
+.exam-score-title { font-size:1.5rem; font-weight:900; color:var(--text); margin-bottom:6px; }
+.exam-score-sub   { font-size:.95rem; font-weight:700; color:var(--muted); }
+
+.exam-score-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(80px,1fr));
+  gap:8px; width:100%; margin-bottom:8px;
+}
+.exam-score-item {
+  background:white; border-radius:12px;
+  padding:10px 6px 8px;
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  box-shadow:0 2px 10px rgba(44,100,160,.1); border:2.5px solid transparent;
+}
+.exam-score-item.pass   { border-color:var(--green); }
+.exam-score-item.ok     { border-color:var(--yellow); }
+.exam-score-item.fail   { border-color:#ffb3b3; }
+.exam-score-item.skip   { border-color:#c8d8ec; opacity:.7; }
+.exam-score-glyph { font-size:2rem; font-family:'Noto Serif TC',serif; font-weight:900; line-height:1; }
+.exam-score-stars { font-size:1rem; letter-spacing:2px; }
+.exam-score-label { font-size:.65rem; font-weight:800; padding:2px 7px; border-radius:20px; }
+.label-pass   { background:#e8f8ee; color:var(--green-dk); }
+.label-ok     { background:#fff8e1; color:#b07800; }
+.label-fail   { background:#fff0f0; color:var(--red); }
+.label-skip   { background:#f0f4f8; color:var(--muted); }
+
+
+/* ══ 模式選擇畫面（畫面二點字後出現） ══ */
+#screen-mode {
+  background:var(--bg);
+  display:flex; flex-direction:column;
+}
+.mode-select-body {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:24px 20px; gap:20px;
+}
+.mode-select-char {
+  font-size:6rem; font-family:'Noto Serif TC',serif; font-weight:900;
+  color:var(--text); line-height:1;
+  background:white; border-radius:var(--radius);
+  width:160px; height:160px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:var(--shadow-lg);
+  border:3px solid #c8d8ec;
+}
+.mode-select-hint {
+  font-size:1rem; font-weight:700; color:var(--muted); text-align:center;
+}
+.mode-select-btns {
+  display:flex; gap:16px; flex-wrap:wrap; justify-content:center; width:100%;
+}
+.btn-mode-select {
+  flex:1; min-width:140px; max-width:220px;
+  padding:22px 16px; border-radius:20px; border:none;
+  font-family:'Nunito','Noto Sans TC',sans-serif;
+  font-weight:900; cursor:pointer; transition:all .15s;
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  box-shadow:var(--shadow);
+}
+.btn-mode-select:active { transform:scale(.95); }
+.btn-mode-select-icon { font-size:2.8rem; }
+.btn-mode-select-title { font-size:1.2rem; }
+.btn-mode-select-sub   { font-size:.78rem; font-weight:700; opacity:.75; }
+.btn-mode-prac { background:linear-gradient(135deg,#e8f4fd,#c8dff5); color:var(--blue-dk); border:3px solid var(--blue); }
+.btn-mode-exam { background:linear-gradient(135deg,#fff0e0,#ffd5b0); color:#b05000; border:3px solid var(--orange); }
+
+/* ══ 測驗模式特有樣式 ══ */
+/* 測驗 quiz 格：完全不顯示輪廓，讓學生靠記憶 */
+.exam-box {
+  width:var(--grid); height:var(--grid);
+  border:3px solid #c8d8ec; border-radius:18px;
+  background-color:white; flex-shrink:0; position:relative;
+  cursor:crosshair;
+  /* 九宮格 */
+  background-image:
+    linear-gradient(to right,  rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to bottom, rgba(200,216,236,.45) 1px,transparent 1px),
+    linear-gradient(to right,  #c8d8ec 1px,transparent 1px),
+    linear-gradient(to bottom, #c8d8ec 1px,transparent 1px);
+  background-size:
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    calc(var(--grid)/9) calc(var(--grid)/9),
+    33.333% 33.333%, 33.333% 33.333%;
+  /* SVG 置中 */
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+.exam-box svg {
+  border-radius:15px;
+  position:absolute;
+  top:50% !important; left:50% !important;
+  transform:translate(-50%,-50%) !important;
+}
+
+/* 測驗結果卡 */
+.exam-result-card {
+  display:none; flex-direction:column; align-items:center; gap:14px;
+  background:white; border-radius:var(--radius);
+  padding:24px 20px; box-shadow:var(--shadow-lg);
+  width:100%; max-width:500px;
+  animation:popIn .4s cubic-bezier(.34,1.56,.64,1);
+}
+.exam-result-card.show { display:flex; }
+.exam-result-icon { font-size:4rem; }
+.exam-result-title { font-size:1.4rem; font-weight:900; text-align:center; }
+.exam-result-detail { font-size:.92rem; font-weight:700; color:var(--muted); text-align:center; }
+.exam-result-pass { color:var(--green-dk); }
+.exam-result-fail { color:var(--red); }
+.exam-mistake-bar {
+  width:100%; background:#f0f4f8; border-radius:12px; padding:12px 16px;
+  font-size:.88rem; font-weight:800; color:var(--text); text-align:center;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ 畫面零：登入 ══ -->
+<div class="screen active" id="screen-login">
+  <div class="login-logo">
+    <div class="login-logo-icon">✏️</div>
+    <div class="login-school">臺東縣太平國小</div>
+    <div class="login-title">國字<span>學習</span>系統</div>
+  </div>
+
+  <div class="login-card">
+    <!-- 登入表單 -->
+    <div id="login-form-wrap">
+      <div class="login-card-title">👤 學生登入</div>
+      <div class="login-field">
+        <label class="login-label">姓名</label>
+        <input class="login-input" id="login-name" type="text"
+          placeholder="請輸入你的名字" maxlength="10"
+          oninput="onLoginNameInput()">
+      </div>
+      <div class="login-field">
+        <label class="login-label">PIN 碼（4位數字）</label>
+        <div class="pin-display" id="pin-display">
+          <div class="pin-dot" id="pd0"></div>
+          <div class="pin-dot" id="pd1"></div>
+          <div class="pin-dot" id="pd2"></div>
+          <div class="pin-dot" id="pd3"></div>
+        </div>
+        <div class="pin-pad">
+          <button class="pin-btn" onclick="pinInput('1')">1</button>
+          <button class="pin-btn" onclick="pinInput('2')">2</button>
+          <button class="pin-btn" onclick="pinInput('3')">3</button>
+          <button class="pin-btn" onclick="pinInput('4')">4</button>
+          <button class="pin-btn" onclick="pinInput('5')">5</button>
+          <button class="pin-btn" onclick="pinInput('6')">6</button>
+          <button class="pin-btn" onclick="pinInput('7')">7</button>
+          <button class="pin-btn" onclick="pinInput('8')">8</button>
+          <button class="pin-btn" onclick="pinInput('9')">9</button>
+          <button class="pin-btn pin-btn-del" onclick="pinDelete()">⌫</button>
+          <button class="pin-btn" onclick="pinInput('0')">0</button>
+          <button class="pin-btn pin-btn-ok" onclick="doLogin()">✓</button>
+        </div>
+      </div>
+      <button class="btn-login" id="btn-login" onclick="doLogin()" disabled>登　入</button>
+      <div class="login-error" id="login-error"></div>
+      <div class="login-switch">
+        第一次使用？<a onclick="showRegister()">點這裡註冊</a>
+      </div>
+    </div>
+
+    <!-- 註冊表單 -->
+    <div id="register-form-wrap" style="display:none">
+      <div class="login-card-title">📝 新學生註冊</div>
+      <div class="login-field">
+        <label class="login-label">姓名</label>
+        <input class="login-input" id="reg-name" type="text"
+          placeholder="請輸入你的名字" maxlength="10">
+      </div>
+      <div class="login-field">
+        <label class="login-label">設定 PIN 碼（4位數字）</label>
+        <div class="pin-display" id="reg-pin-display">
+          <div class="pin-dot" id="rpd0"></div>
+          <div class="pin-dot" id="rpd1"></div>
+          <div class="pin-dot" id="rpd2"></div>
+          <div class="pin-dot" id="rpd3"></div>
+        </div>
+        <div class="pin-pad">
+          <button class="pin-btn" onclick="regPinInput('1')">1</button>
+          <button class="pin-btn" onclick="regPinInput('2')">2</button>
+          <button class="pin-btn" onclick="regPinInput('3')">3</button>
+          <button class="pin-btn" onclick="regPinInput('4')">4</button>
+          <button class="pin-btn" onclick="regPinInput('5')">5</button>
+          <button class="pin-btn" onclick="regPinInput('6')">6</button>
+          <button class="pin-btn" onclick="regPinInput('7')">7</button>
+          <button class="pin-btn" onclick="regPinInput('8')">8</button>
+          <button class="pin-btn" onclick="regPinInput('9')">9</button>
+          <button class="pin-btn pin-btn-del" onclick="regPinDelete()">⌫</button>
+          <button class="pin-btn" onclick="regPinInput('0')">0</button>
+          <button class="pin-btn pin-btn-ok" onclick="doRegister()">✓</button>
+        </div>
+      </div>
+      <button class="btn-login" id="btn-register" onclick="doRegister()">註　冊</button>
+      <div class="login-error" id="register-error"></div>
+      <div class="login-switch">
+        已有帳號？<a onclick="showLogin()">點這裡登入</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 教師入口（低調放在卡片下方） -->
+  <div style="margin-top:16px;text-align:center">
+    <a onclick="toggleTeacherEntry()" style="font-size:.78rem;font-weight:700;color:rgba(255,255,255,.5);cursor:pointer;text-decoration:none;letter-spacing:.5px">
+      🏫 教師入口
+    </a>
+  </div>
+
+  <!-- 教師密碼輸入（預設隱藏） -->
+  <div id="teacher-entry" style="display:none;margin-top:10px;width:100%;max-width:380px">
+    <div style="background:rgba(255,255,255,.12);border-radius:14px;padding:16px 18px;backdrop-filter:blur(8px)">
+      <div style="font-size:.82rem;font-weight:800;color:rgba(255,255,255,.8);margin-bottom:10px">🔐 教師密碼</div>
+      <div style="display:flex;gap:8px">
+        <input id="teacher-pwd" type="password"
+          placeholder="請輸入管理員密碼"
+          style="flex:1;border:1.5px solid rgba(255,255,255,.3);border-radius:10px;padding:10px 12px;background:rgba(255,255,255,.15);color:white;font-size:.95rem;font-family:inherit;outline:none"
+          onkeydown="if(event.key==='Enter')doTeacherLogin()"
+          oninput="this.style.borderColor='rgba(255,255,255,.3)'">
+        <button onclick="doTeacherLogin()"
+          style="padding:10px 16px;border:none;border-radius:10px;background:rgba(255,255,255,.25);color:white;font-size:.9rem;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap">
+          進入 →
+        </button>
+      </div>
+      <div id="teacher-error" style="display:none;color:#fca5a5;font-size:.8rem;font-weight:700;margin-top:8px">密碼錯誤，請再試一次。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 畫面一：首頁 ══ -->
+<!-- ══ 個人資料頁面 ══ -->
+<div class="screen right" id="screen-profile">
+  <div class="profile-topbar">
+    <button class="btn-back" onclick="goTo('home')">← 返回</button>
+    <div style="font-size:1rem;font-weight:900;color:var(--blue-dk)">我的資料</div>
+  </div>
+  <div class="profile-body">
+
+    <!-- 等級卡 -->
+    <div class="level-card" id="profile-level-card">
+      <div class="level-icon" id="profile-level-icon">🌱</div>
+      <div class="level-info">
+        <div class="level-title" id="profile-level-title">識字新手</div>
+        <div class="level-sub"  id="profile-level-sub">通過測驗 0 個字</div>
+        <div class="level-progress">
+          <div class="level-progress-fill" id="profile-level-bar" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 成就 -->
+    <div class="achievement-grid">
+      <div class="achievement-item">
+        <div class="achievement-icon">🏆</div>
+        <div class="achievement-num" id="ach-mastered">0</div>
+        <div class="achievement-lbl">通過測驗<br>的字</div>
+      </div>
+      <div class="achievement-item">
+        <div class="achievement-icon">✏️</div>
+        <div class="achievement-num" id="ach-practiced">0</div>
+        <div class="achievement-lbl">通過練習<br>的字</div>
+      </div>
+      <div class="achievement-item">
+        <div class="achievement-icon">📚</div>
+        <div class="achievement-num" id="ach-lessons">0</div>
+        <div class="achievement-lbl">完成的<br>課程數</div>
+      </div>
+      <div class="achievement-item">
+        <div class="achievement-icon">🔥</div>
+        <div class="achievement-num" id="ach-streak">0</div>
+        <div class="achievement-lbl">連續學習<br>天數</div>
+      </div>
+    </div>
+
+    <!-- 個人資料 -->
+    <div class="profile-card">
+      <div class="profile-card-title">👤 基本資料</div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:.78rem;font-weight:800;color:var(--muted);display:block;margin-bottom:5px">真實姓名（不可修改）</label>
+        <div style="padding:11px 14px;border-radius:10px;background:#f1f5f9;font-size:1rem;font-weight:700;color:var(--gray)" id="profile-real-name">—</div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:.78rem;font-weight:800;color:var(--muted);display:block;margin-bottom:5px">我的暱稱</label>
+        <input class="profile-input" id="profile-nickname" type="text" maxlength="10" placeholder="幫自己取個名字吧！">
+      </div>
+    </div>
+
+    <!-- 頭像選擇 -->
+    <div class="profile-card">
+      <div class="profile-card-title">🎨 選擇頭像</div>
+      <div class="avatar-grid" id="avatar-grid"></div>
+    </div>
+
+    <!-- 音效開關 -->
+    <div class="profile-card">
+      <div class="profile-card-title">🔊 音效設定</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:.92rem;font-weight:800;color:var(--text)">練習音效</div>
+          <div style="font-size:.75rem;color:var(--muted);font-weight:600;margin-top:2px">關閉後練習時不會有聲音</div>
+        </div>
+        <button id="sound-toggle-btn" onclick="toggleSound()"
+          style="width:56px;height:30px;border-radius:20px;border:none;cursor:pointer;
+                 position:relative;transition:background .25s;font-size:0">
+          <div id="sound-toggle-knob"
+            style="position:absolute;top:3px;width:24px;height:24px;border-radius:50%;
+                   background:white;transition:left .25s;box-shadow:0 2px 4px rgba(0,0,0,.2)">
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- 主題色系 -->
+    <div class="profile-card">
+      <div class="profile-card-title">🎨 主題色系</div>
+      <div id="theme-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"></div>
+    </div>
+
+    <button class="btn-profile-save" onclick="saveProfile()">💾 儲存資料</button>
+    <div style="height:32px"></div>
+  </div>
+</div>
+
+<div class="screen right" id="screen-home">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">✏️ 太平國小<span>國字學習</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-profile-entry" id="btn-profile-entry" onclick="goTo('profile')">
+        <span id="home-avatar-display">🐣</span>
+      </button>
+      <div class="student-badge" id="student-badge" onclick="confirmLogout()">
+        <span style="font-size:.85rem;font-weight:800">登出</span>
+      </div>
+    </div>
+  </div>
+  <div class="home-hero">
+    <div class="home-school">臺東縣太平國小</div>
+    <div class="home-title">國字<span>學習</span>系統</div>
+  </div>
+  <!-- 選擇課程或自由輸入 -->
+  <div class="home-mode-row">
+    <button class="home-mode-btn home-mode-btn-active" id="hm-curriculum" onclick="switchHomeMode('curriculum')">
+      <span class="home-mode-icon">📚</span>
+      <span class="home-mode-title">選擇課程</span>
+      <span class="home-mode-sub">從課本選課文</span>
+    </button>
+    <button class="home-mode-btn" id="hm-free" onclick="switchHomeMode('free')">
+      <span class="home-mode-icon">✏️</span>
+      <span class="home-mode-title">自由練習</span>
+      <span class="home-mode-sub">老師指定生字</span>
+    </button>
+  </div>
+
+  <!-- 選擇課程 -->
+  <div class="home-card" id="home-panel-curriculum">
+    <div class="home-card-label">📚 選擇今天的課程</div>
+    <div style="margin-bottom:10px">
+      <select class="curriculum-select" id="sel-version" onchange="onVersionChange()">
+        <option value="">— 載入中 —</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <select class="curriculum-select" id="sel-book" onchange="onBookChange()" style="flex:1">
+        <option value="">— 選擇冊 —</option>
+      </select>
+      <select class="curriculum-select" id="sel-lesson" onchange="onLessonChange()" style="flex:2">
+        <option value="">— 選擇課 —</option>
+      </select>
+    </div>
+    <div id="lesson-chars-preview" style="min-height:36px;margin-bottom:10px"></div>
+    <button class="btn-start" id="btn-start-curriculum" onclick="startCurriculumLesson()" disabled
+      style="opacity:.5;cursor:not-allowed">開始上課 →</button>
+  </div>
+
+  <!-- 自由輸入 -->
+  <div class="home-card" id="home-panel-free" style="display:none">
+    <div class="home-card-label">📝 請輸入今天要學的字</div>
+    <div class="char-input-row">
+      <input class="char-input" id="char-input" type="text"
+        placeholder="例如：山水火土木" maxlength="20" value="">
+      <button class="btn-start" onclick="startLesson()">開始上課 →</button>
+    </div>
+    <div class="home-tip">💡 直接輸入漢字，最多 20 個字，按「開始上課」進入學習。</div>
+  </div>
+</div>
+
+<!-- ══ 畫面二：生字選單 ══ -->
+<div class="screen right" id="screen-menu">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn-back" onclick="goTo('home')">← 返回</button>
+      <div class="topbar-title">今天的<span>生字</span></div>
+    </div>
+  </div>
+  <!-- 進度概覽列 -->
+  <div class="menu-progress-bar" id="menu-progress-bar">
+    <div class="menu-progress-title">📊 今日學習進度</div>
+    <div class="progress-track">
+      <div class="progress-seg mastered"  id="prog-mastered"  style="width:0%"></div>
+      <div class="progress-seg practiced" id="prog-practiced" style="width:0%"></div>
+      <div class="progress-seg new"       id="prog-new"       style="width:100%"></div>
+    </div>
+    <div class="progress-counts" id="prog-counts"></div>
+  </div>
+
+  <div class="menu-body" id="menu-body"></div>
+  <!-- 測驗按鈕 -->
+  <div class="menu-exam-bar">
+    <button class="btn-big btn-big-exam" id="btn-start-exam" onclick="startFullExam()">
+      <span class="btn-big-icon">📝</span><span>開始今日測驗</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══ 測驗畫面 ══ -->
+<div class="screen right" id="screen-exam">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn-back" onclick="abortExam()">✕ 結束測驗</button>
+      <div class="topbar-title" id="exam-topbar-title">今日測驗</div>
+    </div>
+  </div>
+
+  <!-- 題目進度列 -->
+  <div class="exam-progress-bar-wrap">
+    <div class="exam-progress-fill" id="exam-progress-fill"></div>
+  </div>
+
+  <div class="learn-body" id="exam-body">
+
+    <!-- 出題區 -->
+    <div id="exam-question-panel">
+      <div class="exam-q-header">
+        <div class="exam-q-num" id="exam-q-num">第 1 題 / 共 5 題</div>
+        <div class="exam-q-hint">仔細聽，把你聽到的字寫出來</div>
+      </div>
+
+      <!-- 語音提示區 -->
+      <div class="exam-voice-wrap">
+        <button class="btn-exam-voice" id="btn-exam-voice" onclick="playExamVoice()">
+          <span class="exam-voice-icon">🔊</span>
+          <span class="exam-voice-label">再聽一次</span>
+        </button>
+        <div class="exam-voice-hint">按按鈕聽題目</div>
+      </div>
+
+      <!-- 完全空白九宮格 -->
+      <div class="exam-box" id="exam-quiz-target"></div>
+      <button class="btn-ctrl btn-clear" style="margin-top:10px;width:var(--grid)" onclick="skipExamChar()">
+        ⏭ 我不會，跳過
+      </button>
+    </div>
+
+    <!-- 輪次結算面板（每輪結束後顯示，最終輪除外） -->
+    <div id="exam-round-panel" style="display:none">
+      <div class="exam-score-header">
+        <div class="exam-score-icon" id="round-icon">📊</div>
+        <div class="exam-score-title" id="round-title">第 1 輪結算</div>
+        <div class="exam-score-sub" id="round-sub"></div>
+      </div>
+
+      <!-- 答對的字 -->
+      <div class="round-section" id="round-pass-section">
+        <div class="round-section-title round-pass-title">✅ 這些字答對了！</div>
+        <div class="exam-score-grid" id="round-pass-grid"></div>
+      </div>
+
+      <!-- 需要再練的字 -->
+      <div class="round-section" id="round-fail-section">
+        <div class="round-section-title round-fail-title">💪 這些字要再練！</div>
+        <div class="exam-score-grid" id="round-fail-grid"></div>
+      </div>
+
+      <button class="btn-big btn-big-exam" id="btn-next-round" onclick="doStartNextRound()"
+        style="margin-top:8px">
+        <span class="btn-big-icon">▶</span>
+        <span id="btn-next-round-label">開始第 2 輪</span>
+      </button>
+    </div>
+
+    <!-- 成績單（全部作答後顯示） -->
+    <div id="exam-result-panel" style="display:none">
+      <div class="exam-score-header">
+        <div class="exam-score-icon" id="exam-score-icon">🎉</div>
+        <div class="exam-score-title" id="exam-score-title">測驗完成！</div>
+        <div class="exam-score-sub" id="exam-score-sub"></div>
+      </div>
+      <div class="exam-score-grid" id="exam-score-grid"></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:8px">
+        <button class="btn-big btn-big-prac" style="max-width:260px" onclick="goTo('menu')">
+          <span class="btn-big-icon">📋</span><span>回到生字選單</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+
+</div>
+
+<!-- ══ 畫面二點五：模式選擇 ══ -->
+<div class="screen right" id="screen-mode">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn-back" onclick="goTo('menu')">← 返回</button>
+      <div class="topbar-title" id="mode-select-title">選擇模式</div>
+    </div>
+  </div>
+  <div class="mode-select-body">
+    <div class="mode-select-char" id="mode-select-char"></div>
+    <div class="mode-select-hint">請選擇要做什麼</div>
+    <div class="mode-select-btns">
+      <button class="btn-mode-select btn-mode-prac" onclick="enterPracticeMode()">
+        <span class="btn-mode-select-icon">✏️</span>
+        <span class="btn-mode-select-title">練　習</span>
+        <span class="btn-mode-select-sub">看筆順、照著寫</span>
+      </button>
+      <button class="btn-mode-select btn-mode-exam" onclick="enterExamMode()">
+        <span class="btn-mode-select-icon">📝</span>
+        <span class="btn-mode-select-title">測　驗</span>
+        <span class="btn-mode-select-sub">靠自己的記憶寫</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 畫面三：學習頁 ══ -->
+<div class="screen right" id="screen-learn">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn-back" onclick="goTo('menu')">← 返回</button>
+      <div class="topbar-title" id="learn-title">學習</div>
+    </div>
+  </div>
+
+  <div class="mode-banner">
+    <div class="mode-icon" id="mode-icon">✏️</div>
+    <div>
+      <div class="mode-info-title" id="mode-title">筆順練習</div>
+      <div class="mode-info-sub"  id="mode-sub">看左邊筆順，在右邊格子照著寫</div>
+    </div>
+  </div>
+
+  <div class="learn-body" id="learn-body">
+
+    <!-- ── 練習模式 ── -->
+    <div id="panel-practice">
+      <div class="practice-wrap">
+
+        <!-- Tab 切換列 -->
+        <div class="practice-tab-bar">
+          <button class="practice-tab active" id="tab-ref" onclick="switchPracticeTab('ref')">
+            👁 範例筆順
+          </button>
+          <button class="practice-tab" id="tab-quiz" onclick="switchPracticeTab('quiz')">
+            ✍️ 練習格
+          </button>
+        </div>
+
+        <!-- 單格容器：兩個格子疊放 -->
+        <div class="practice-grid-wrap">
+          <div id="ref-target"></div>
+          <div class="quiz-box hidden-panel" id="quiz-target"></div>
+        </div>
+
+        <!-- 範例控制（ref tab 時顯示） -->
+        <div id="ref-controls">
+          <button class="btn-replay" onclick="playRef()">▶ 再播一次</button>
+        </div>
+
+        <!-- 練習控制（quiz tab 時顯示） -->
+        <div id="quiz-controls" style="display:none;flex-direction:column;align-items:center;gap:8px;width:100%">
+          <div class="feedback-box fb-idle" id="feedback-box">照著左邊的筆順<br>在右邊一筆一筆寫！</div>
+          <div class="practice-ctrl">
+            <button class="btn-ctrl btn-clear" onclick="restartQuiz()">🔄 重新練習</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── 默寫模式 ── -->
+    <div id="panel-dict" style="display:none">
+      <div class="dict-wrap">
+
+        <div class="dict-info">
+          <div class="dict-info-title">📝 默寫測驗</div>
+          <div class="dict-info-sub">靠自己的記憶把這個字寫出來！<br>寫完後按下方的「交　卷」按鈕。</div>
+        </div>
+
+        <!-- 默寫書寫格 -->
+        <div class="dict-canvas-wrap" id="dict-canvas-wrap">
+          <canvas id="dict-canvas"></canvas>
+        </div>
+
+        <!-- 清除 + 交卷 同一列，永遠顯示 -->
+        <div id="dict-ctrl-row" style="display:flex;gap:12px;justify-content:space-between;align-items:center;margin-top:12px">
+          <button class="btn-ctrl btn-clear" onclick="clearDictCanvas()">🗑 清除重寫</button>
+          <button id="btn-dict-submit" onclick="submitDictation()"
+            style="padding:13px 28px;border:none;border-radius:50px;background:linear-gradient(135deg,#c22,var(--red));color:white;font-size:1rem;font-weight:900;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.2)">
+            <span>✓</span><span>交　卷</span>
+          </button>
+        </div>
+
+        <!-- 結果面板：疊加對比 + 學生自評 -->
+        <div class="result-panel" id="result-panel">
+          <div style="font-size:1rem;font-weight:900;text-align:center">✏️ 對照結果</div>
+
+          <!-- 左右對照 -->
+          <div class="compare-wrap">
+            <div class="compare-col">
+              <div class="compare-lbl">✍️ 你寫的</div>
+              <div class="compare-student-wrap" id="compare-student-wrap">
+                <canvas id="compare-student"></canvas>
+              </div>
+            </div>
+            <div class="compare-arrow">↔</div>
+            <div class="compare-col">
+              <div class="compare-lbl">📖 正確字形</div>
+              <div class="compare-ref-wrap" id="compare-ref-wrap">
+                <div id="compare-ref"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 學生自評：兩個大按鈕 -->
+          <div class="self-eval-title">你覺得寫得像嗎？</div>
+          <div class="self-eval-btns">
+            <button class="btn-eval btn-eval-great" onclick="selfEval('great')">
+              <span class="btn-eval-icon">⭕</span><span>像！</span>
+            </button>
+            <button class="btn-eval btn-eval-retry" onclick="selfEval('retry')">
+              <span class="btn-eval-icon">✖</span><span>不像</span>
+            </button>
+          </div>
+
+          <!-- 評完後：像 → 顯示慶祝＋下一個字 -->
+          <div id="after-eval" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%">
+            <div id="eval-verdict" style="border-radius:14px;padding:14px 20px;text-align:center;font-size:1.2rem;font-weight:900;width:100%"></div>
+            <button class="btn-big btn-big-prac" id="btn-dict-next" onclick="goBackToMenu()"
+              style="max-width:320px;font-size:1.1rem">
+              <span class="btn-big-icon">📋</span><span>回到列表</span>
+            </button>
+          </div>
+
+          <!-- 評完後：不像 → 只有一個大按鈕「再練習一次」 -->
+          <div id="retry-only-btn" style="display:none;width:100%">
+            <button class="btn-big btn-big-exam" onclick="switchToPractice()"
+              style="font-size:1.1rem">
+              <span class="btn-big-icon">✏️</span><span>再練習一次</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- ── 測驗模式面板 ── -->
+    <div id="panel-exam" style="display:none">
+      <div class="dict-wrap">
+
+        <div class="dict-info">
+          <div class="dict-info-title">📝 測驗模式</div>
+          <div class="dict-info-sub">靠自己的記憶把這個字寫出來！<br>寫完後按「交卷」。</div>
+        </div>
+
+        <!-- 測驗書寫格（無任何提示） -->
+        <div class="exam-box" id="exam-target"></div>
+
+        <!-- 測驗結果卡 -->
+        <div class="exam-result-card" id="exam-result-card">
+          <div class="exam-result-icon" id="exam-result-icon"></div>
+          <div class="exam-result-title" id="exam-result-title"></div>
+          <div class="exam-result-detail" id="exam-result-detail"></div>
+          <div class="exam-mistake-bar" id="exam-mistake-bar"></div>
+          <button class="btn-big btn-big-prac" id="btn-exam-next" onclick="nextChar()" style="max-width:320px">
+            <span class="btn-big-icon">➡️</span><span>下一個字</span>
+          </button>
+          <button class="btn-big" id="btn-exam-retry" onclick="retryExam()"
+            style="max-width:320px;background:#fff3e0;color:var(--orange);box-shadow:none">
+            <span class="btn-big-icon">🔄</span><span>再考一次</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- learn-body -->
+
+  <!-- 底部大按鈕 -->
+  <div class="bottom-bar" id="bottom-bar">
+    <button class="btn-big" id="btn-mode-switch" style="background:#c8d8e8;color:#8da4b8;cursor:not-allowed" disabled>
+      <span class="btn-big-icon">📝</span><span>完成練習後開始默寫</span>
+    </button>
+  </div>
+</div>
+</div><!-- .app -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════
+//  Firebase 初始化
+// ═══════════════════════════════════════
+var firebaseConfig = {
+  apiKey: "AIzaSyBLhonzZkR1ORDPKgxmaVLFUwvPiEMpdj0",
+  authDomain: "tainping-hanzi-app.firebaseapp.com",
+  projectId: "tainping-hanzi-app",
+  storageBucket: "tainping-hanzi-app.firebasestorage.app",
+  messagingSenderId: "158917910126",
+  appId: "1:158917910126:web:e52a1d0456d1fd4fe6907f"
+};
+var db = null;  // Firebase 載入後才初始化
+
+function initFirebase() {
+  // 輪詢直到 firebase 全域物件與 firestore 方法都就緒
+  if (typeof firebase === 'undefined' || typeof firebase.firestore === 'undefined') {
+    setTimeout(initFirebase, 150);
+    return;
+  }
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.firestore();
+    console.log('Firebase ready ✓');
+  } catch(e) {
+    console.warn('Firebase init error, retrying...', e);
+    db = null;
+    setTimeout(initFirebase, 300);
+  }
+}
+
+// ═══════════════════════════════════════
+//  登入狀態
+// ═══════════════════════════════════════
+var currentStudent = null;  // { name, pin, id }
+var loginPin    = '';
+var regPin      = '';
+
+// ── PIN 碼輸入 ──
+function pinInput(d) {
+  if (AC) sfxTap();
+  if (loginPin.length >= 4) return;
+  loginPin += d;
+  updatePinDisplay('pd', loginPin);
+  if (loginPin.length === 4) {
+    var name = document.getElementById('login-name').value.trim();
+    if (name) doLogin();
+  }
+}
+function pinDelete() {
+  if (AC) sfxTap();
+  loginPin = loginPin.slice(0,-1);
+  updatePinDisplay('pd', loginPin);
+  updateLoginBtn();
+}
+function onLoginNameInput() {
+  updateLoginBtn();
+}
+function updateLoginBtn() {
+  var name = document.getElementById('login-name').value.trim();
+  var btn  = document.getElementById('btn-login');
+  if (btn) btn.disabled = !(name && loginPin.length === 4);
+}
+function updatePinDisplay(prefix, pin) {
+  for (var i=0;i<4;i++) {
+    var dot = document.getElementById(prefix+i);
+    if (dot) dot.classList.toggle('filled', i < pin.length);
+  }
+  updateLoginBtn();
+}
+
+// ── 登入 ──
+function doLogin() {
+  var name = document.getElementById('login-name').value.trim();
+  if (!name || loginPin.length < 4) return;
+  var errEl = document.getElementById('login-error');
+  errEl.classList.remove('show');
+  errEl.textContent = '';
+
+  if (!db) {
+    errEl.textContent = '系統連線中，請稍候…';
+    errEl.classList.add('show');
+    setTimeout(function(){ doLogin(); }, 800);
+    return;
+  }
+  errEl.classList.remove('show');
+
+  var id = name + '_' + loginPin;
+  // 先確認學生存在，再讀取漢字進度
+  db.collection('students').doc(id).get().then(function(doc) {
+    if (!doc.exists) {
+      sfxWrong();
+      loginPin = '';
+      updatePinDisplay('pd', loginPin);
+      errEl.textContent = '找不到這個帳號，請確認姓名和 PIN 碼，或是先註冊。';
+      errEl.classList.add('show');
+      return;
+    }
+    var studentDocData = doc.data();  // 包含 nickname, avatar 等個人資料
+    // 讀取漢字學習進度
+    return db.collection('students').doc(id)
+      .collection('progress').doc('hanzi')
+      .get().then(function(progressDoc) {
+        var progressData = progressDoc.exists ? progressDoc.data() : { charStatus:{} };
+        // 把個人資料合併進去
+        progressData.nickname = studentDocData.nickname || '';
+        progressData.avatar   = studentDocData.avatar   || '';
+        onLoginSuccess({ name:name, pin:loginPin, id:id }, progressData);
+      });
+  }).catch(function(e) {
+    sfxWrong();
+    errEl.textContent = '連線失敗，請檢查網路後再試。';
+    errEl.classList.add('show');
+  });
+}
+
+function onLoginSuccess(student, data) {
+  sfxCelebrate();
+  currentStudent = student;
+  // 載入個人化資料（nickname, avatar, streak）
+  if (data.nickname) currentStudent.nickname = data.nickname;
+  if (data.avatar)   currentStudent.avatar   = data.avatar;
+  currentStudent.streak           = data.streak || 0;
+  currentStudent.lessonsCompleted = data.lessonsCompleted || 0;
+
+  // 還原學生的 charStatus
+  if (data.charStatus) charStatus = data.charStatus;
+
+  // 登出按鈕顯示
+  var badge = document.getElementById('student-badge');
+  if (badge) badge.classList.add('show');
+
+  // 從 Firebase 載入教師設定的生字
+  loadLessonFromFirebase(function(lessonChars) {
+    if (lessonChars && lessonChars.length) {
+      // 自動套用教師設定的生字
+      var input = document.getElementById('char-input');
+      if (input) input.value = lessonChars.join('');
+      showToast('👋 歡迎 ' + student.name + '！今日生字已載入。');
+    } else {
+      showToast('👋 歡迎回來，' + student.name + '！');
+    }
+    goTo('home');
+    // 登入後預載課程版本
+    setTimeout(loadCurriculumVersions, 800);
+    // 更新首頁頭像顯示
+    setTimeout(updateHomeAvatar, 200);
+  });
+}
+
+// 從 Firebase 讀取教師設定的生字
+function loadLessonFromFirebase(callback) {
+  if (!db) { callback(null); return; }
+  db.collection('settings').doc('lesson').get()
+    .then(function(doc) {
+      if (doc.exists && doc.data().chars && doc.data().chars.length) {
+        callback(doc.data().chars);
+      } else {
+        callback(null);
+      }
+    })
+    .catch(function() { callback(null); });
+}
+
+// ── 登出 ──
+// ══ 個人資料 ══
+var AVATARS = ['🐣','🐱','🐶','🐻','🐼','🦊','🐸','🐧','🦁','🐯',
+               '🐨','🐮','🐷','🐰','🐹','🦋','🌸','⭐','🌈','🎯'];
+
+var LEVELS = [
+  { min:0,   max:99,  icon:'⭐',   title:'一級' },
+  { min:100, max:199, icon:'⭐⭐',  title:'二級' },
+  { min:200, max:299, icon:'⭐⭐⭐', title:'三級' },
+  { min:300, max:399, icon:'🌟',   title:'四級' },
+  { min:400, max:499, icon:'🌟🌟',  title:'五級' },
+  { min:500, max:599, icon:'🌟🌟🌟', title:'六級' },
+  { min:600, max:699, icon:'🏅',   title:'七級' },
+  { min:700, max:799, icon:'🎖️',  title:'八級' },
+  { min:800, max:899, icon:'🏆',   title:'九級' },
+  { min:900, max:Infinity, icon:'👑', title:'十級' }
+];
+
+function getLevelInfo(masteredCount) {
+  var lv = LEVELS.find(function(l){ return masteredCount >= l.min && masteredCount <= l.max; })
+         || LEVELS[LEVELS.length-1];
+  var pct = lv.max === Infinity ? 100
+    : Math.round((masteredCount - lv.min) / (lv.max - lv.min + 1) * 100);
+  var nextCount = lv.max === Infinity ? null : lv.max + 1 - masteredCount;
+  return { icon:lv.icon, title:lv.title, pct:pct, nextCount:nextCount };
+}
+
+function renderAvatarGrid(selectedAvatar) {
+  var grid = document.getElementById('avatar-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  AVATARS.forEach(function(av) {
+    var btn = document.createElement('button');
+    btn.className = 'avatar-btn' + (av === selectedAvatar ? ' selected' : '');
+    btn.textContent = av;
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.avatar-btn').forEach(function(b){ b.classList.remove('selected'); });
+      btn.classList.add('selected');
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function updateProfileScreen() {
+  if (!currentStudent) return;
+
+  // 基本資料
+  var nameEl = document.getElementById('profile-real-name');
+  if (nameEl) nameEl.textContent = currentStudent.name;
+  var nickEl = document.getElementById('profile-nickname');
+  if (nickEl) nickEl.value = currentStudent.nickname || '';
+
+  // 頭像
+  renderAvatarGrid(currentStudent.avatar || '🐣');
+
+  // 成就統計
+  var mastered  = Object.values(charStatus).filter(function(v){ return v==='mastered'; }).length;
+  var practiced = Object.values(charStatus).filter(function(v){ return v==='practiced'; }).length;
+  var el = function(id){ return document.getElementById(id); };
+  if (el('ach-mastered'))  el('ach-mastered').textContent  = mastered;
+  if (el('ach-practiced')) el('ach-practiced').textContent = practiced;
+
+  // 連續天數（從 Firebase streak 讀取）
+  if (el('ach-streak')) el('ach-streak').textContent = currentStudent.streak || 0;
+
+  // 完成課程數（charStatus 中 mastered 的字對應的課）
+  if (el('ach-lessons')) el('ach-lessons').textContent = currentStudent.lessonsCompleted || 0;
+
+  // 等級
+  var lv = getLevelInfo(mastered);
+  if (el('profile-level-icon'))  el('profile-level-icon').textContent  = lv.icon;
+  if (el('profile-level-title')) el('profile-level-title').textContent = lv.title;
+  if (el('profile-level-sub'))   el('profile-level-sub').textContent   =
+    '通過測驗 ' + mastered + ' 個字' +
+    (lv.nextCount ? '　（再 ' + lv.nextCount + ' 字升級）' : '　🎉 最高等級！');
+  if (el('profile-level-bar'))   el('profile-level-bar').style.width   = lv.pct + '%';
+
+  // 更新首頁頂部顯示
+  updateHomeAvatar();
+
+  // 渲染音效開關和主題選擇
+  applySound();
+  renderThemeGrid();
+}
+
+function updateHomeAvatar() {
+  var av = currentStudent && currentStudent.avatar ? currentStudent.avatar : '🐣';
+  var nn = currentStudent && currentStudent.nickname ? currentStudent.nickname : (currentStudent ? currentStudent.name : '個人資料');
+  var avEl = document.getElementById('home-avatar-display');
+  var nnEl = document.getElementById('home-nickname-display');
+  if (avEl) avEl.textContent = av;
+  if (nnEl) nnEl.textContent = nn;
+}
+
+// ══ 音效開關 ══
+var soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
+
+function applySound() {
+  var btn  = document.getElementById('sound-toggle-btn');
+  var knob = document.getElementById('sound-toggle-knob');
+  if (!btn || !knob) return;
+  btn.style.background  = soundEnabled ? 'var(--green)' : '#cbd5e1';
+  knob.style.left       = soundEnabled ? '29px' : '3px';
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('soundEnabled', soundEnabled);
+  applySound();
+  if (soundEnabled) sfxCorrect();
+}
+
+// 覆寫所有音效函數，讓音效開關生效
+var _origSfxTap       = null;
+var _origSfxCorrect   = null;
+var _origSfxWrong     = null;
+var _origSfxPass      = null;
+var _origSfxCelebrate = null;
+var _origSfxSwipe     = null;
+
+function initSoundWrapper() {
+  // 等音效函數定義後再包裝
+  setTimeout(function() {
+    if (typeof sfxTap === 'function' && !_origSfxTap) {
+      _origSfxTap       = sfxTap;
+      _origSfxCorrect   = sfxCorrect;
+      _origSfxWrong     = sfxWrong;
+      _origSfxPass      = sfxPass;
+      _origSfxCelebrate = sfxCelebrate;
+      _origSfxSwipe     = sfxSwipe;
+
+      sfxTap       = function(){ if(soundEnabled) _origSfxTap(); };
+      sfxCorrect   = function(){ if(soundEnabled) _origSfxCorrect(); };
+      sfxWrong     = function(){ if(soundEnabled) _origSfxWrong(); };
+      sfxPass      = function(){ if(soundEnabled) _origSfxPass(); };
+      sfxCelebrate = function(){ if(soundEnabled) _origSfxCelebrate(); };
+      sfxSwipe     = function(){ if(soundEnabled) _origSfxSwipe(); };
+    }
+  }, 1000);
+}
+
+// ══ 主題色系 ══
+var THEMES = [
+  { id:'blue',   name:'藍天',   bg:'#eef5fc', blue:'#4a90d9', blueDk:'#2d6fa8', blueLt:'#e8f4fd', icon:'🔵' },
+  { id:'green',  name:'森林',   bg:'#edfbf4', blue:'#27ae60', blueDk:'#1e8449', blueLt:'#d5f5e3', icon:'🟢' },
+  { id:'purple', name:'薰衣草', bg:'#f3f0fc', blue:'#8e44ad', blueDk:'#6c3483', blueLt:'#e8daef', icon:'🟣' },
+  { id:'orange', name:'夕陽',   bg:'#fff8f0', blue:'#e67e22', blueDk:'#ca6f1e', blueLt:'#fdebd0', icon:'🟠' },
+  { id:'red',    name:'玫瑰',   bg:'#fff0f0', blue:'#c0392b', blueDk:'#a93226', blueLt:'#fadbd8', icon:'🔴' },
+  { id:'teal',   name:'青空',   bg:'#f0fafa', blue:'#16a085', blueDk:'#0e6655', blueLt:'#d1f2eb', icon:'🩵' },
+  { id:'pink',   name:'粉紅',   bg:'#fff0f8', blue:'#d63384', blueDk:'#a0255e', blueLt:'#fce4ec', icon:'🩷' },
+];
+
+var currentTheme = localStorage.getItem('theme') === 'dark' ? 'blue' : (localStorage.getItem('theme') || 'blue');
+
+function applyTheme(themeId) {
+  var t = THEMES.find(function(th){ return th.id === themeId; }) || THEMES[0];
+  var r = document.documentElement.style;
+  r.setProperty('--bg',      t.bg);
+  r.setProperty('--blue',    t.blue);
+  r.setProperty('--blue-dk', t.blueDk);
+  r.setProperty('--blue-lt', t.blueLt);
+  // 深色模式文字調整
+  // 所有淺色主題使用相同邊框
+  r.setProperty('--border', '#d4e8f8');
+  r.setProperty('--shadow', '0 6px 28px rgba(44,100,160,.13)');
+  currentTheme = themeId;
+  localStorage.setItem('theme', themeId);
+  renderThemeGrid();
+}
+
+function renderThemeGrid() {
+  var grid = document.getElementById('theme-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  THEMES.forEach(function(t) {
+    var btn = document.createElement('button');
+    btn.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;'
+      +'padding:10px 4px;border-radius:12px;border:2.5px solid '
+      +(t.id === currentTheme ? 'var(--blue)' : 'var(--border)')+';'
+      +'background:'+(t.id === currentTheme ? 'var(--blue-lt)' : 'white')
+      +';cursor:pointer;font-family:inherit;transition:all .15s;';
+    btn.innerHTML = '<span style="font-size:1.5rem">'+t.icon+'</span>'
+      +'<span style="font-size:.7rem;font-weight:800;color:var(--text)">'+t.name+'</span>';
+    btn.addEventListener('click', function(){ applyTheme(t.id); });
+    grid.appendChild(btn);
+  });
+}
+
+function saveProfile() {
+  if (!currentStudent || !db) return;
+  var nickname = (document.getElementById('profile-nickname').value || '').trim();
+  var selected = document.querySelector('.avatar-btn.selected');
+  var avatar   = selected ? selected.textContent : (currentStudent.avatar || '🐣');
+
+  currentStudent.nickname = nickname;
+  currentStudent.avatar   = avatar;
+
+  db.collection('students').doc(currentStudent.id).update({
+    nickname: nickname,
+    avatar:   avatar
+  }).then(function() {
+    showToast('✅ 資料已儲存！');
+    updateHomeAvatar();
+  }).catch(function(e){ showToast('❌ 儲存失敗：'+e.message); });
+}
+
+function confirmLogout() {
+  sfxTap();
+  if (confirm('確定要登出嗎？')) {
+    doLogout();
+  }
+}
+function doLogout() {
+  currentStudent = null;
+  charStatus     = {};
+  loginPin       = '';
+  regPin         = '';
+  document.getElementById('login-name').value = '';
+  updatePinDisplay('pd', '');
+  var badge = document.getElementById('student-badge');
+  if (badge) badge.classList.remove('show');
+  goTo('login');
+}
+
+// ── 登入/註冊 切換 ──
+// ── 教師入口 ──
+var ADMIN_PASSWORD = '381418';
+
+function toggleTeacherEntry() {
+  var el = document.getElementById('teacher-entry');
+  var show = el.style.display === 'none';
+  el.style.display = show ? '' : 'none';
+  if (show) {
+    setTimeout(function(){ document.getElementById('teacher-pwd').focus(); }, 100);
+  }
+  document.getElementById('teacher-error').style.display = 'none';
+}
+
+function doTeacherLogin() {
+  var pwd = document.getElementById('teacher-pwd').value;
+  var err = document.getElementById('teacher-error');
+  if (pwd === ADMIN_PASSWORD) {
+    // 把登入憑證存在 sessionStorage，admin.html 讀取後直接跳過登入
+    sessionStorage.setItem('adminAuth', ADMIN_PASSWORD);
+    window.location.href = 'admin.html';
+  } else {
+    err.style.display = 'block';
+    var input = document.getElementById('teacher-pwd');
+    input.value = '';
+    input.style.borderColor = 'rgba(252,165,165,.8)';
+    input.focus();
+  }
+}
+
+function showRegister() {
+  sfxTap();
+  document.getElementById('login-form-wrap').style.display    = 'none';
+  document.getElementById('register-form-wrap').style.display = '';
+  regPin = '';
+  updateRegPinDisplay();
+}
+function showLogin() {
+  sfxTap();
+  document.getElementById('register-form-wrap').style.display = 'none';
+  document.getElementById('login-form-wrap').style.display    = '';
+}
+
+// ── 註冊 PIN 輸入 ──
+function regPinInput(d) {
+  if (AC) sfxTap();
+  if (regPin.length >= 4) return;
+  regPin += d;
+  updateRegPinDisplay();
+}
+function regPinDelete() {
+  if (AC) sfxTap();
+  regPin = regPin.slice(0,-1);
+  updateRegPinDisplay();
+}
+function updateRegPinDisplay() {
+  for (var i=0;i<4;i++) {
+    var dot = document.getElementById('rpd'+i);
+    if (dot) dot.classList.toggle('filled', i < regPin.length);
+  }
+}
+
+// ── 註冊 ──
+function doRegister() {
+  var name   = document.getElementById('reg-name').value.trim();
+  var errEl  = document.getElementById('register-error');
+  errEl.classList.remove('show');
+
+  if (!name)           { errEl.textContent='請輸入姓名。'; errEl.classList.add('show'); return; }
+  if (regPin.length<4) { errEl.textContent='請輸入完整的 4 位 PIN 碼。'; errEl.classList.add('show'); return; }
+
+  // 如果 db 還沒就緒，等待後重試
+  if (!db) {
+    errEl.textContent = '系統連線中，請稍候…';
+    errEl.classList.add('show');
+    setTimeout(function(){ doRegister(); }, 800);
+    return;
+  }
+  errEl.classList.remove('show');
+
+  var id = name + '_' + regPin;
+  db.collection('students').doc(id).get().then(function(doc) {
+    if (doc.exists) {
+      sfxWrong();
+      errEl.textContent = '這個姓名和 PIN 碼已被使用，請換一個 PIN 碼。';
+      errEl.classList.add('show');
+    } else {
+      // 建立新學生
+      // 建立學生基本資料（students/{id}）
+      return db.collection('students').doc(id).set({
+        name:      name,
+        pin:       regPin,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function() {
+        // 建立漢字學習進度子集合（students/{id}/progress/hanzi）
+        return db.collection('students').doc(id)
+          .collection('progress').doc('hanzi')
+          .set({ charStatus:{}, lastSeen: firebase.firestore.FieldValue.serverTimestamp() });
+      }).then(function() {
+        sfxCelebrate();
+        showToast('🎉 註冊成功！歡迎 ' + name + '！');
+        onLoginSuccess({ name:name, pin:regPin, id:id }, { charStatus:{} });
+      });
+    }
+  }).catch(function(e) {
+    errEl.textContent = '連線失敗，請檢查網路後再試。';
+    errEl.classList.add('show');
+  });
+}
+
+// ═══════════════════════════════════════
+//  存檔：儲存學習進度到 Firebase
+// ═══════════════════════════════════════
+function saveProgress() {
+  if (!currentStudent || !db) return;
+  // 寫入漢字學習進度子集合
+  db.collection('students').doc(currentStudent.id)
+    .collection('progress').doc('hanzi')
+    .set({
+      charStatus: charStatus,
+      lastSeen:   firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true })
+    .catch(function(e){ console.warn('saveProgress error:', e); });
+}
+
+// 儲存單個字的筆畫路徑
+function saveStroke(char, strokes) {
+  if (!currentStudent || !db) return;
+  var update = {};
+  update['strokes.' + char] = strokes;
+  db.collection('students').doc(currentStudent.id)
+    .collection('progress').doc('hanzi')
+    .update(update)
+    .catch(function(e){ console.warn('saveStroke error:', e); });
+}
+
+// ── 其他教學應用使用範例（未來新增時參考）──
+// function saveOtherAppProgress(appName, data) {
+//   if (!currentStudent || !db) return;
+//   db.collection('students').doc(currentStudent.id)
+//     .collection('progress').doc(appName)
+//     .set(data, { merge: true });
+// }
+
+// 存檔時機：每次 charStatus 更新後呼叫
+// 在 renderMenu 裡加入 saveProgress（每次狀態改變都存）
+
+// ═══════════════════════════════════════
+//  Web Audio API 音效引擎
+// ═══════════════════════════════════════
+var AC = null;
+function getAC() {
+  if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  return AC;
+}
+
+// 解鎖 AudioContext（iOS 需要在 touch 事件中初始化）
+document.addEventListener('touchstart', function(){ getAC(); }, { once:true });
+document.addEventListener('click',      function(){ getAC(); }, { once:true });
+
+function playTone(freq, type, duration, vol, delay) {
+  try {
+    var ac  = getAC();
+    var osc = ac.createOscillator();
+    var gain= ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, ac.currentTime + (delay||0));
+    gain.gain.setValueAtTime(vol||0.18, ac.currentTime + (delay||0));
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + (delay||0) + duration);
+    osc.start(ac.currentTime + (delay||0));
+    osc.stop(ac.currentTime  + (delay||0) + duration);
+  } catch(e){}
+}
+
+// 介面切換音：低鳴一聲
+function sfxSwipe() {
+  playTone(220, 'sine', 0.12, 0.10);
+}
+
+// 點擊音：輕脆一聲
+function sfxTap() {
+  playTone(660, 'triangle', 0.08, 0.12);
+}
+
+// 筆畫正確：上升兩音
+function sfxCorrect() {
+  playTone(523, 'sine', 0.12, 0.14, 0);
+  playTone(659, 'sine', 0.12, 0.14, 0.12);
+}
+
+// 筆畫錯誤：短促低音
+function sfxWrong() {
+  playTone(180, 'square', 0.10, 0.10, 0);
+}
+
+// 慶祝音效：一般（五音上升）
+function sfxCelebrate() {
+  var notes = [523,659,784,880,1047];
+  notes.forEach(function(f,i){ playTone(f,'sine',0.18,0.18,i*0.1); });
+}
+
+// 大慶祝音效：全部完成用，三波爆發
+function sfxGrandCelebrate() {
+  // 第一波：快速上升琶音
+  [523,659,784,1047,1319].forEach(function(f,i){
+    playTone(f,'sine',0.2,0.22,i*0.07);
+  });
+  // 第二波：和弦爆發
+  [523,659,784].forEach(function(f,i){
+    playTone(f,'triangle',0.3,0.25,0.5+i*0.02);
+  });
+  // 第三波：最高音收尾
+  playTone(1047,'sine',0.4,0.28,0.9);
+  playTone(1319,'sine',0.4,0.25,1.0);
+  playTone(1568,'sine',0.5,0.22,1.1);
+  // 底鼓感：低頻短音
+  [80,100,120].forEach(function(f,i){
+    playTone(f,'square',0.08,0.15,0.5+i*0.1);
+  });
+}
+
+// 默寫合格音效：和弦
+function sfxPass() {
+  [523,659,784].forEach(function(f,i){ playTone(f,'sine',0.3,0.15,i*0.05); });
+}
+
+// ═══════════════════════════════════════
+//  語音合成（國字讀音）
+// ═══════════════════════════════════════
+var synth = window.speechSynthesis;
+var zhVoice = null;
+
+function loadVoices() {
+  var voices = synth.getVoices();
+  // 優先找台灣中文，其次中文
+  zhVoice = voices.find(function(v){ return v.lang==='zh-TW'; })
+           || voices.find(function(v){ return v.lang.startsWith('zh'); })
+           || null;
+}
+loadVoices();
+if (synth.onvoiceschanged !== undefined) synth.onvoiceschanged = loadVoices;
+
+function speakChar(char) {
+  if (!synth || !char) return;
+  synth.cancel();
+  var utt = new SpeechSynthesisUtterance(char);
+  utt.lang = 'zh-TW';
+  utt.rate = 0.85;
+  utt.pitch = 1.1;
+  if (zhVoice) utt.voice = zhVoice;
+  synth.speak(utt);
+}
+
+// ═══════════════════════════════════════
+//  全域狀態
+// ═══════════════════════════════════════
+var chars      = [];
+var charStatus = {};
+var currentIdx = 0;
+var currentScreen = 'login';
+var currentMode   = 'practice';
+var examWriter    = null;  // 測驗模式 HanziWriter
+var dictScore     = -1;  // 本次默寫分數（-1 = 尚未提交）
+
+var refWriter  = null;
+var quizWriter = null;
+
+var dCanvas, dCtx, dDrawing = false;
+var dSize = 340;
+var dCurrentStroke = [];   // 當前筆畫的座標點
+var dAllStrokes    = [];   // 本次默寫的所有筆畫
+var charStrokes    = {};   // {字: [[stroke1],[stroke2],...]} 所有字的筆畫路徑
+
+// ═══════════════════════════════════════
+//  畫面切換
+// ═══════════════════════════════════════
+var SCREENS = ['login','profile','home','menu','exam','mode','learn'];
+
+function goTo(name) {
+  if (name === 'profile') updateProfileScreen();
+  var from = currentScreen, to = name;
+  if (from === to) return;
+  var fromEl = document.getElementById('screen-'+from);
+  var toEl   = document.getElementById('screen-'+to);
+  var fwd    = SCREENS.indexOf(to) > SCREENS.indexOf(from);
+  sfxSwipe();
+  toEl.className = 'screen '+(fwd?'right':'left');
+  void toEl.offsetWidth;
+  fromEl.className = 'screen '+(fwd?'left':'right');
+  toEl.className   = 'screen active';
+  currentScreen = to;
+}
+
+// ═══════════════════════════════════════
+//  畫面一：首頁
+// ═══════════════════════════════════════
+var curriculumData = {};  // { versionId: { bookNum: [ lessonData ] } }
+
+// 切換首頁模式（課程 / 自由輸入）
+function switchHomeMode(mode) {
+  var isCurriculum = mode === 'curriculum';
+  document.getElementById('home-panel-curriculum').style.display = isCurriculum ? '' : 'none';
+  document.getElementById('home-panel-free').style.display       = isCurriculum ? 'none' : '';
+  document.getElementById('hm-curriculum').classList.toggle('home-mode-btn-active', isCurriculum);
+  document.getElementById('hm-free').classList.toggle('home-mode-btn-active', !isCurriculum);
+  if (isCurriculum) loadCurriculumVersions();
+}
+
+// 載入版本選單
+function loadCurriculumVersions() {
+  if (!db) { setTimeout(loadCurriculumVersions, 400); return; }
+  var sel = document.getElementById('sel-version');
+  sel.innerHTML = '<option value="">載入中…</option>';
+  db.collection('curriculum').get().then(function(snap) {
+    if (snap.empty) {
+      sel.innerHTML = '<option value="">（教師尚未建立課程）</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">— 請選擇版本 —</option>';
+    snap.forEach(function(doc) {
+      var opt = document.createElement('option');
+      opt.value = doc.id;
+      opt.textContent = doc.data().name;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+// 版本選擇後載入冊別
+function onVersionChange() {
+  var versionId = document.getElementById('sel-version').value;
+  var selBook   = document.getElementById('sel-book');
+  var selLesson = document.getElementById('sel-lesson');
+  selBook.innerHTML   = '<option value="">— 選擇冊 —</option>';
+  selLesson.innerHTML = '<option value="">— 選擇課 —</option>';
+  document.getElementById('lesson-chars-preview').innerHTML = '';
+  disableStartBtn();
+  if (!versionId || !db) return;
+
+  db.collection('curriculum').doc(versionId)
+    .collection('lessons').get().then(function(snap) {
+      curriculumData = {};
+      var gradeOrder = [];
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        var g = d.grade || d.bookNum || '未知';
+        if (!curriculumData[g]) { curriculumData[g] = []; gradeOrder.push(g); }
+        curriculumData[g].push(d);
+      });
+      // 去重保持順序，每組內依課次排序
+      gradeOrder = gradeOrder.filter(function(v,i,a){ return a.indexOf(v)===i; });
+      gradeOrder.forEach(function(g){
+        curriculumData[g].sort(function(a,b){ return (a.lessonNum||0)-(b.lessonNum||0); });
+      });
+      gradeOrder.forEach(function(bk) {
+        var opt = document.createElement('option');
+        opt.value = bk;
+        opt.textContent = bk;
+        selBook.appendChild(opt);
+      });
+    });
+}
+
+// 冊別選擇後載入課次
+function onBookChange() {
+  var bookNum   = document.getElementById('sel-book').value;
+  var selLesson = document.getElementById('sel-lesson');
+  selLesson.innerHTML = '<option value="">— 選擇課 —</option>';
+  document.getElementById('lesson-chars-preview').innerHTML = '';
+  disableStartBtn();
+  if (!bookNum) return;
+  var lessons = curriculumData[bookNum] || [];
+  lessons.forEach(function(l) {
+    var opt = document.createElement('option');
+    opt.value = l.lessonNum;
+    opt.textContent = '第 ' + l.lessonNum + ' 課　' + l.name;
+    opt.setAttribute('data-chars', l.chars.join(''));
+    selLesson.appendChild(opt);
+  });
+}
+
+// 課次選擇後顯示生字預覽
+function onLessonChange() {
+  var sel    = document.getElementById('sel-lesson');
+  var option = sel.options[sel.selectedIndex];
+  var chars  = option && option.getAttribute('data-chars');
+  var prev   = document.getElementById('lesson-chars-preview');
+  if (!chars) { prev.innerHTML = ''; disableStartBtn(); return; }
+  prev.innerHTML = '<div class="lesson-chars-chip">' + chars + '</div>';
+  enableStartBtn();
+}
+
+function disableStartBtn() {
+  var btn = document.getElementById('btn-start-curriculum');
+  if (btn) { btn.disabled = true; btn.style.opacity = '.5'; btn.style.cursor = 'not-allowed'; }
+}
+function enableStartBtn() {
+  var btn = document.getElementById('btn-start-curriculum');
+  if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+}
+
+// 開始課程學習
+function startCurriculumLesson() {
+  var sel    = document.getElementById('sel-lesson');
+  var option = sel.options[sel.selectedIndex];
+  var chars  = option && option.getAttribute('data-chars');
+  if (!chars) return;
+  // 把選到的生字放入 char-input，然後呼叫 startLesson
+  var input = document.getElementById('char-input');
+  if (input) input.value = chars;
+  startLesson();
+}
+
+function startLesson() {
+  var raw  = document.getElementById('char-input').value.trim();
+  var list = Array.from(new Set(raw.replace(/\s/g,'').split('').filter(function(c){ return c; })));
+  if (!list.length) return;
+  sfxTap();
+  chars = list; charStatus = {};
+  chars.forEach(function(c){ charStatus[c]='new'; });
+  renderMenu();
+  goTo('menu');
+}
+
+// ═══════════════════════════════════════
+//  畫面二：生字選單
+// ═══════════════════════════════════════
+function updateProgressBar() {
+  if (!chars.length) return;
+  var total     = chars.length;
+  var nMastered  = chars.filter(function(c){ return charStatus[c]==='mastered'; }).length;
+  var nPracticed = chars.filter(function(c){ return charStatus[c]==='practiced'; }).length;
+  var nNew       = total - nMastered - nPracticed;
+
+  var pMastered  = Math.round(nMastered /total*100);
+  var pPracticed = Math.round(nPracticed/total*100);
+  var pNew       = 100 - pMastered - pPracticed;
+
+  var sm = document.getElementById('prog-mastered');
+  var sp = document.getElementById('prog-practiced');
+  var sn = document.getElementById('prog-new');
+  if (sm) sm.style.width = pMastered+'%';
+  if (sp) sp.style.width = pPracticed+'%';
+  if (sn) sn.style.width = pNew+'%';
+
+  var counts = document.getElementById('prog-counts');
+  if (counts) {
+    counts.innerHTML =
+      '<div class="progress-count-item">'
+      +'<div class="progress-count-dot" style="background:var(--green)"></div>'
+      +'<span style="color:var(--green-dk)">通過測驗 '+nMastered+' 字</span></div>'
+      +'<div class="progress-count-item">'
+      +'<div class="progress-count-dot" style="background:var(--yellow)"></div>'
+      +'<span style="color:#b07800">通過練習 '+nPracticed+' 字</span></div>'
+      +'<div class="progress-count-item">'
+      +'<div class="progress-count-dot" style="background:#d0e4f5"></div>'
+      +'<span style="color:var(--muted)">未練習 '+nNew+' 字</span></div>';
+  }
+}
+
+function renderMenu() {
+  var body = document.getElementById('menu-body');
+  saveProgress();
+  updateProgressBar();
+  body.innerHTML = chars.map(function(c,i){
+    var st  = charStatus[c]||'new';
+    var lbl = {new:'尚未學習',practiced:'通過練習',mastered:'通過測驗'}[st];
+    var cls = {new:'status-new',practiced:'status-practiced',mastered:'status-mastered'}[st];
+    var card= st==='mastered'?'char-card mastered':st==='practiced'?'char-card practiced':'char-card';
+    return '<div class="'+card+'" id="card-'+i+'" onclick="onCardClick(event,'+i+')">'
+      +'<div class="char-card-check">✓</div>'
+      +'<div class="char-card-glyph">'+c+'</div>'
+      +'<div class="char-card-status '+cls+'">'+lbl+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function onCardClick(evt, idx) {
+  sfxTap();
+  // 漣漪效果
+  var card = document.getElementById('card-'+idx);
+  var ripple = document.createElement('div');
+  ripple.className = 'char-card-ripple';
+  var r = card.getBoundingClientRect();
+  var size = Math.max(r.width, r.height);
+  ripple.style.cssText = 'width:'+size+'px;height:'+size+'px;left:'+(evt.clientX-r.left-size/2)+'px;top:'+(evt.clientY-r.top-size/2)+'px;';
+  card.appendChild(ripple);
+  setTimeout(function(){ ripple.remove(); }, 500);
+
+  // 先發音
+  speakChar(chars[idx]);
+  // 直接進練習頁
+  setTimeout(function(){
+    currentIdx = idx;
+    var char = chars[idx];
+    document.getElementById('learn-title').innerHTML =
+      '「<span style="color:var(--orange);font-family:\"Noto Serif TC\",serif">'+char+'</span>」';
+    goTo('learn');
+    setTimeout(function(){ switchToPractice(); }, 450);
+  }, 300);
+}
+
+// 顯示模式選擇畫面
+function openModeSelect(idx) {
+  currentIdx = idx;
+  var char = chars[idx];
+  document.getElementById('mode-select-char').textContent = char;
+  document.getElementById('mode-select-title').innerHTML =
+    '「<span style="color:var(--orange);font-family:\"Noto Serif TC\",serif">'+char+'</span>」';
+  goTo('mode');
+}
+
+// 從模式選擇進入練習
+function enterPracticeMode() {
+  sfxTap();
+  var char = chars[currentIdx];
+  document.getElementById('learn-title').innerHTML =
+    '「<span style="color:var(--orange);font-family:\"Noto Serif TC\",serif">'+char+'</span>」';
+  goTo('learn');
+  setTimeout(function(){ switchToPractice(); }, 450);
+}
+
+// 從模式選擇進入測驗
+function enterExamMode() {
+  sfxTap();
+  var char = chars[currentIdx];
+  document.getElementById('learn-title').innerHTML =
+    '「<span style="color:var(--orange);font-family:\"Noto Serif TC\",serif">'+char+'</span>」';
+  goTo('learn');
+  setTimeout(function(){ switchToExam(); }, 450);
+}
+
+
+// ═══════════════════════════════════════
+//  進入學習頁（nextChar 用，直接進同模式）
+// ═══════════════════════════════════════
+function openChar(idx) {
+  currentIdx = idx;
+  var char   = chars[idx];
+  document.getElementById('learn-title').innerHTML =
+    '「<span style="color:var(--orange);font-family:\"Noto Serif TC\",serif">'+char+'</span>」';
+  if (currentMode === 'exam') {
+    goTo('learn');
+    setTimeout(function(){ switchToExam(); }, 450);
+  } else {
+    goTo('learn');
+    setTimeout(function(){ switchToPractice(); }, 450);
+  }
+}
+
+
+// ═══════════════════════════════════════
+//  練習模式
+// ═══════════════════════════════════════
+// 切換練習頁的 tab（範例 / 練習格）
+function switchPracticeTab(tab) {
+  var refTarget  = document.getElementById('ref-target');
+  var quizTarget = document.getElementById('quiz-target');
+  var refCtrl    = document.getElementById('ref-controls');
+  var quizCtrl   = document.getElementById('quiz-controls');
+  var tabRef     = document.getElementById('tab-ref');
+  var tabQuiz    = document.getElementById('tab-quiz');
+  if (!refTarget) return;
+
+  if (tab === 'ref') {
+    refTarget.classList.remove('hidden-panel');
+    quizTarget.classList.add('hidden-panel');
+    refCtrl.style.display  = '';
+    quizCtrl.style.display = 'none';
+    tabRef.classList.add('active');
+    tabQuiz.classList.remove('active');
+  } else {
+    refTarget.classList.add('hidden-panel');
+    quizTarget.classList.remove('hidden-panel');
+    refCtrl.style.display  = 'none';
+    quizCtrl.style.display = 'flex';
+    tabRef.classList.remove('active');
+    tabQuiz.classList.add('active');
+  }
+}
+
+function switchToPractice() {
+  currentMode = 'practice';
+  document.getElementById('panel-practice').style.display = '';
+  document.getElementById('panel-dict').style.display     = 'none';
+  document.getElementById('mode-icon').textContent  = '✏️';
+  document.getElementById('mode-title').textContent = '筆順練習';
+  document.getElementById('mode-sub').textContent   = '看左邊筆順，在右邊格子照著寫';
+
+  // 練習模式顯示目標字
+  var char = chars[currentIdx];
+  if (char) {
+    document.getElementById('learn-title').innerHTML =
+      '「<span style="color:var(--orange);font-family:\"Noto Serif TC\",serif">'+char+'</span>」';
+  }
+
+  // 移除默寫浮動列
+  var fbar = document.getElementById('dict-float-bar');
+  if (fbar) fbar.remove();
+  // 恢復全寬底部列
+  var bb = document.getElementById('bottom-bar');
+  bb.style.display = '';
+  bb.innerHTML = '<button class="btn-big" id="btn-mode-switch" style="background:#c8d8e8;color:#8da4b8;cursor:not-allowed" disabled>'
+    +'<span class="btn-big-icon">📝</span><span>完成練習後開始默寫</span></button>';
+
+  setFeedback('fb-idle','照著左邊的筆順<br>在右邊一筆一筆寫！');
+  // 重置 tab 到「範例筆順」
+  setTimeout(function(){ switchPracticeTab('ref'); }, 10);
+  initPractice(chars[currentIdx]);
+}
+
+function initPractice(char) {
+  // 範例 writer
+  var rt = document.getElementById('ref-target');
+  rt.innerHTML = '';
+  refWriter = HanziWriter.create('ref-target', char, {
+    width:getGridPx(), height:getGridPx(), padding:Math.round(getGridPx()*0.07),
+    strokeColor:'#ff8c42', strokeAnimationSpeed:.7, delayBetweenStrokes:500,
+    showCharacter:false, showOutline:true, outlineColor:'#c8dff5',
+    onLoadCharDataSuccess:function(){ setTimeout(function(){ refWriter&&refWriter.animateCharacter(); },400); },
+    onLoadCharDataError:function(){ rt.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#aaa;font-size:.9rem">找不到筆順資料</div>'; }
+  });
+  initQuiz(char);
+}
+
+function initQuiz(char) {
+  var qt = document.getElementById('quiz-target');
+  qt.innerHTML = '';
+  qt.classList.remove('flash-green','flash-red');
+
+  var sz = getGridPx();
+  quizWriter = HanziWriter.create('quiz-target', char, {
+    width:sz, height:sz, padding:Math.round(sz*0.07),
+    strokeColor:'#2d6fa8', outlineColor:'#c8dff5',
+    drawingColor:'#2d6fa8', drawingWidth:Math.max(4, Math.round(sz*0.013)),
+    highlightColor:'#ffd54f', showCharacter:false, showOutline:true, leniency:1.2,
+    onLoadCharDataSuccess:function(){ startQuiz(); }
+  });
+}
+
+function startQuiz() {
+  quizWriter.quiz({
+    onMistake:function(data){
+      flashBox('quiz-target','red');
+      sfxWrong();
+      setFeedback('fb-wrong','⚠️ 偏掉囉！<br>跟著黃色提示筆畫寫！');
+    },
+    onCorrectStroke:function(data){
+      flashBox('quiz-target','green');
+      sfxCorrect();
+      setFeedback('fb-ok','✓ 第 '+(data.strokeNum+1)+' 筆對了！<br>繼續加油！');
+    },
+    onComplete:function(summary){
+      var mistakes = summary.totalMistakes;
+      if (mistakes === 0) {
+        sfxCelebrate();
+        setFeedback('fb-ok fb-big','🎉 完美！一筆都沒錯！');
+        showToast('🎉 完美！繼續默寫測驗吧！');
+      } else if (mistakes <= 3) {
+        sfxPass();
+        setFeedback('fb-praise fb-big','😊 完成！錯了 '+mistakes+' 筆，再練更好！');
+        showToast('👍 完成！繼續加油！');
+      } else {
+        sfxWrong();
+        setFeedback('fb-wrong fb-big','💪 完成！錯了 '+mistakes+' 筆，多練幾次！');
+      }
+      // 筆順練習不改變狀態，只有默寫和綜合測驗才算數
+      renderMenu();
+      // 練習完成：解鎖底部「開始默寫」大按鈕
+      var ms = document.getElementById('btn-mode-switch');
+      if (ms) {
+        ms.disabled = false;
+        ms.style.background = '';
+        ms.style.color = '';
+        ms.style.cursor = '';
+        ms.className = 'btn-big btn-big-exam';
+        ms.innerHTML = '<span class="btn-big-icon">📝</span><span>開始默寫測驗</span>';
+        ms.onclick = switchToDict;
+      }
+    }
+  });
+}
+
+function flashBox(id, color) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('flash-green','flash-red');
+  void el.offsetWidth;
+  el.classList.add(color==='red'?'flash-red':'flash-green');
+}
+
+function restartQuiz() {
+  sfxTap();
+  setFeedback('fb-idle','照著左邊的筆順<br>在右邊一筆一筆寫！');
+  initQuiz(chars[currentIdx]);
+}
+
+function playRef() {
+  sfxTap();
+  var char = chars[currentIdx], el = document.getElementById('ref-target');
+  el.innerHTML = '';
+  var sz = getGridPx();
+  refWriter = HanziWriter.create('ref-target', char, {
+    width:sz, height:sz, padding:Math.round(sz*0.07),
+    strokeColor:'#ff8c42', strokeAnimationSpeed:.7, delayBetweenStrokes:500,
+    showCharacter:false, showOutline:true, outlineColor:'#c8dff5',
+    onLoadCharDataSuccess:function(){ refWriter.animateCharacter(); }
+  });
+}
+
+function setFeedback(cls, html) {
+  var el = document.getElementById('feedback-box');
+  if (!el) return;
+  el.className = 'feedback-box '+cls;
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════
+//  測驗模式
+// ═══════════════════════════════════════
+function switchToExam() {
+  currentMode = 'exam';
+
+  document.getElementById('panel-practice').style.display = 'none';
+  document.getElementById('panel-dict').style.display     = 'none';
+  document.getElementById('panel-exam').style.display     = '';
+  document.getElementById('exam-result-card').classList.remove('show');
+  document.getElementById('mode-icon').textContent  = '📝';
+  document.getElementById('mode-title').textContent = '測驗模式';
+  document.getElementById('mode-sub').textContent   = '靠記憶把字寫出來！';
+
+  // 底部：隱藏（測驗不需要底部按鈕，交卷在結果顯示後）
+  var fbar = document.getElementById('dict-float-bar');
+  if (fbar) fbar.remove();
+  var bb = document.getElementById('bottom-bar');
+  bb.style.display = 'none';
+
+  // 加入交卷浮動按鈕
+  var old = document.getElementById('dict-float-bar');
+  if (old) old.remove();
+  var fbar2 = document.createElement('div');
+  fbar2.className = 'dict-float-bar'; fbar2.id = 'dict-float-bar';
+  fbar2.innerHTML = '<button class="btn-float btn-float-submit" onclick="submitExam()">'
+    +'<span>✓</span><span>交　卷</span></button>';
+  document.body.appendChild(fbar2);
+
+  initExam(chars[currentIdx]);
+}
+
+function initExam(char) {
+  // 重置結果卡
+  document.getElementById('exam-result-card').classList.remove('show');
+
+  var et = document.getElementById('exam-target');
+  et.innerHTML = '';
+  et.classList.remove('flash-green','flash-red');
+
+  var sz = getGridPx();
+  examWriter = HanziWriter.create('exam-target', char, {
+    width:sz, height:sz, padding:Math.round(sz*0.07),
+    strokeColor:'#2d6fa8',
+    outlineColor:'rgba(0,0,0,0)',    // 完全隱藏輪廓
+    drawingColor:'#2d6fa8',
+    drawingWidth:Math.max(4, Math.round(sz*0.013)),
+    highlightColor:'rgba(0,0,0,0)', // 不顯示提示筆畫
+    showCharacter:false,
+    showOutline:false,               // 無輪廓
+    leniency:1.0,                    // 測驗模式判斷稍嚴
+    onLoadCharDataSuccess:function(){ startExamQuiz(char); }
+  });
+}
+
+var examMistakes = 0;
+var examStrokes  = 0;
+var examTotal    = 0;
+
+function startExamQuiz(char) {
+  examMistakes = 0; examStrokes = 0; examTotal = 0;
+
+  examWriter.quiz({
+    onMistake:function(data){
+      examMistakes++;
+      flashBox('exam-target','red');
+      sfxWrong();
+      // 測驗模式：不顯示提示，只閃紅光
+    },
+    onCorrectStroke:function(data){
+      examStrokes++;
+      examTotal = data.totalStrokes;
+      flashBox('exam-target','green');
+      sfxCorrect();
+    },
+    onComplete:function(summary){
+      examMistakes = summary.totalMistakes;
+      examTotal    = summary.strokeCount || examStrokes;
+      showExamResult(char, examMistakes, examTotal);
+    }
+  });
+}
+
+function showExamResult(char, mistakes, total) {
+  // 移除交卷浮動按鈕
+  var fbar = document.getElementById('dict-float-bar');
+  if (fbar) fbar.remove();
+
+  var passed = mistakes <= 2;
+
+  var icon   = document.getElementById('exam-result-icon');
+  var title  = document.getElementById('exam-result-title');
+  var detail = document.getElementById('exam-result-detail');
+  var mbar   = document.getElementById('exam-mistake-bar');
+  var nextBtn= document.getElementById('btn-exam-next');
+  var retryBtn=document.getElementById('btn-exam-retry');
+
+  if (passed) {
+    sfxCelebrate();
+    icon.textContent  = '🎉';
+    title.textContent = '通過！';
+    title.className   = 'exam-result-title exam-result-pass';
+    charStatus[char]  = 'practiced';  // 單字測驗通過 → 通過練習
+    showToast(mistakes === 0 ? '🎉 完美通過！' : '👍 通過了！');
+    nextBtn.style.display  = '';
+    retryBtn.style.display = 'none';
+  } else {
+    sfxWrong();
+    icon.textContent  = '💪';
+    title.textContent = '繼續加油！';
+    title.className   = 'exam-result-title exam-result-fail';
+    // 未通過不改變狀態
+    nextBtn.style.display  = 'none';
+    retryBtn.style.display = '';
+  }
+
+  detail.textContent = '「'+char+'」共 '+total+' 筆';
+  mbar.innerHTML = mistakes === 0
+    ? '✨ 一筆都沒錯！'
+    : '錯了 <strong style="font-size:1.2rem;color:var(--red)">'+mistakes+'</strong> 筆'
+      + (passed ? '　（錯 5 筆以內算通過）' : '　（需要錯 5 筆以內才通過）');
+
+  renderMenu();
+  document.getElementById('exam-result-card').classList.add('show');
+  setTimeout(function(){
+    document.getElementById('exam-result-card').scrollIntoView({behavior:'smooth',block:'center'});
+  }, 200);
+}
+
+function retryExam() {
+  sfxTap();
+  // 重新加交卷按鈕
+  var old = document.getElementById('dict-float-bar');
+  if (old) old.remove();
+  var fbar = document.createElement('div');
+  fbar.className = 'dict-float-bar'; fbar.id = 'dict-float-bar';
+  fbar.innerHTML = '<button class="btn-float btn-float-submit" onclick="submitExam()">'
+    +'<span>✓</span><span>交　卷</span></button>';
+  document.body.appendChild(fbar);
+  initExam(chars[currentIdx]);
+  document.getElementById('learn-body').scrollTo({top:0,behavior:'smooth'});
+}
+
+// submitExam：測驗模式的「交卷」其實就是讓 quiz 自然完成
+// 但如果學生想提前交卷（例如確定寫完了），強制觸發完成
+function submitExam() {
+  sfxTap();
+  if (!examWriter) return;
+  // 移除浮動按鈕
+  var fbar = document.getElementById('dict-float-bar');
+  if (fbar) fbar.remove();
+  // 直接觸發完成（用目前的錯誤數呈現結果）
+  showExamResult(chars[currentIdx], examMistakes, examTotal || examStrokes);
+}
+
+// ═══════════════════════════════════════
+//  默寫模式
+// ═══════════════════════════════════════
+function switchToDict() {
+  sfxSwipe();
+  currentMode = 'dict';
+  dictScore   = -1;
+
+  document.getElementById('panel-practice').style.display = 'none';
+  document.getElementById('panel-dict').style.display     = '';
+  document.getElementById('result-panel').classList.remove('show');
+  // 確保書寫區顯示
+  var dictCanvas = document.getElementById('dict-canvas-wrap');
+  if (dictCanvas) dictCanvas.style.display = '';
+
+  document.getElementById('mode-icon').textContent  = '📝';
+  document.getElementById('mode-title').textContent = '默寫測驗';
+  document.getElementById('mode-sub').textContent   = '靠自己的記憶把字寫出來';
+
+  // 默寫時隱藏標題字，不給學生提示
+  document.getElementById('learn-title').textContent = '默寫測驗';
+
+  // 隱藏全寬底部列
+  var bb = document.getElementById('bottom-bar');
+  if (bb) bb.style.display = 'none';
+  // 移除舊的浮動按鈕（若有）
+  var oldFbar = document.getElementById('dict-float-bar');
+  if (oldFbar) oldFbar.remove();
+
+
+  // 等 DOM 更新後再初始化 canvas，避免 getBoundingClientRect 讀到 0
+  setTimeout(function(){ initDictCanvas(); }, 80);
+}
+
+function getGridPx() {
+  // 讀取 CSS 變數計算後的實際像素值
+  var el = document.querySelector('.nine-grid') || document.querySelector('.quiz-box') || document.querySelector('.dict-canvas-wrap');
+  if (el) return el.getBoundingClientRect().width || 340;
+  return 340;
+}
+
+function initDictCanvas() {
+  var wrap = document.getElementById('dict-canvas-wrap');
+  var sz   = Math.round(wrap.getBoundingClientRect().width) || 340;
+  dSize    = sz;
+
+  var old = document.getElementById('dict-canvas');
+  var neo = old.cloneNode(false);
+  neo.id  = 'dict-canvas';
+  neo.width  = sz;
+  neo.height = sz;
+  neo.style.width  = sz+'px';
+  neo.style.height = sz+'px';
+  old.parentNode.replaceChild(neo, old);
+  dCanvas  = neo;
+  dCtx     = dCanvas.getContext('2d');
+  dDrawing     = false;
+  dAllStrokes  = [];
+  dCurrentStroke = [];
+
+  dCanvas.addEventListener('mousedown',  dStart);
+  dCanvas.addEventListener('mousemove',  dMove);
+  dCanvas.addEventListener('mouseup',    dEnd);
+  dCanvas.addEventListener('mouseleave', dEnd);
+  dCanvas.addEventListener('touchstart',  function(e){e.preventDefault();dStart(e.touches[0]);},{passive:false});
+  dCanvas.addEventListener('touchmove',   function(e){e.preventDefault();dMove(e.touches[0]); },{passive:false});
+  dCanvas.addEventListener('touchend',    function(e){e.preventDefault();dEnd();              },{passive:false});
+  dCanvas.addEventListener('touchcancel', function(e){e.preventDefault();dEnd();              },{passive:false});
+}
+
+function dPos(e) {
+  var r = dCanvas.getBoundingClientRect();
+  return { x:(e.clientX-r.left)*(dCanvas.width/r.width), y:(e.clientY-r.top)*(dCanvas.height/r.height) };
+}
+function dStart(e) {
+  dDrawing = true;
+  dCurrentStroke = [];
+  var p = dPos(e);
+  dCurrentStroke.push([Math.round(p.x), Math.round(p.y)]);
+  dCtx.beginPath();
+  dCtx.moveTo(p.x, p.y);
+}
+function dMove(e) {
+  if (!dDrawing) return;
+  var p = dPos(e);
+  // 每隔 3 個點記錄一次，減少資料量
+  if (dCurrentStroke.length === 0 || dCurrentStroke.length % 3 === 0) {
+    dCurrentStroke.push([Math.round(p.x), Math.round(p.y)]);
+  }
+  dCtx.lineTo(p.x, p.y);
+  dCtx.strokeStyle = '#1e2d3d';
+  dCtx.lineWidth = Math.max(5, Math.round(dSize * 0.016));
+  dCtx.lineCap = 'round'; dCtx.lineJoin = 'round'; dCtx.stroke();
+}
+function dEnd() {
+  if (!dDrawing) return;
+  dDrawing = false;
+  dCtx.closePath();
+  if (dCurrentStroke.length > 1) {
+    dAllStrokes.push(dCurrentStroke.slice());
+  }
+  dCurrentStroke = [];
+}
+
+function clearDictCanvas() {
+  sfxTap();
+  if (!dCtx) return;
+  dCtx.clearRect(0,0,dCanvas.width,dCanvas.height);
+  dDrawing = false; dictScore = -1;
+  dAllStrokes = []; dCurrentStroke = [];
+  document.getElementById('result-panel').classList.remove('show');
+}
+
+function retryDict() {
+  sfxTap();
+  clearDictCanvas();
+  document.getElementById('retry-only-btn').style.display = 'none';
+  var screen = document.getElementById('screen-learn');
+  if (screen) screen.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ── 交卷：像素相似度計算 ──
+function submitDictation() {
+  sfxTap();
+  var char = chars[currentIdx];
+  if (!dCtx) return;
+
+  // 檢查是否有筆跡
+  var px = dCtx.getImageData(0,0,dCanvas.width,dCanvas.height).data;
+  var hasInk = false;
+  for (var i=3;i<px.length;i+=4){ if(px[i]>20){hasInk=true;break;} }
+  if (!hasInk) { showToast('📝 還沒寫喔！請先在格子裡寫字！'); return; }
+
+  // 學生筆跡縮圖
+  var sz = 140;
+  var oc = document.getElementById('compare-student');
+  oc.width = sz; oc.height = sz;
+  oc.getContext('2d').drawImage(dCanvas, 0, 0, sz, sz);
+
+  // 正確字形
+  document.getElementById('compare-ref').textContent = char;
+
+  // 重置自評區
+  document.getElementById('after-eval').style.display = 'none';
+  document.getElementById('retry-only-btn').style.display = 'none';
+  document.querySelectorAll('.btn-eval').forEach(function(b){
+    b.style.opacity='1'; b.disabled=false;
+  });
+
+  // 直接顯示結果面板（不隱藏書寫區，避免顯示問題）
+  document.getElementById('result-panel').classList.add('show');
+  sfxSwipe();
+
+  setTimeout(function(){
+    var rp = document.getElementById('result-panel');
+    if (rp) rp.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 150);
+}
+
+// 學生自評（只有兩個選項）
+function selfEval(result) {
+  sfxTap();
+  var char = chars[currentIdx];
+
+  // 鎖定自評按鈕避免重複點
+  document.querySelectorAll('.btn-eval').forEach(function(b){
+    b.disabled = true; b.style.opacity = '.4';
+  });
+
+  if (result === 'great') {
+    sfxCelebrate();
+    charStatus[char] = 'practiced';  // 默寫通過 → 通過練習
+
+    // 把筆畫路徑標準化到 0-1 範圍（不依賴 canvas 尺寸）存入 Firebase
+    if (dAllStrokes.length > 0 && dSize > 0) {
+      var normStrokes = dAllStrokes.map(function(stroke) {
+        return stroke.map(function(pt) {
+          return [
+            Math.round(pt[0] / dSize * 1000) / 1000,
+            Math.round(pt[1] / dSize * 1000) / 1000
+          ];
+        });
+      });
+      charStrokes[char] = normStrokes;
+      saveStroke(char, normStrokes);
+    }
+
+    var ae = document.getElementById('after-eval');
+    var vt = document.getElementById('eval-verdict');
+    ae.style.display = 'flex';
+    vt.style.cssText = 'border-radius:14px;padding:14px 20px;text-align:center;font-size:1.2rem;font-weight:900;width:100%;background:#e8f8ee;color:var(--green-dk)';
+    vt.innerHTML = '🎉 太棒了！';
+    showToast('🎉 太棒了！');
+    document.getElementById('btn-dict-next').style.display = '';
+    document.getElementById('retry-only-btn').style.display = 'none';
+  } else {
+    // 不像：不改變狀態，只顯示「再練習一次」
+    sfxWrong();
+    document.getElementById('after-eval').style.display = 'none';
+    document.getElementById('retry-only-btn').style.display = '';
+  }
+  renderMenu();
+}
+
+
+function nextChar() {
+  sfxTap();
+  if (currentIdx < chars.length-1) {
+    openChar(currentIdx+1);
+  } else {
+    goTo('menu');
+  }
+}
+
+// 默寫完成後「回到列表」：到 menu 後再判斷是否全部完成
+function goBackToMenu() {
+  sfxTap();
+  goTo('menu');
+  // 延遲確認是否所有字都已學習完成
+  setTimeout(function(){
+    var allDone = chars.every(function(c){
+      return charStatus[c] === 'mastered' || charStatus[c] === 'practiced';
+    });
+    var allMastered = chars.every(function(c){
+      return charStatus[c] === 'mastered';
+    });
+    if (allMastered) {
+      sfxGrandCelebrate();
+      showToast('🎊 全部字都學會了！超棒的！');
+      pulseExamBtn();
+    } else if (allDone) {
+      showToast('👍 繼續加油，把剩下的字也學會吧！');
+    }
+  }, 500);
+}
+
+
+
+// ═══════════════════════════════════════
+//  綜合測驗模式
+// ═══════════════════════════════════════
+var examQueue     = [];   // 本輪待考字
+var examQIdx      = 0;    // 本輪題號
+var examResults   = {};   // {char: {round, mistakes, passed}} 最終成績（每字只記最後一次）
+var examRound     = 1;    // 目前輪次
+var examMaxRounds = 3;    // 最多幾輪
+var examQWriter   = null;
+var examQMistakes = 0;
+var examQStrokes  = 0;
+var examQSz       = 340;  // 測驗格子尺寸（供 hint mode 使用）
+var examFailed    = [];   // 本輪答錯或跳過的字，進下一輪
+
+function startFullExam() {
+  sfxSwipe();
+  if (!chars.length) return;
+
+  // 初始化：第一輪考所有字
+  examQueue   = chars.slice().sort(function(){ return Math.random()-.5; });
+  examQIdx    = 0;
+  examResults = {};
+  examRound   = 1;
+  examFailed  = [];
+
+  goTo('exam');
+  setTimeout(function(){
+    document.getElementById('exam-question-panel').style.display = '';
+    document.getElementById('exam-result-panel').style.display   = 'none';
+    updateExamRoundBanner();
+    showExamQuestion();
+  }, 450);
+}
+
+function updateExamRoundBanner() {
+  var title = document.getElementById('exam-topbar-title');
+  if (title) {
+    title.textContent = examRound > 1
+      ? '第 '+examRound+' 輪（剩 '+examQueue.length+' 字）'
+      : '今日測驗';
+  }
+}
+
+function showExamQuestion() {
+  var total = examQueue.length;
+  var qNum  = examQIdx + 1;
+
+  // 進度
+  document.getElementById('exam-q-num').textContent = '第 '+qNum+' 題 ／ 共 '+total+' 題';
+  document.getElementById('exam-topbar-title').textContent = '今日測驗';
+  var pct = (examQIdx / total) * 100;
+  document.getElementById('exam-progress-fill').style.width = pct+'%';
+
+  // 重置
+  examQMistakes = 0; examQStrokes = 0;
+  var char = examQueue[examQIdx];
+
+  // 初始化 quiz（無輪廓、無提示筆畫）
+  var et = document.getElementById('exam-quiz-target');
+  et.innerHTML = '';
+  et.classList.remove('flash-green','flash-red');
+
+  // 直接讀 exam-quiz-target 的實際寬度
+  var etRect = et.getBoundingClientRect();
+  var sz = Math.round(etRect.width) || Math.round(Math.min(
+    (window.innerWidth - 80) / 1,
+    window.innerHeight - 320,
+    420
+  ));
+
+  examQSz = sz;  // 儲存格子尺寸供 hint mode 使用
+  examQWriter = HanziWriter.create('exam-quiz-target', char, {
+    width:sz, height:sz,
+    padding:Math.round(sz*0.08),
+    strokeColor:'#2d6fa8',
+    outlineColor:'rgba(0,0,0,0)',      // 初始無輪廓
+    drawingColor:'#2d6fa8',
+    drawingWidth:Math.max(4,Math.round(sz*0.013)),
+    highlightColor:'#ffd54f',          // 錯5次後的提示筆畫顏色
+    showCharacter:false, showOutline:false, leniency:1.1,
+    onLoadCharDataSuccess:function(){
+      setTimeout(function(){ playExamVoice(); }, 300);
+      startExamQQuiz(char);
+    }
+  });
+}
+
+// 播放測驗語音提示
+function playExamVoice() {
+  var char = examQueue[examQIdx];
+  if (!char) return;
+  var btn = document.getElementById('btn-exam-voice');
+  if (btn) { btn.classList.add('playing'); }
+  speakChar(char);
+  // 播完後恢復按鈕顏色（預估播放時間）
+  setTimeout(function(){
+    if (btn) btn.classList.remove('playing');
+  }, 1200);
+}
+
+var examQStrokeMistakes = 0;  // 本題累計錯誤次數
+var examQHintMode = false;    // 是否已進入提示描寫模式
+
+function startExamQQuiz(char) {
+  examQStrokeMistakes = 0;
+  examQHintMode = false;
+  examQWriter.quiz({
+    showHintAfterMisses: 3,   // 每筆錯 3 次顯示 highlight 提示
+    onMistake: function(data) {
+      examQMistakes++;
+      examQStrokeMistakes++;
+      flashBox('exam-quiz-target', 'red');
+      sfxWrong();
+
+      // 總錯誤超過 5 次且尚未進入提示模式：建立新的含輪廓 writer 讓學生描
+      if (examQMistakes > 5 && !examQHintMode) {
+        examQHintMode = true;
+        showToast('💡 看著輪廓把字描完吧！');
+        try { examQWriter.cancelQuiz(); } catch(e) {}
+
+        // 清空格子，建立全新的 writer（有輪廓）取代舊的
+        var target = document.getElementById('exam-quiz-target');
+        if (target) {
+          // 清空 SVG 內容
+          while (target.firstChild) target.removeChild(target.firstChild);
+        }
+
+        // 重建含輪廓的 writer
+        examQWriter = HanziWriter.create('exam-quiz-target', char, {
+          width: examQSz, height: examQSz,
+          padding: Math.round(examQSz * 0.08),
+          strokeColor: '#2d6fa8',
+          outlineColor: '#c8dff5',    // 可見的淡藍輪廓
+          drawingColor: '#2d6fa8',
+          drawingWidth: Math.max(4, Math.round(examQSz * 0.013)),
+          highlightColor: '#ffd54f',
+          showCharacter: true,         // 顯示完整字形
+          showOutline: true,           // 顯示輪廓
+          leniency: 1.5,
+          onLoadCharDataSuccess: function() {
+            examQWriter.quiz({
+              showHintAfterMisses: 1,
+              markStrokeCorrectAfterMisses: 3,
+              leniency: 1.5,
+              onMistake: function() { sfxWrong(); },
+              onCorrectStroke: function() {
+                sfxCorrect();
+                flashBox('exam-quiz-target', 'green');
+              },
+              onComplete: function() {
+                recordAndNext(char, 99, false);
+              }
+            });
+          }
+        });
+      }
+    },
+    onCorrectStroke: function(data) {
+      examQStrokes++;
+      flashBox('exam-quiz-target', 'green');
+      sfxCorrect();
+    },
+    onComplete: function(summary) {
+      if (examQHintMode) return; // 已由提示模式處理
+      examQMistakes = summary.totalMistakes;
+      recordAndNext(char, examQMistakes, false);
+    }
+  });
+}
+
+function skipExamChar() {
+  sfxTap();
+  var char = examQueue[examQIdx];
+  if (examQWriter) {
+    try { examQWriter.cancelQuiz(); } catch(e){}
+  }
+  recordAndNext(char, 99, true); // 99 = 跳過
+}
+
+
+function recordAndNext(char, mistakes, skipped) {
+  var passed = !skipped && mistakes <= 5;  // 總錯誤 ≤ 5 筆算通過
+
+  // 記錄這個字的成績（保留最佳成績：若之前已過，不降級）
+  var prev = examResults[char];
+  if (!prev || (!prev.passed && passed)) {
+    examResults[char] = { round:examRound, mistakes:mistakes, skipped:skipped, passed:passed };
+  }
+
+  // 更新生字狀態：只有綜合測驗通過才標 mastered（通過測驗）
+  if (passed) {
+    charStatus[char] = 'mastered';  // 綜合測驗通過 → 通過測驗
+  } else {
+    // 未通過不改變原本狀態（可能已是 practiced 或 new）
+    examFailed.push(char); // 加入下一輪待考
+  }
+  try { renderMenu(); } catch(e) { console.warn('renderMenu error:', e); }
+
+  examQIdx++;
+  if (examQIdx < examQueue.length) {
+    setTimeout(showExamQuestion, 700);
+  } else {
+    // 本輪結束
+    if (examFailed.length > 0 && examRound < examMaxRounds) {
+      // 顯示輪次結算畫面
+      setTimeout(showRoundSummary, 600);
+    } else {
+      setTimeout(showExamFinalResult, 400);
+    }
+  }
+}
+
+// 顯示輪次結算
+function showRoundSummary() {
+  try {
+    sfxPass();
+
+    // 安全取得各 panel，若找不到則跳至最終結果
+    var qPanel = document.getElementById('exam-question-panel');
+    var rPanel = document.getElementById('exam-result-panel');
+    var sPanel = document.getElementById('exam-round-panel');
+    if (!sPanel) { showExamFinalResult(); return; }
+
+    if (qPanel) qPanel.style.display = 'none';
+    if (rPanel) rPanel.style.display = 'none';
+    sPanel.style.display = '';
+
+    var body = document.getElementById('exam-body');
+    if (body) body.scrollTo({top:0, behavior:'smooth'});
+
+    document.getElementById('round-icon').textContent  = '📊';
+    document.getElementById('round-title').textContent = '第 ' + examRound + ' 輪結算';
+
+    // 本輪答對的字（examResults 裡 round === examRound 且 passed）
+    var passedNow = examQueue.filter(function(c){
+      var r = examResults[c];
+      return r && r.passed && r.round === examRound;
+    });
+
+    // 本輪答錯的字（examFailed 目前累積值）
+    var failedNow = examFailed.slice();
+
+    document.getElementById('round-sub').textContent =
+      '答對 ' + passedNow.length + ' 個，還有 ' + failedNow.length + ' 個要再加油！';
+
+    // ── 答對區 ──
+    var passSection = document.getElementById('round-pass-section');
+    var passGrid    = document.getElementById('round-pass-grid');
+    if (passSection && passGrid) {
+      if (passedNow.length > 0) {
+        passSection.style.display = '';
+        passGrid.innerHTML = passedNow.map(function(c) {
+          var r      = examResults[c] || {};
+          var perfect = r.mistakes === 0;
+          return '<div class="exam-score-item ' + (perfect ? 'pass' : 'ok') + '">'
+            + '<div class="exam-score-glyph">' + c + '</div>'
+            + '<div style="font-size:1.4rem">⭕</div>'
+            + '<div class="exam-score-label ' + (perfect ? 'label-pass' : 'label-ok') + '">'
+            + (perfect ? '完美' : '通過') + '</div></div>';
+        }).join('');
+      } else {
+        passSection.style.display = 'none';
+      }
+    }
+
+    // ── 答錯區 ──
+    var failSection = document.getElementById('round-fail-section');
+    var failGrid    = document.getElementById('round-fail-grid');
+    if (failSection && failGrid) {
+      if (failedNow.length > 0) {
+        failSection.style.display = '';
+        failGrid.innerHTML = failedNow.map(function(c) {
+          return '<div class="exam-score-item fail">'
+            + '<div class="exam-score-glyph">' + c + '</div>'
+            + '<div style="font-size:1.4rem">✖</div>'
+            + '<div class="exam-score-label label-fail">再加油</div></div>';
+        }).join('');
+      } else {
+        failSection.style.display = 'none';
+      }
+    }
+
+    // ── 下一輪按鈕 ──
+    var lbl = document.getElementById('btn-next-round-label');
+    if (lbl) lbl.textContent = '開始第 ' + (examRound + 1) + ' 輪';
+
+  } catch(e) {
+    console.error('showRoundSummary error:', e);
+    // 當機保護：直接跳到最終結果
+    showExamFinalResult();
+  }
+}
+
+// 從結算畫面進入下一輪
+function doStartNextRound() {
+  sfxTap();
+  document.getElementById('exam-round-panel').style.display = 'none';
+  startNextRound();
+}
+
+function startNextRound() {
+  examRound++;
+  examQueue  = examFailed.slice().sort(function(){ return Math.random()-.5; });
+  examQIdx   = 0;
+  examFailed = [];
+
+  updateExamRoundBanner();
+  document.getElementById('exam-question-panel').style.display = '';
+  showExamQuestion();
+}
+
+function showExamFinalResult() {
+  sfxCelebrate();
+  document.getElementById('exam-progress-fill').style.width = '100%';
+  document.getElementById('exam-question-panel').style.display = 'none';
+  document.getElementById('exam-result-panel').style.display  = '';
+
+  // 整理成績（從 examResults 物件轉成陣列，按原始 chars 順序排列）
+  var resultArr = chars.map(function(c){
+    return examResults[c] || { char:c, round:examRound, mistakes:99, skipped:true, passed:false };
+  });
+  resultArr.forEach(function(r,i){ r.char = chars[i]; });
+
+  var total   = resultArr.length;
+  var perfect = resultArr.filter(function(r){ return r.passed && r.mistakes===0; }).length;
+  var passed  = resultArr.filter(function(r){ return r.passed; }).length;
+
+  // 標題
+  var icon, title, sub;
+  if (perfect === total) {
+    icon='🏆'; title='全部滿分！';
+    sub = '每個字都一筆都沒錯！太厲害了！';
+  } else if (passed === total) {
+    icon='🎉'; title='全部通過！';
+    sub = examRound > 1
+      ? '經過 '+examRound+' 輪，全部字都過關了！'
+      : '第一輪就全部通過，很棒！';
+  } else if (passed >= Math.ceil(total*0.6)) {
+    icon='👍'; title='通過測驗！';
+    sub = total+'個字中，'+passed+' 個通過！未通過的字要繼續練習。';
+  } else {
+    icon='💪'; title='繼續加油！';
+    sub = '多練習幾次，你一定可以的！';
+  }
+  document.getElementById('exam-score-icon').textContent  = icon;
+  document.getElementById('exam-score-title').textContent = title;
+  document.getElementById('exam-score-sub').textContent   = sub;
+
+  // 成績格：顯示每個字的結果，含輪次資訊
+  var grid = document.getElementById('exam-score-grid');
+  grid.innerHTML = resultArr.map(function(r) {
+    var cls, mark, lbl, lblCls;
+    if (!r.passed && r.skipped) {
+      cls='skip'; mark='—'; lbl='未作答'; lblCls='label-skip';
+    } else if (r.passed && r.mistakes === 0) {
+      cls='pass'; mark='⭕'; lbl='完美'; lblCls='label-pass';
+    } else if (r.passed) {
+      cls='ok'; mark='⭕'; lbl='通過'; lblCls='label-ok';
+    } else {
+      cls='fail'; mark='✖'; lbl='再練習'; lblCls='label-fail';
+    }
+    // 超過第一輪才顯示輪次
+    var roundTag = r.round > 1
+      ? '<div style="font-size:.6rem;color:var(--muted);font-weight:700">第'+r.round+'輪</div>'
+      : '';
+    return '<div class="exam-score-item '+cls+'">'
+      +'<div class="exam-score-glyph">'+r.char+'</div>'
+      +'<div style="font-size:1.6rem">'+mark+'</div>'
+      + roundTag
+      +'<div class="exam-score-label '+lblCls+'">'+lbl+'</div>'
+      +'</div>';
+  }).join('');
+
+  document.getElementById('exam-body').scrollTo({top:0,behavior:'smooth'});
+}
+
+function abortExam() {
+  sfxTap();
+  if (examQWriter) { try { examQWriter.cancelQuiz(); } catch(e){} }
+  goTo('menu');
+}
+
+
+// 全部完成：先閃爍3次，再持續呼吸，按下停止
+function pulseExamBtn() {
+  var btn = document.getElementById('btn-start-exam');
+  if (!btn) return;
+
+  // 先做閃爍
+  btn.classList.remove('btn-exam-pulse','btn-exam-breathe');
+  void btn.offsetWidth;
+  btn.classList.add('btn-exam-pulse');
+
+  // 閃爍結束後（3 × 0.7s = 2.1s）轉成持續呼吸
+  setTimeout(function(){
+    btn.classList.remove('btn-exam-pulse');
+    void btn.offsetWidth;
+    btn.classList.add('btn-exam-breathe');
+  }, 2200);
+
+  // 按下時停止
+  function stopGlow() {
+    btn.classList.remove('btn-exam-pulse','btn-exam-breathe');
+    btn.removeEventListener('click', stopGlow);
+  }
+  btn.addEventListener('click', stopGlow);
+}
+
+// ═══════════════════════════════════════
+//  Toast
+// ═══════════════════════════════════════
+function showToast(html) {
+  var t=document.getElementById('toast');
+  t.innerHTML=html; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); },2600);
+}
+
+// ═══════════════════════════════════════
+//  啟動
+// ═══════════════════════════════════════
+function waitHW(cb) {
+  if (typeof HanziWriter!=='undefined') cb();
+  else setTimeout(function(){ waitHW(cb); },100);
+}
+window.addEventListener('load', function(){
+  initFirebase();        // Firebase 初始化（會自動輪詢直到就緒）
+  waitHW(function(){});  // HanziWriter 初始化
+  applyTheme(currentTheme); // 套用上次的主題
+  applySound();             // 套用音效開關狀態
+  initSoundWrapper();       // 包裝音效函數
+});
+
+// 也在 DOMContentLoaded 時嘗試初始化（雙保險）
+document.addEventListener('DOMContentLoaded', function(){
+  initFirebase();
+});
+</script>
+</body>
+</html>
