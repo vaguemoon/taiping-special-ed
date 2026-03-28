@@ -161,37 +161,6 @@ function showToast(msg) {
    <div id="topbar-home"></div>
    ════════════════════════════════════════ */
 
-var _topbarTimer = null;
-
-/**
- * 產生時間問候字串（HTML）
- * 需要 window.__topbarStudent 已被設定
- */
-function getTopbarGreetingHTML() {
-  if (!window.__topbarStudent) return '';
-  var now  = new Date();
-  var h    = now.getHours();
-  var hStr = String(h).padStart(2,'0');
-  var mStr = String(now.getMinutes()).padStart(2,'0');
-  var greet = h < 6  ? '深夜了'
-            : h < 12 ? '早上好'
-            : h < 14 ? '中午好'
-            : h < 18 ? '下午好'
-            : h < 21 ? '傍晚好'
-            :           '晚上好';
-  var name   = window.__topbarStudent.nickname || window.__topbarStudent.name || '';
-  var avatar = window.__topbarStudent.avatar || '🐣';
-  return hStr + ':' + mStr + '\u3000' + greet + '！<em>' + name + '</em>\u3000' + avatar;
-}
-
-/** 更新所有頁面上已渲染的問候欄 */
-function refreshTopbarGreeting() {
-  requestAnimationFrame(function() {
-    document.querySelectorAll('.topbar-center[data-greeting]').forEach(function(el) {
-      el.innerHTML = getTopbarGreetingHTML();
-    });
-  });
-}
 
 /**
  * 渲染 topbar 到指定容器
@@ -200,7 +169,6 @@ function refreshTopbarGreeting() {
  *   opts.back    {label, onclick}  左側返回按鈕（必填）
  *   opts.title   {string}          頁面標題 HTML（必填）
  *   opts.titleId {string}          如需動態更新標題，傳入 id
- *   opts.greeting {boolean}        顯示中間問候欄（預設 true）
  *   opts.extra   {string}          設定按鈕左側插入的額外 HTML
  *   opts.settingsOnclick {string}  設定按鈕的 onclick（預設 'goToProfile()'）
  */
@@ -208,7 +176,6 @@ function renderTopbar(target, opts) {
   var el = typeof target === 'string' ? document.getElementById(target) : target;
   if (!el) return;
   opts = opts || {};
-  var showGreeting = opts.greeting !== false;
   var settingsOnclick = opts.settingsOnclick || 'goToProfile()';
   var titleId = opts.titleId ? ' id="' + opts.titleId + '"' : '';
 
@@ -218,26 +185,10 @@ function renderTopbar(target, opts) {
       '<button class="btn-back" onclick="' + opts.back.onclick + '">' + opts.back.label + '</button>' +
       '<div class="topbar-title"' + titleId + '>' + opts.title + '</div>' +
     '</div>' +
-    '<div class="topbar-center"' + (showGreeting ? ' data-greeting="1"' : '') + '>' +
-      (showGreeting ? getTopbarGreetingHTML() : '') +
-    '</div>' +
     (opts.extra ? opts.extra : '') +
     '<button class="btn-settings" onclick="' + settingsOnclick + '">⚙️ 設定</button>';
-
-  // 啟動每分鐘自動更新（只啟動一次）
-  if (showGreeting && !_topbarTimer) {
-    _topbarTimer = setInterval(refreshTopbarGreeting, 60000);
-  }
 }
 
-/**
- * 設定問候語所需的學生資料（登入後呼叫一次）
- * @param {object} student  { name, nickname, avatar }
- */
-function setTopbarStudent(student) {
-  window.__topbarStudent = student;
-  refreshTopbarGreeting();
-}
 
 /* ════════════════════════════════════════
    個人設定跳轉（所有子頁面統一用這個）
@@ -273,7 +224,6 @@ function initSubPage(callback) {
   if (!saved) { window.location.href = 'index.html'; return; }
   var student;
   try { student = JSON.parse(saved); } catch(e) { window.location.href = 'index.html'; return; }
-  setTopbarStudent(student);
   (function waitDb() {
     if (!db) { setTimeout(waitDb, 150); return; }
     try { callback(student); } catch(e) { console.error('initSubPage error:', e); }

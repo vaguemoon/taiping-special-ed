@@ -54,13 +54,6 @@ body {
 .topbar-left { display:flex; align-items:center; gap:10px; min-width:0; }
 .topbar-title { font-size:.95rem; font-weight:900; color:var(--blue-dk); white-space:nowrap; }
 .topbar-title span { color:var(--orange); }
-.topbar-center {
-  flex:1; text-align:center;
-  font-size:.78rem; font-weight:700; color:var(--muted);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  padding:0 6px;
-}
-.topbar-center em { font-style:normal; color:var(--text); font-weight:900; }
 .btn-back {
   background:var(--blue-lt); border:none; border-radius:14px;
   padding:10px 20px; font-size:1rem; font-weight:900;
@@ -689,7 +682,6 @@ body {
       <button class="btn-back" onclick="goBackToHub()">← 回首頁</button>
       <div class="topbar-title">✏️ <span>國字練習</span></div>
     </div>
-    <div class="topbar-center" data-greeting="1"></div>
     <button class="btn-settings" onclick="goToProfile()">⚙️ 設定</button>
   </div>
   <div class="home-hero">
@@ -750,7 +742,6 @@ body {
       <button class="btn-back" onclick="goTo('home')">← 返回</button>
       <div class="topbar-title">今天的<span>生字</span></div>
     </div>
-    <div class="topbar-center" data-greeting="1"></div>
     <button class="btn-settings" onclick="goToProfile()">⚙️ 設定</button>
   </div>
   <!-- 進度概覽列 -->
@@ -780,7 +771,6 @@ body {
       <button class="btn-back" onclick="abortExam()">✕ 結束測驗</button>
       <div class="topbar-title" id="exam-topbar-title">今日測驗</div>
     </div>
-    <div class="topbar-center"></div>
     <button class="btn-settings" onclick="goToProfile()">⚙️ 設定</button>
   </div>
 
@@ -868,7 +858,6 @@ body {
       <button class="btn-back" onclick="goTo('menu')">← 返回</button>
       <div class="topbar-title" id="mode-select-title">選擇模式</div>
     </div>
-    <div class="topbar-center"></div>
     <button class="btn-settings" onclick="goToProfile()">⚙️ 設定</button>
   </div>
   <div class="mode-select-body">
@@ -896,7 +885,6 @@ body {
       <button class="btn-back" onclick="goTo('menu')">← 返回</button>
       <div class="topbar-title" id="learn-title">學習</div>
     </div>
-    <div class="topbar-center"></div>
     <button class="btn-settings" onclick="goToProfile()">⚙️ 設定</button>
   </div>
 
@@ -2468,10 +2456,6 @@ function initTopbars() {
   });
 }
 
-function updateHomeAvatar() {
-  if (currentStudent) setTopbarStudent(currentStudent);
-}
-
 function goBackToHub() {
   window.location.href = 'index.html';
 }
@@ -2532,7 +2516,6 @@ window.addEventListener('load', function(){
             if (inp) inp.value = lessonDoc.data().chars.join('');
           }
 
-          updateHomeAvatar();
           setTimeout(loadCurriculumVersions, 500);
 
           var ov  = document.getElementById('loading-overlay');
