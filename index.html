@@ -108,24 +108,6 @@ body { height:100vh; overflow:hidden; }
 /* 教師登入 */
 .teacher-field { margin-bottom:12px; }
 
-/* 註冊卡 */
-.register-card {
-  background:white; border-radius:var(--radius);
-  padding:22px 20px; box-shadow:0 16px 48px rgba(0,0,0,.25);
-  width:100%; max-width:380px; margin-top:10px;
-  display:none;
-}
-.register-card.show { display:block; }
-.register-card-title { font-size:.96rem; font-weight:900; color:var(--blue-dk); text-align:center; margin-bottom:16px; }
-.register-pin-row { display:flex; gap:10px; align-items:flex-start; }
-.register-pin-col { flex:1; }
-.register-pin-label { font-size:.79rem; font-weight:800; color:var(--muted); margin-bottom:5px; display:block; }
-.register-pin-display { display:flex; gap:6px; justify-content:center; margin-bottom:8px; }
-.register-pin-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
-.register-confirm-dot { width:13px; height:13px; border-radius:50%; border:2.5px solid #c8d8ec; background:transparent; transition:all .15s; }
-.register-confirm-dot.filled { background:var(--green); border-color:var(--green); }
-.register-divider { width:1px; background:var(--border); margin:24px 6px 0; align-self:stretch; }
-
 /* ── Hub 畫面 ── */
 #screen-hub { background:linear-gradient(160deg,#dbeeff 0%,#eef5fc 100%); display:flex; flex-direction:column; min-height:100vh; }
 .hub-topbar {
@@ -276,67 +258,12 @@ if (window.__hasSession) document.getElementById('anti-flash').style.display = '
     </div>
     <button class="btn-login" id="btn-login" onclick="doStudentLogin()" disabled>登入</button>
     <div class="login-error" id="login-error"></div>
-    <div class="login-switch">第一次來？<a onclick="toggleRegister()">註冊新帳號</a></div>
-  </div>
-
-  <!-- 註冊卡（點連結後展開） -->
-  <div class="register-card" id="register-card">
-    <div class="register-card-title">✏️ 建立新帳號</div>
-    <div class="login-field">
-      <label class="login-label">你的名字</label>
-      <input class="login-input" type="text" id="reg-name" placeholder="輸入你的名字" autocomplete="off" oninput="onRegNameInput()">
+    <!-- 查無帳號時出現，讓學生直接建立 -->
+    <div id="register-prompt" style="display:none;margin-top:10px;background:#f0f7ff;border-radius:10px;padding:12px 14px;text-align:center">
+      <div style="font-size:.82rem;font-weight:700;color:var(--blue-dk);margin-bottom:8px">找不到這個帳號，要用這個名字和 PIN 建立新帳號嗎？</div>
+      <button class="btn-login" onclick="doRegister()" style="background:linear-gradient(135deg,var(--green),var(--green-dk));box-shadow:0 4px 14px rgba(56,153,89,.35)">✏️ 建立新帳號</button>
     </div>
-    <!-- PIN 設定 + 確認並排 -->
-    <div class="register-pin-row">
-      <div class="register-pin-col">
-        <span class="register-pin-label">設定 PIN 碼</span>
-        <div class="register-pin-display" id="reg-pin-display">
-          <div class="pin-dot" id="rp0"></div><div class="pin-dot" id="rp1"></div>
-          <div class="pin-dot" id="rp2"></div><div class="pin-dot" id="rp3"></div>
-        </div>
-        <div class="register-pin-pad">
-          <button class="pin-btn" onclick="regPinInput('1','set')">1</button>
-          <button class="pin-btn" onclick="regPinInput('2','set')">2</button>
-          <button class="pin-btn" onclick="regPinInput('3','set')">3</button>
-          <button class="pin-btn" onclick="regPinInput('4','set')">4</button>
-          <button class="pin-btn" onclick="regPinInput('5','set')">5</button>
-          <button class="pin-btn" onclick="regPinInput('6','set')">6</button>
-          <button class="pin-btn" onclick="regPinInput('7','set')">7</button>
-          <button class="pin-btn" onclick="regPinInput('8','set')">8</button>
-          <button class="pin-btn" onclick="regPinInput('9','set')">9</button>
-          <button class="pin-btn pin-btn-del" onclick="regPinDelete('set')">⌫</button>
-          <button class="pin-btn" onclick="regPinInput('0','set')">0</button>
-          <button class="pin-btn" style="visibility:hidden"></button>
-        </div>
-      </div>
-      <div class="register-divider"></div>
-      <div class="register-pin-col">
-        <span class="register-pin-label">再輸入一次確認</span>
-        <div class="register-pin-display">
-          <div class="register-confirm-dot" id="rc0"></div>
-          <div class="register-confirm-dot" id="rc1"></div>
-          <div class="register-confirm-dot" id="rc2"></div>
-          <div class="register-confirm-dot" id="rc3"></div>
-        </div>
-        <div class="register-pin-pad">
-          <button class="pin-btn" onclick="regPinInput('1','confirm')">1</button>
-          <button class="pin-btn" onclick="regPinInput('2','confirm')">2</button>
-          <button class="pin-btn" onclick="regPinInput('3','confirm')">3</button>
-          <button class="pin-btn" onclick="regPinInput('4','confirm')">4</button>
-          <button class="pin-btn" onclick="regPinInput('5','confirm')">5</button>
-          <button class="pin-btn" onclick="regPinInput('6','confirm')">6</button>
-          <button class="pin-btn" onclick="regPinInput('7','confirm')">7</button>
-          <button class="pin-btn" onclick="regPinInput('8','confirm')">8</button>
-          <button class="pin-btn" onclick="regPinInput('9','confirm')">9</button>
-          <button class="pin-btn pin-btn-del" onclick="regPinDelete('confirm')">⌫</button>
-          <button class="pin-btn" onclick="regPinInput('0','confirm')">0</button>
-          <button class="pin-btn" style="visibility:hidden"></button>
-        </div>
-      </div>
-    </div>
-    <div class="login-error" id="reg-error" style="margin-top:12px"></div>
-    <button class="btn-login" id="btn-register" onclick="doRegister()" style="margin-top:14px" disabled>建立帳號</button>
-    <div class="login-switch" style="margin-top:10px">已有帳號？<a onclick="toggleRegister()">回到登入</a></div>
+    <div class="login-switch">第一次來？輸入名字和 PIN 後按登入</div>
   </div>
 
   <!-- 教師登入卡：只需密碼 -->
@@ -531,8 +458,14 @@ function pinInput(d) {
   loginPin+=d; updatePinDisplay(loginPin);
   if (loginPin.length===4 && document.getElementById('login-name').value.trim()) doStudentLogin();
 }
-function pinDelete() { loginPin=loginPin.slice(0,-1); updatePinDisplay(loginPin); updateLoginBtn(); }
-function onLoginNameInput() { updateLoginBtn(); }
+function pinDelete() {
+  loginPin=loginPin.slice(0,-1); updatePinDisplay(loginPin); updateLoginBtn();
+  document.getElementById('register-prompt').style.display='none';
+}
+function onLoginNameInput() {
+  updateLoginBtn();
+  document.getElementById('register-prompt').style.display='none';
+}
 function updatePinDisplay(pin) {
   for(var i=0;i<4;i++){ var d=document.getElementById('pd'+i); if(d) d.classList.toggle('filled',i<pin.length); }
   updateLoginBtn();
@@ -542,130 +475,62 @@ function updateLoginBtn() {
   if(btn) btn.disabled=!(document.getElementById('login-name').value.trim() && loginPin.length===4);
 }
 
-// ── 註冊 ──
-var regPin = '', regConfirm = '';
-
-function toggleRegister() {
-  var card = document.getElementById('register-card');
-  var isOpen = card.classList.contains('show');
-  card.classList.toggle('show', !isOpen);
-  // 切換時清空
-  regPin = ''; regConfirm = '';
-  updateRegDisplay();
-  document.getElementById('reg-name').value = '';
-  document.getElementById('reg-error').classList.remove('show');
-  document.getElementById('btn-register').disabled = true;
-  // 捲動讓卡片可見
-  if (!isOpen) setTimeout(function(){ card.scrollIntoView({ behavior:'smooth', block:'nearest' }); }, 50);
-}
-
-function regPinInput(d, mode) {
-  if (mode === 'set') {
-    if (regPin.length >= 4) return;
-    regPin += d;
-  } else {
-    if (regConfirm.length >= 4) return;
-    regConfirm += d;
-  }
-  updateRegDisplay();
-  checkRegReady();
-}
-
-function regPinDelete(mode) {
-  if (mode === 'set') regPin = regPin.slice(0, -1);
-  else regConfirm = regConfirm.slice(0, -1);
-  updateRegDisplay();
-  checkRegReady();
-}
-
-function updateRegDisplay() {
-  for (var i = 0; i < 4; i++) {
-    var sp = document.getElementById('rp' + i);
-    var sc = document.getElementById('rc' + i);
-    if (sp) sp.classList.toggle('filled', i < regPin.length);
-    if (sc) sc.classList.toggle('filled', i < regConfirm.length);
-  }
-}
-
-function onRegNameInput() { checkRegReady(); }
-
-function checkRegReady() {
-  var name = (document.getElementById('reg-name').value || '').trim();
-  var btn  = document.getElementById('btn-register');
-  var errEl = document.getElementById('reg-error');
-  // PIN 不一致時即時提示
-  if (regPin.length === 4 && regConfirm.length === 4 && regPin !== regConfirm) {
-    errEl.textContent = 'PIN 碼不一致，請重新輸入。';
-    errEl.classList.add('show');
-    btn.disabled = true;
-  } else {
-    errEl.classList.remove('show');
-    btn.disabled = !(name && regPin.length === 4 && regConfirm.length === 4 && regPin === regConfirm);
-  }
-}
-
-function doRegister() {
-  var name  = (document.getElementById('reg-name').value || '').trim();
-  var errEl = document.getElementById('reg-error');
-  var btn   = document.getElementById('btn-register');
-  if (!name || regPin.length < 4 || regPin !== regConfirm) return;
-  errEl.classList.remove('show');
-  btn.innerHTML = '<span class="spinner"></span>建立中…'; btn.disabled = true;
-  if (!db) { setTimeout(doRegister, 800); return; }
-  var id = name + '_' + regPin;
-  // 先確認帳號是否已存在
-  db.collection('students').doc(id).get().then(function(doc) {
-    if (doc.exists) {
-      errEl.textContent = '這個名字已有帳號，請直接登入或換個名字。';
-      errEl.classList.add('show');
-      btn.textContent = '建立帳號'; btn.disabled = false;
-      return;
-    }
-    // 寫入新帳號
-    return db.collection('students').doc(id).set({
-      name:      name,
-      pin:       regPin,
-      nickname:  '',
-      avatar:    '🐣',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function() {
-      // 建立完直接登入
-      currentStudent = { id:id, name:name, pin:regPin, nickname:'', avatar:'🐣', role:'student' };
-      saveSession(currentStudent);
-      updateHubUI(); loadActivity(); goTo('screen-hub');
-      showToast('🎉 帳號建立成功！歡迎 ' + name + '！');
-    });
-  }).catch(function() {
-    errEl.textContent = '連線失敗，請檢查網路後再試。';
-    errEl.classList.add('show');
-    btn.textContent = '建立帳號'; btn.disabled = false;
-  });
-}
-
 // ── 學生登入 ──
 function doStudentLogin() {
   var name=document.getElementById('login-name').value.trim();
   if (!name||loginPin.length<4) return;
   var errEl=document.getElementById('login-error');
+  var prompt=document.getElementById('register-prompt');
   errEl.classList.remove('show');
+  prompt.style.display='none';
   var btn=document.getElementById('btn-login');
   btn.innerHTML='<span class="spinner"></span>登入中…'; btn.disabled=true;
   if (!db) { setTimeout(doStudentLogin,800); return; }
   var id=name+'_'+loginPin;
   db.collection('students').doc(id).get().then(function(doc){
     if (!doc.exists) {
+      // 查無帳號 → 顯示建立提示，不清空姓名和 PIN
       btn.textContent='登入'; btn.disabled=false;
-      loginPin=''; updatePinDisplay('');
-      errEl.textContent='找不到這個帳號，請確認姓名和 PIN 碼。'; errEl.classList.add('show'); return;
+      prompt.style.display='';
+      return;
     }
     var data=doc.data();
     currentStudent={ id:id, name:name, pin:loginPin, nickname:data.nickname||'', avatar:data.avatar||'🐣', role:'student' };
-    saveSession(currentStudent); // [修正#5]
+    saveSession(currentStudent);
     updateHubUI(); loadActivity(); goTo('screen-hub');
     btn.textContent='登入';
     showToast('👋 歡迎 '+(currentStudent.nickname||currentStudent.name)+'！');
   }).catch(function(){
     btn.textContent='登入'; btn.disabled=false;
+    errEl.textContent='連線失敗，請檢查網路後再試。'; errEl.classList.add('show');
+    prompt.style.display='none';
+  });
+}
+
+// ── 建立新帳號（沿用登入卡的姓名和 PIN） ──
+function doRegister() {
+  var name=document.getElementById('login-name').value.trim();
+  var pin=loginPin;
+  var prompt=document.getElementById('register-prompt');
+  if (!name||pin.length<4) return;
+  var btn=prompt.querySelector('button');
+  btn.innerHTML='<span class="spinner"></span>建立中…'; btn.disabled=true;
+  if (!db) { setTimeout(doRegister,800); return; }
+  var id=name+'_'+pin;
+  db.collection('students').doc(id).set({
+    name:      name,
+    pin:       pin,
+    nickname:  '',
+    avatar:    '🐣',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function(){
+    currentStudent={ id:id, name:name, pin:pin, nickname:'', avatar:'🐣', role:'student' };
+    saveSession(currentStudent);
+    updateHubUI(); loadActivity(); goTo('screen-hub');
+    showToast('🎉 帳號建立成功！歡迎 '+name+'！');
+  }).catch(function(){
+    btn.textContent='✏️ 建立新帳號'; btn.disabled=false;
+    var errEl=document.getElementById('login-error');
     errEl.textContent='連線失敗，請檢查網路後再試。'; errEl.classList.add('show');
   });
 }
