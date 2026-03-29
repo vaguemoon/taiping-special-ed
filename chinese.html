@@ -44,33 +44,6 @@ body {
 .screen.right  { transform:translateX(100%); opacity:.3; pointer-events:none; }
 .screen.left   { transform:translateX(-100%);opacity:.3; pointer-events:none; }
 
-/* ══ 頂部導覽列 ══ */
-.topbar {
-  background:var(--white); padding:11px 16px;
-  display:flex; align-items:center; justify-content:space-between;
-  box-shadow:0 2px 12px rgba(0,0,0,.06);
-  position:sticky; top:0; z-index:50; gap:10px;
-}
-.topbar-left { display:flex; align-items:center; gap:10px; min-width:0; }
-.topbar-title { font-size:.95rem; font-weight:900; color:var(--blue-dk); white-space:nowrap; }
-.topbar-title span { color:var(--orange); }
-.btn-back {
-  background:var(--blue-lt); border:none; border-radius:14px;
-  padding:10px 20px; font-size:1rem; font-weight:900;
-  color:var(--blue-dk); cursor:pointer; transition:all .15s;
-  font-family:'Nunito',sans-serif;
-  box-shadow:0 2px 8px rgba(74,144,217,.18);
-  white-space:nowrap;
-}
-.btn-back:active { transform:scale(.95); }
-.btn-settings {
-  background:var(--blue-lt); border:none; border-radius:14px;
-  padding:8px 14px; font-size:.82rem; font-weight:900;
-  color:var(--blue-dk); cursor:pointer; transition:all .15s;
-  font-family:'Nunito',sans-serif; white-space:nowrap;
-  box-shadow:0 2px 8px rgba(74,144,217,.18);
-}
-.btn-settings:active { transform:scale(.95); }
 
 #screen-home {
   background:linear-gradient(160deg,#dbeeff 0%,#eef5fc 60%);
@@ -677,13 +650,6 @@ body {
 </div>
 
 <div class="screen active" id="screen-home">
-  <div class="topbar">
-    <div class="topbar-left">
-      <button class="btn-back" onclick="goBackToHub()">← 回首頁</button>
-      <div class="topbar-title">✏️ <span>國字練習</span></div>
-    </div>
-    <button class="btn-settings" onclick="goToProfile()">⚙️ 設定</button>
-  </div>
   <div class="home-hero">
     <div class="home-school">臺東縣太平國小</div>
     <div class="home-title">國字<span>學習</span>系統</div>
@@ -737,13 +703,6 @@ body {
 
 <!-- ══ 畫面二：生字選單 ══ -->
 <div class="screen right" id="screen-menu">
-  <div class="topbar">
-    <div class="topbar-left">
-      <button class="btn-back" onclick="goTo('home')">← 返回</button>
-      <div class="topbar-title">今天的<span>生字</span></div>
-    </div>
-    <button class="btn-settings" onclick="goToProfile()">⚙️ 設定</button>
-  </div>
   <!-- 進度概覽列 -->
   <div class="menu-progress-bar" id="menu-progress-bar">
     <div class="menu-progress-title">📊 今日學習進度</div>
@@ -766,13 +725,6 @@ body {
 
 <!-- ══ 測驗畫面 ══ -->
 <div class="screen right" id="screen-exam">
-  <div class="topbar">
-    <div class="topbar-left">
-      <button class="btn-back" onclick="abortExam()">✕ 結束測驗</button>
-      <div class="topbar-title" id="exam-topbar-title">今日測驗</div>
-    </div>
-    <button class="btn-settings" onclick="goToProfile()">⚙️ 設定</button>
-  </div>
 
   <!-- 題目進度列 -->
   <div class="exam-progress-bar-wrap">
@@ -853,13 +805,6 @@ body {
 
 <!-- ══ 畫面二點五：模式選擇 ══ -->
 <div class="screen right" id="screen-mode">
-  <div class="topbar">
-    <div class="topbar-left">
-      <button class="btn-back" onclick="goTo('menu')">← 返回</button>
-      <div class="topbar-title" id="mode-select-title">選擇模式</div>
-    </div>
-    <button class="btn-settings" onclick="goToProfile()">⚙️ 設定</button>
-  </div>
   <div class="mode-select-body">
     <div class="mode-select-char" id="mode-select-char"></div>
     <div class="mode-select-hint">請選擇要做什麼</div>
@@ -880,13 +825,6 @@ body {
 
 <!-- ══ 畫面三：學習頁 ══ -->
 <div class="screen right" id="screen-learn">
-  <div class="topbar">
-    <div class="topbar-left">
-      <button class="btn-back" onclick="goTo('menu')">← 返回</button>
-      <div class="topbar-title" id="learn-title">學習</div>
-    </div>
-    <button class="btn-settings" onclick="goToProfile()">⚙️ 設定</button>
-  </div>
 
   <div class="mode-banner">
     <div class="mode-icon" id="mode-icon">✏️</div>
@@ -2425,35 +2363,6 @@ function pulseExamBtn() {
     btn.removeEventListener('click', stopGlow);
   }
   btn.addEventListener('click', stopGlow);
-}
-
-// ═══════════════════════════════════════
-//  Topbar 初始化（使用 shared.js renderTopbar）
-// ═══════════════════════════════════════
-function initTopbars() {
-  renderTopbar('topbar-home', {
-    back:  { label: '← 回首頁', onclick: 'goBackToHub()' },
-    title: '✏️ <span>國字練習</span>'
-  });
-  renderTopbar('topbar-menu', {
-    back:  { label: '← 返回', onclick: "goTo('home')" },
-    title: '今天的<span>生字</span>'
-  });
-  renderTopbar('topbar-exam', {
-    back:    { label: '✕ 結束測驗', onclick: 'abortExam()' },
-    title:   '今日測驗',
-    titleId: 'exam-topbar-title'
-  });
-  renderTopbar('topbar-mode', {
-    back:    { label: '← 返回', onclick: "goTo('menu')" },
-    title:   '選擇模式',
-    titleId: 'mode-select-title'
-  });
-  renderTopbar('topbar-learn', {
-    back:    { label: '← 返回', onclick: "goTo('menu')" },
-    title:   '學習',
-    titleId: 'learn-title'
-  });
 }
 
 function goBackToHub() {
