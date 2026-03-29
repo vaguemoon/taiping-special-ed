@@ -1,0 +1,85 @@
+/**
+ * init.js — 應用程式啟動與自動登入
+ * 負責：window.load 事件、waitHW()、從 sessionStorage 自動登入、載入課程
+ * 依賴：shared.js（initFirebase、applyTheme、initSoundWrapper）、所有其他模組
+ */
+'use strict';
+
+/**
+ * 等待 HanziWriter 函式庫載入完畢後執行 callback
+ * CDN 較慢時會不斷重試
+ */
+function waitHW(cb) {
+  if (typeof HanziWriter !== 'undefined') { cb(); return; }
+  setTimeout(function(){ waitHW(cb); }, 100);
+}
+
+window.addEventListener('load', function() {
+  // 1. 初始化 Firebase、套用主題與音效
+  initFirebase();
+  applyTheme(currentTheme);
+  applySound();
+  initSoundWrapper();
+  waitHW(function(){});
+
+  // 2. 顯示起始頁
+  showPage('mode-select', false);
+  PAGE_STACK = ['mode-select'];
+
+  // 3. 嘗試從 sessionStorage 自動登入（由 index.html hub 寫入）
+  try {
+    var saved = sessionStorage.getItem('hub_student');
+    if (saved) {
+      var hubStudent = JSON.parse(saved);
+
+      (function autoLogin() {
+        if (!db) { setTimeout(autoLogin, 200); return; }
+
+        var id = hubStudent.name + '_' + hubStudent.pin;
+        Promise.all([
+          db.collection('students').doc(id).get(),
+          db.collection('students').doc(id).collection('progress').doc('hanzi').get(),
+          db.collection('settings').doc('lesson').get()
+        ]).then(function(results) {
+          var sDoc = results[0], pDoc = results[1], lDoc = results[2];
+          if (!sDoc.exists) return;
+
+          var sData = sDoc.data();
+          var pData = pDoc.exists ? pDoc.data() : {};
+
+          // 設定目前學生
+          currentStudent = {
+            name:     hubStudent.name,
+            pin:      hubStudent.pin,
+            id:       id,
+            nickname: sData.nickname || '',
+            avatar:   sData.avatar   || '🐣'
+          };
+
+          // 載入學習進度
+          charStatus = pData.charStatus || {};
+
+          // 若老師已在後台設定今日生字，自動填入輸入框
+          if (lDoc.exists && lDoc.data().chars && lDoc.data().chars.length) {
+            var inp = document.getElementById('char-input');
+            if (inp) {
+              inp.value = lDoc.data().chars.join('');
+              inp.dispatchEvent(new Event('input'));
+            }
+          }
+
+          // 載入課程選單
+          setTimeout(loadCurriculumVersions, 300);
+          showToast('👋 歡迎 ' + (currentStudent.nickname || currentStudent.name) + '！');
+
+        }).catch(function(e){ console.warn('autoLogin error:', e); });
+      })();
+
+    } else {
+      // 沒有登入資訊，仍載入課程（訪客模式）
+      setTimeout(loadCurriculumVersions, 500);
+    }
+  } catch(e) {
+    setTimeout(loadCurriculumVersions, 500);
+  }
+});
