@@ -5,6 +5,22 @@
  */
 'use strict';
 
+// ── 自選測驗卡片樣式（動態注入）──
+(function injectSelectStyle() {
+  if (document.getElementById('exam-select-style')) return;
+  var s = document.createElement('style');
+  s.id = 'exam-select-style';
+  s.textContent = [
+    '.exam-select-active{border:2px solid #185FA5 !important;background:#E6F1FB !important;position:relative;}',
+    '.char-card-select-check{position:absolute;top:4px;right:6px;font-size:13px;font-weight:700;color:#185FA5;line-height:1;}'
+  ].join('');
+  document.head.appendChild(s);
+})();
+
+// ── 自選測驗狀態 ──
+var examSelectMode = false;   // 是否處於勾選模式
+var examSelected   = {};      // { index: true/false }
+
 /**
  * 更新頂部進度條（已通過 / 練習中 / 未學習 三段比例）
  * 同時控制「開始今日測驗」按鈕的呼吸動畫
@@ -58,13 +74,87 @@ function renderMenu() {
 
   body.innerHTML = chars.map(function(c, i) {
     var st   = charStatus[c] || 'new';
-    var card = st === 'mastered' ? 'char-card mastered' : st === 'practiced' ? 'char-card practiced' : 'char-card';
-    return '<div class="' + card + '" id="card-' + i + '" onclick="onCardClick(event,' + i + ')">'
-      + '<div class="char-card-check">✓</div>'
+    var base = st === 'mastered' ? 'char-card mastered' : st === 'practiced' ? 'char-card practiced' : 'char-card';
+    var sel  = examSelectMode && examSelected[i];
+    var card = base + (sel ? ' exam-select-active' : '');
+    var onclick = examSelectMode
+      ? 'onCardSelectToggle(' + i + ')'
+      : 'onCardClick(event,' + i + ')';
+    return '<div class="' + card + '" id="card-' + i + '" onclick="' + onclick + '">'
+      + (sel ? '<div class="char-card-select-check">✓</div>' : '<div class="char-card-check">✓</div>')
       + '<div class="char-card-glyph">' + c + '</div>'
       + '<div class="char-card-status ' + statusClass[st] + '">' + statusLabel[st] + '</div>'
       + '</div>';
   }).join('');
+
+  _renderExamButtons();
+}
+
+/**
+ * 渲染底部測驗按鈕區（一般模式 / 勾選模式）
+ */
+function _renderExamButtons() {
+  var bb = document.getElementById('menu-exam-bar');
+  if (!bb) return;
+
+  if (examSelectMode) {
+    var n = Object.keys(examSelected).filter(function(k){ return examSelected[k]; }).length;
+    bb.innerHTML =
+      '<div style="font-size:12px;color:#185FA5;text-align:center;padding:4px 0;font-weight:500;">點選要測驗的字（已選 ' + n + ' 字）</div>' +
+      '<button class="btn-big btn-big-primary" style="opacity:' + (n > 0 ? '1' : '.4') + ';cursor:' + (n > 0 ? 'pointer' : 'not-allowed') + ';" ' +
+        (n > 0 ? 'onclick="startSelectedExam()"' : 'disabled') + '>' +
+        '<span class="btn-big-icon">📝</span><span>開始測驗（' + n + ' 字）</span></button>' +
+      '<button class="btn-big" style="background:#f0f4f8;color:#5a7080;" onclick="cancelExamSelect()">' +
+        '<span>取消</span></button>';
+  } else {
+    bb.innerHTML =
+      '<button class="btn-big btn-big-danger" id="btn-start-exam" onclick="startFullExam()">' +
+        '<span class="btn-big-icon">📝</span><span>全部測驗（' + chars.length + ' 字）</span></button>' +
+      '<button class="btn-big" style="background:#e6f1fb;color:#185FA5;border:1.5px solid #85B7EB;" onclick="enterExamSelectMode()">' +
+        '<span class="btn-big-icon">☑</span><span>自選測驗</span></button>';
+    updateProgressBar();
+  }
+}
+
+/**
+ * 進入自選測驗勾選模式
+ */
+function enterExamSelectMode() {
+  sfxTap();
+  examSelectMode = true;
+  examSelected   = {};
+  renderMenu();
+}
+
+/**
+ * 取消勾選模式，回到正常狀態
+ */
+function cancelExamSelect() {
+  sfxTap();
+  examSelectMode = false;
+  examSelected   = {};
+  renderMenu();
+}
+
+/**
+ * 勾選模式下點擊卡片：切換勾選狀態
+ */
+function onCardSelectToggle(idx) {
+  sfxTap();
+  examSelected[idx] = !examSelected[idx];
+  speakChar(chars[idx]);
+  renderMenu();
+}
+
+/**
+ * 以已勾選的字開始測驗
+ */
+function startSelectedExam() {
+  var selected = chars.filter(function(c, i){ return examSelected[i]; });
+  if (!selected.length) return;
+  examSelectMode = false;
+  examSelected   = {};
+  startFullExam(selected);
 }
 
 /**
