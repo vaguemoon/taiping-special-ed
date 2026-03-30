@@ -89,6 +89,9 @@ function switchToPractice() {
   var pd = document.getElementById('panel-dict');
   if (pp) pp.style.display = ''; if (pd) pd.style.display = 'none';
 
+  var inlineBtn = document.getElementById('btn-inline-dict');
+  if (inlineBtn) inlineBtn.remove();
+
   document.getElementById('mode-icon').textContent  = '✏️';
   document.getElementById('mode-title').textContent = '筆順練習';
   document.getElementById('mode-sub').textContent   = '看左邊筆順，在右邊格子照著寫';
@@ -180,17 +183,22 @@ function startQuiz() {
 
       if (charStatus[chars[currentIdx]] !== 'mastered') charStatus[chars[currentIdx]] = 'practiced';
 
-      var btn = document.getElementById('btn-next-char');
-      if (btn) btn.disabled = false;
-
-      var modeBtn = document.getElementById('btn-mode-switch');
-      if (modeBtn) {
-        modeBtn.disabled  = false;
-        modeBtn.className = 'btn-big btn-big-danger';
-        modeBtn.removeAttribute('style');
-        modeBtn.innerHTML = '<span class="btn-big-icon">📝</span><span>開始默寫測驗</span>';
-        modeBtn.onclick   = function(){ switchToDict(); };
+      // 在回饋框正下方插入「開始默寫測驗」按鈕（避免重複插入）
+      if (!document.getElementById('btn-inline-dict')) {
+        var fb = document.getElementById('feedback-box');
+        if (fb) {
+          var dictBtn = document.createElement('button');
+          dictBtn.id        = 'btn-inline-dict';
+          dictBtn.className = 'btn-big btn-big-danger';
+          dictBtn.innerHTML = '<span class="btn-big-icon">📝</span><span>開始默寫測驗</span>';
+          dictBtn.onclick   = function(){ switchToDict(); };
+          fb.insertAdjacentElement('afterend', dictBtn);
+        }
       }
+
+      // 底部固定列不再使用
+      var bb = document.getElementById('bottom-bar');
+      if (bb) bb.style.display = 'none';
 
       saveProgress(); updateProgressBar();
     }
@@ -203,6 +211,8 @@ function restartQuiz() {
   setFeedback('fb-idle', '照著左邊的筆順<br>在右邊一筆一筆寫！');
   var qt = document.getElementById('quiz-target');
   if (qt) { qt.innerHTML = ''; qt.classList.remove('flash-green', 'flash-red'); }
+  var inlineBtn = document.getElementById('btn-inline-dict');
+  if (inlineBtn) inlineBtn.remove();
   quizWriter = null;
   switchPracticeTab('quiz');
 }
