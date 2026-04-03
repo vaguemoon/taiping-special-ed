@@ -7,9 +7,10 @@
 // ── 學生與學習狀態 ──
 var currentStudent = null;
 var chars      = [];      // 本次練習的生字陣列
-var charStatus = {};      // { '字': 'new'|'practiced'|'mastered' }
+var charStatus = {};      // { '字': 'new'|'dictated'|'mastered' }
 var currentIdx = 0;       // 目前操作的字索引
 var currentMode = 'practice'; // 目前練習模式
+var currentLessonLabel = ''; // 目前課程標籤（用於活動紀錄）
 
 // ── HanziWriter 實例 ──
 var refWriter  = null;    // 範例筆順
@@ -51,4 +52,27 @@ function saveStroke(char, strokes) {
     .collection('strokes').doc(char)
     .set({ strokes: strokes, updatedAt: new Date().toISOString() }, { merge: true })
     .catch(function(e){ console.warn('saveStroke error:', e); });
+}
+
+/**
+ * 根據錯誤次數升級 charStatus（不降級），回傳新狀態
+ * 0–3 錯 → 'mastered'；4+ 錯 → 維持現狀
+ * @param {string} char
+ * @param {number} mistakes
+ * @returns {string} 套用後的狀態
+ */
+function upgradeCharStatus(char, mistakes) {
+  if (mistakes <= 3) {
+    charStatus[char] = 'mastered';
+    return 'mastered';
+  }
+  return charStatus[char] || 'new';
+}
+
+/**
+ * 默寫自評通過 → 升為 'dictated'（純視覺，不降級）
+ * @param {string} char
+ */
+function markDictated(char) {
+  if (charStatus[char] !== 'mastered') charStatus[char] = 'dictated';
 }

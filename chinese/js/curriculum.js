@@ -106,6 +106,8 @@ function startCurriculumLesson() {
   var lessons  = (curriculumData[verId].books || {})[bookId] || [];
   var lesson   = lessons.find(function(l){ return (l.lessonId||l.name) === lessonId; });
   if (!lesson || !lesson.chars) return;
+  var verName = (curriculumData[verId] && curriculumData[verId].name) || verId;
+  currentLessonLabel = verName + '　' + bookId + '・第 ' + (lesson.lessonNum||'') + ' 課　' + (lesson.name||'');
   chars = lesson.chars.slice();
   chars.forEach(function(c){ if (!charStatus[c]) charStatus[c] = 'new'; });
   renderMenu();
@@ -124,6 +126,7 @@ function startLesson() {
   var list = Array.from(new Set(raw.replace(/\s/g,'').split('').filter(function(c){ return c; })));
   if (!list.length) return;
   sfxTap();
+  currentLessonLabel = '自由練習';
   chars = list;
   chars.forEach(function(c){ if (!charStatus[c]) charStatus[c] = 'new'; });
   renderMenu();

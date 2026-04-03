@@ -22,11 +22,16 @@ function showPage(name, pushHistory) {
   var el = document.getElementById('page-' + name);
   if (el) el.classList.add('active');
   var cfg = PAGE_CONFIG[name] || { title:'', back:true };
-  document.getElementById('topbar-title').innerHTML = cfg.title;
-  var backBtn = document.getElementById('topbar-back');
-  backBtn.classList.toggle('show', cfg.back);
   if (pushHistory) PAGE_STACK.push(name);
   currentPage = name;
+  try {
+    window.parent.postMessage({
+      type: 'hanzi-nav',
+      title: cfg.title,
+      back: cfg.back,
+      stackLen: PAGE_STACK.length
+    }, '*');
+  } catch(e) {}
 }
 
 function goBack() {
@@ -35,7 +40,11 @@ function goBack() {
     var prev = PAGE_STACK[PAGE_STACK.length - 1];
     showPage(prev, false);
   } else {
-    showPage('mode-select', false);
-    PAGE_STACK = ['mode-select'];
+    try { window.parent.postMessage({ type: 'hanzi-at-root' }, '*'); } catch(e) {}
   }
 }
+
+/* 接收外層頂端列的返回指令 */
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'hanzi-back') goBack();
+});

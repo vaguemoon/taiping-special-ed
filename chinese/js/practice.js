@@ -1,6 +1,6 @@
 /**
  * practice.js — 筆順練習模式
- * 負責：switchToPractice()、switchPracticeTab()、initPractice()、initQuiz()、
+ * 負責：switchToPractice()、switchPracticeTab()、initQuiz()、
  *        startQuiz()、restartQuiz()、playRef()、setFeedback()
  *        以及單字測驗（switchToSingleExam、initExam、startExamQuiz、showSingleExamResult）
  * 依賴：state.js、nav.js、menu.js（updateProgressBar）、shared.js（sfx 系列）
@@ -36,6 +36,25 @@ function setFeedback(cls, html) {
   if (!el) return;
   el.className = 'feedback-box ' + cls;
   el.innerHTML = html;
+}
+
+// ── 工具函式 ──
+
+/**
+ * 建立範例筆順 HanziWriter（ref-target），載入後自動播放動畫
+ * @param {string} char  目標漢字
+ * @param {number} sz    畫布像素尺寸
+ */
+function createRefWriter(char, sz) {
+  var rt = document.getElementById('ref-target');
+  if (!rt) return;
+  refWriter = HanziWriter.create('ref-target', char, {
+    width: sz, height: sz, padding: Math.round(sz * 0.07),
+    strokeColor: '#ff8c42', strokeAnimationSpeed: .7, delayBetweenStrokes: 500,
+    showCharacter: false, showOutline: true, outlineColor: '#c8dff5',
+    onLoadCharDataSuccess: function(){ setTimeout(function(){ refWriter && refWriter.animateCharacter(); }, 400); },
+    onLoadCharDataError:   function(){ if (rt) rt.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#aaa;font-size:.9rem">找不到筆順資料</div>'; }
+  });
 }
 
 // ── Tab 切換（範例筆順 / 練習格） ──
@@ -116,34 +135,12 @@ function switchToPractice() {
     requestAnimationFrame(function() {
       var sz = rt.getBoundingClientRect().width || getGridPx();
       currentPracticeSz = sz;
-      refWriter = HanziWriter.create('ref-target', char, {
-        width: sz, height: sz, padding: Math.round(sz * 0.07),
-        strokeColor: '#ff8c42', strokeAnimationSpeed: .7, delayBetweenStrokes: 500,
-        showCharacter: false, showOutline: true, outlineColor: '#c8dff5',
-        onLoadCharDataSuccess: function(){ setTimeout(function(){ refWriter && refWriter.animateCharacter(); }, 400); },
-        onLoadCharDataError:   function(){ if (rt) rt.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#aaa;font-size:.9rem">找不到筆順資料</div>'; }
-      });
+      createRefWriter(char, sz);
     });
   }
   quizWriter = null; // 等切到 quiz tab 時再建立
 }
 
-function initPractice(char) {
-  var rt = document.getElementById('ref-target');
-  if (!rt) return;
-  rt.innerHTML = '';
-  requestAnimationFrame(function() {
-    var sz = getGridPx();
-    refWriter = HanziWriter.create('ref-target', char, {
-      width: sz, height: sz, padding: Math.round(sz * 0.07),
-      strokeColor: '#ff8c42', strokeAnimationSpeed: .7, delayBetweenStrokes: 500,
-      showCharacter: false, showOutline: true, outlineColor: '#c8dff5',
-      onLoadCharDataSuccess: function(){ setTimeout(function(){ refWriter && refWriter.animateCharacter(); }, 400); },
-      onLoadCharDataError:   function(){ if (rt) rt.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#aaa;font-size:.9rem">找不到筆順資料</div>'; }
-    });
-    initQuiz(char);
-  });
-}
 
 function initQuiz(char) {
   var qt = document.getElementById('quiz-target');
@@ -181,7 +178,7 @@ function startQuiz() {
       else if (m <= 2)   setFeedback('fb-big fb-ok',     '😊 寫對了！只錯了 ' + m + ' 次');
       else               setFeedback('fb-big fb-ok',     '👍 完成了！再練幾次會更好');
 
-      if (charStatus[chars[currentIdx]] !== 'mastered') charStatus[chars[currentIdx]] = 'practiced';
+      // 筆順練習完成，不改變狀態（只有測驗通過才升為 mastered）
 
       // 在回饋框正下方插入「開始默寫測驗」按鈕（避免重複插入）
       if (!document.getElementById('btn-inline-dict')) {
@@ -223,13 +220,7 @@ function playRef() {
   var el   = document.getElementById('ref-target');
   if (!el) return;
   el.innerHTML = '';
-  var sz = getGridPx();
-  refWriter = HanziWriter.create('ref-target', char, {
-    width: sz, height: sz, padding: Math.round(sz * 0.07),
-    strokeColor: '#ff8c42', strokeAnimationSpeed: .7, delayBetweenStrokes: 500,
-    showCharacter: false, showOutline: true, outlineColor: '#c8dff5',
-    onLoadCharDataSuccess: function(){ refWriter.animateCharacter(); }
-  });
+  createRefWriter(char, getGridPx());
 }
 
 // ── 單字測驗（從生字選單卡直接進入） ──
@@ -277,13 +268,11 @@ function startExamQuiz(char) {
 
 function showSingleExamResult(char, mistakes) {
   sfxCelebrate();
-  var passed = mistakes === 0;
   setFeedback(
-    passed ? 'fb-big fb-praise' : mistakes <= 2 ? 'fb-big fb-ok' : 'fb-big fb-wrong',
-    passed ? '🌟 完美！（錯 0 次）' : '😊 完成！（錯 ' + mistakes + ' 次）'
+    mistakes === 0 ? 'fb-big fb-praise' : mistakes <= 2 ? 'fb-big fb-ok' : 'fb-big fb-wrong',
+    mistakes === 0 ? '🌟 完美！（錯 0 次）' : '😊 完成！（錯 ' + mistakes + ' 次）'
   );
-  if (passed) { charStatus[char] = 'mastered'; sfxGrandCelebrate(); }
-  else if (mistakes <= 3) { if (charStatus[char] !== 'mastered') charStatus[char] = 'practiced'; }
+  if (upgradeCharStatus(char, mistakes) === 'mastered') sfxGrandCelebrate();
   saveProgress(); updateProgressBar();
 
   var bb = document.getElementById('bottom-bar');

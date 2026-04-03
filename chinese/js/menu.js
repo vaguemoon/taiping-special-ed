@@ -6,16 +6,10 @@
 'use strict';
 
 // ── 自選測驗卡片樣式（動態注入）──
-(function injectSelectStyle() {
-  if (document.getElementById('exam-select-style')) return;
-  var s = document.createElement('style');
-  s.id = 'exam-select-style';
-  s.textContent = [
-    '.exam-select-active{border:2px solid #185FA5 !important;background:#E6F1FB !important;position:relative;}',
-    '.char-card-select-check{position:absolute;top:4px;right:6px;font-size:13px;font-weight:700;color:#185FA5;line-height:1;}'
-  ].join('');
-  document.head.appendChild(s);
-})();
+injectStyle('exam-select-style', [
+  '.exam-select-active{border:2px solid #185FA5 !important;background:#E6F1FB !important;position:relative;}',
+  '.char-card-select-check{position:absolute;top:4px;right:6px;font-size:13px;font-weight:700;color:#185FA5;line-height:1;}'
+]);
 
 // ── 自選測驗狀態 ──
 var examSelectMode = false;   // 是否處於勾選模式
@@ -28,31 +22,26 @@ var examSelected   = {};      // { index: true/false }
 function updateProgressBar() {
   if (!chars.length) return;
   var total = chars.length;
-  var nM = chars.filter(function(c){ return charStatus[c] === 'mastered';  }).length;
-  var nP = chars.filter(function(c){ return charStatus[c] === 'practiced'; }).length;
-  var nN = total - nM - nP;
+  var nM = chars.filter(function(c){ return charStatus[c] === 'mastered'; }).length;
+  var nN = total - nM;
   var pM = Math.round(nM / total * 100);
-  var pP = Math.round(nP / total * 100);
-  var pN = 100 - pM - pP;
+  var pN = 100 - pM;
 
   var em = document.getElementById('prog-mastered');
-  var ep = document.getElementById('prog-practiced');
   var en = document.getElementById('prog-new');
   if (em) em.style.width = pM + '%';
-  if (ep) ep.style.width = pP + '%';
   if (en) en.style.width = pN + '%';
 
   var counts = document.getElementById('prog-counts');
   if (counts) counts.innerHTML =
     '<div class="progress-count-item"><div class="progress-count-dot" style="background:var(--green)"></div><span style="color:var(--green-dk)">通過測驗 ' + nM + ' 字</span></div>' +
-    '<div class="progress-count-item"><div class="progress-count-dot" style="background:var(--yellow)"></div><span style="color:#b07800">通過練習 ' + nP + ' 字</span></div>' +
     '<div class="progress-count-item"><div class="progress-count-dot" style="background:#d0e4f5"></div><span style="color:var(--muted)">未練習 ' + nN + ' 字</span></div>';
 
   var btn = document.getElementById('btn-start-exam');
   if (btn) {
     btn.classList.remove('btn-exam-pulse', 'btn-exam-breathe');
-    if (nM + nP === total) {
-      void btn.offsetWidth; // 重觸發動畫
+    if (nM === total) {
+      void btn.offsetWidth;
       btn.classList.add('btn-exam-pulse');
       setTimeout(function(){ btn.classList.add('btn-exam-breathe'); }, 2100);
     }
@@ -69,12 +58,13 @@ function renderMenu() {
   saveProgress();
   updateProgressBar();
 
-  var statusLabel = { new:'尚未學習', practiced:'通過練習', mastered:'通過測驗' };
-  var statusClass = { new:'status-new', practiced:'status-practiced', mastered:'status-mastered' };
+  var statusLabel = { new:'尚未學習', dictated:'通過默寫', mastered:'通過測驗' };
+  var statusClass = { new:'status-new', dictated:'status-new', mastered:'status-mastered' };
 
   body.innerHTML = chars.map(function(c, i) {
-    var st   = charStatus[c] || 'new';
-    var base = st === 'mastered' ? 'char-card mastered' : st === 'practiced' ? 'char-card practiced' : 'char-card';
+    var raw  = charStatus[c] || 'new';
+    var st   = (raw === 'mastered' || raw === 'dictated') ? raw : 'new';
+    var base = st === 'mastered' ? 'char-card mastered' : st === 'dictated' ? 'char-card dictated' : 'char-card';
     var sel  = examSelectMode && examSelected[i];
     var card = base + (sel ? ' exam-select-active' : '');
     var onclick = examSelectMode

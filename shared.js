@@ -334,3 +334,16 @@ function initSoundWrapper() {
   // 未來如需加入音量控制或其他初始化邏輯，在這裡加入
   applySound();
 }
+
+/**
+ * 動態注入 <style> 到 <head>（避免重複注入）
+ * @param {string}   id    style 標籤的 id（用來去重）
+ * @param {string[]} rules CSS 規則陣列（join 成字串後注入）
+ */
+function injectStyle(id, rules) {
+  if (document.getElementById(id)) return;
+  var s = document.createElement('style');
+  s.id = id;
+  s.textContent = rules.join('');
+  document.head.appendChild(s);
+}

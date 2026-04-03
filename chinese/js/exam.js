@@ -7,32 +7,26 @@
 'use strict';
 
 // ── 結算卡片樣式（動態注入，避免修改 HTML/CSS 檔）──
-(function injectExamGridStyle() {
-  if (document.getElementById('exam-grid-style')) return;
-  var s = document.createElement('style');
-  s.id  = 'exam-grid-style';
-  s.textContent = [
-    '.exam-compact-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}',
-    '.exam-compact-card{display:flex;flex-direction:column;align-items:center;justify-content:center;',
-      'width:72px;height:82px;border-radius:12px;border:1px solid #ddd;background:#fff;gap:3px;flex-shrink:0;}',
-    '.exam-compact-card.pass{border-color:#3B6D11;background:#EAF3DE;}',
-    '.exam-compact-card.ok  {border-color:#185FA5;background:#E6F1FB;}',
-    '.exam-compact-card.fail{border-color:#A32D2D;background:#FCEBEB;}',
-    '.exam-compact-card.skip{border-color:#888780;background:#F1EFE8;}',
-    '.exam-compact-glyph{font-size:30px;line-height:1;}',
-    '.exam-compact-card.pass .exam-compact-glyph{color:#27500A;}',
-    '.exam-compact-card.ok   .exam-compact-glyph{color:#0C447C;}',
-    '.exam-compact-card.fail .exam-compact-glyph{color:#791F1F;}',
-    '.exam-compact-card.skip .exam-compact-glyph{color:#444441;}',
-    '.exam-compact-icon{font-size:13px;line-height:1;}',
-    '.exam-compact-label{font-size:11px;font-weight:500;}',
-    '.exam-compact-card.pass .exam-compact-label{color:#3B6D11;}',
-    '.exam-compact-card.ok   .exam-compact-label{color:#185FA5;}',
-    '.exam-compact-card.fail .exam-compact-label{color:#A32D2D;}',
-    '.exam-compact-card.skip .exam-compact-label{color:#5F5E5A;}'
-  ].join('');
-  document.head.appendChild(s);
-})();
+injectStyle('exam-grid-style', [
+  '.exam-compact-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}',
+  '.exam-compact-card{display:flex;flex-direction:column;align-items:center;justify-content:center;',
+    'width:72px;height:82px;border-radius:12px;border:1px solid #ddd;background:#fff;gap:3px;flex-shrink:0;}',
+  '.exam-compact-card.pass{border-color:#3B6D11;background:#EAF3DE;}',
+  '.exam-compact-card.ok  {border-color:#185FA5;background:#E6F1FB;}',
+  '.exam-compact-card.fail{border-color:#A32D2D;background:#FCEBEB;}',
+  '.exam-compact-card.skip{border-color:#888780;background:#F1EFE8;}',
+  '.exam-compact-glyph{font-size:30px;line-height:1;}',
+  '.exam-compact-card.pass .exam-compact-glyph{color:#27500A;}',
+  '.exam-compact-card.ok   .exam-compact-glyph{color:#0C447C;}',
+  '.exam-compact-card.fail .exam-compact-glyph{color:#791F1F;}',
+  '.exam-compact-card.skip .exam-compact-glyph{color:#444441;}',
+  '.exam-compact-icon{font-size:13px;line-height:1;}',
+  '.exam-compact-label{font-size:11px;font-weight:500;}',
+  '.exam-compact-card.pass .exam-compact-label{color:#3B6D11;}',
+  '.exam-compact-card.ok   .exam-compact-label{color:#185FA5;}',
+  '.exam-compact-card.fail .exam-compact-label{color:#A32D2D;}',
+  '.exam-compact-card.skip .exam-compact-label{color:#5F5E5A;}'
+]);
 
 // ── 測驗狀態 ──
 var examQueue         = [];   // 本輪待測字陣列
@@ -50,6 +44,19 @@ var examQHintMode     = false; // 是否已顯示提示輪廓
 var examQCharMode = false; // 是否已顯示完整字形（答錯過多次後）
 
 /**
+ * 切換考試頁的三個子面板（question / round / result），另外兩個隱藏
+ * @param {string} active  'question' | 'round' | 'result'
+ */
+function switchExamPanel(active) {
+  var qp  = document.getElementById('exam-question-panel');
+  var rp  = document.getElementById('exam-result-panel');
+  var rop = document.getElementById('exam-round-panel');
+  if (qp)  qp.style.display  = active === 'question' ? '' : 'none';
+  if (rop) rop.style.display = active === 'round'    ? '' : 'none';
+  if (rp)  rp.style.display  = active === 'result'   ? '' : 'none';
+}
+
+/**
  * 開始今日測驗：打亂字序、進入 exam 頁、顯示第一題
  */
 function startFullExam(customChars) {
@@ -60,12 +67,7 @@ function startFullExam(customChars) {
   examQIdx    = 0; examResults = {}; examRound = 1; examFailed = [];
   showPage('exam');
   setTimeout(function() {
-    var qp  = document.getElementById('exam-question-panel');
-    var rp  = document.getElementById('exam-result-panel');
-    var rop = document.getElementById('exam-round-panel');
-    if (qp)  qp.style.display  = '';
-    if (rp)  rp.style.display  = 'none';
-    if (rop) rop.style.display = 'none';
+    switchExamPanel('question');
     updateExamHeader();
     showExamQuestion();
   }, 80);
@@ -88,8 +90,7 @@ function showExamQuestion() {
   var pf  = document.getElementById('exam-progress-fill');
   if (pf) pf.style.width = pct + '%';
 
-  examQMistakes = 0; examQStrokes = 0; examQStrokeMistakes = 0; examQHintMode = false;
-  examQHintMode = false; examQCharMode = false;
+  examQMistakes = 0; examQStrokes = 0; examQStrokeMistakes = 0; examQHintMode = false; examQCharMode = false;
 
   var char = examQueue[examQIdx];
   var qt   = document.getElementById('exam-quiz-target');
@@ -222,8 +223,8 @@ function recordAndNext(char, mistakes, skipped) {
   if (skipped || mistakes > 3) {
     examFailed.push(char);
   } else {
-    if (mistakes === 0) { charStatus[char] = 'mastered'; sfxGrandCelebrate(); }
-    else { if (charStatus[char] !== 'mastered') charStatus[char] = 'practiced'; sfxCelebrate(); }
+    upgradeCharStatus(char, mistakes);
+    sfxCelebrate();
   }
 
   saveProgress();
@@ -241,10 +242,7 @@ function recordAndNext(char, mistakes, skipped) {
  * 顯示輪次結算頁（列出答對 / 答錯的字）
  */
 function showRoundSummary() {
-  var qp  = document.getElementById('exam-question-panel');
-  var rop = document.getElementById('exam-round-panel');
-  if (qp)  qp.style.display  = 'none';
-  if (rop) rop.style.display = '';
+  switchExamPanel('round');
 
   var passCount  = examQueue.length - examFailed.length;
   var passChars  = examQueue.filter(function(c){ return !examFailed.includes(c); });
@@ -272,8 +270,7 @@ function showRoundSummary() {
 
   if (fg) fg.innerHTML = examFailed.map(function(c) {
     var r = examResults[c];
-    var isDescribed = r && r.mistakes >= 6;
-    var lbl = r && r.skipped ? '跳過' : isDescribed ? '需加強' : '錯 ' + r.mistakes + ' 次';
+    var lbl = r && r.skipped ? '跳過' : '不通過';
     return '<div class="exam-compact-card fail">'
       + '<div class="exam-compact-glyph">' + c + '</div>'
       + '<div class="exam-compact-icon">✖</div>'
@@ -297,10 +294,7 @@ function doStartNextRound() {
   examRound++;
   examQueue  = examFailed.slice().sort(function(){ return Math.random() - .5; });
   examQIdx   = 0; examFailed = [];
-  var qp  = document.getElementById('exam-question-panel');
-  var rop = document.getElementById('exam-round-panel');
-  if (qp)  qp.style.display  = '';
-  if (rop) rop.style.display = 'none';
+  switchExamPanel('question');
   updateExamHeader();
   showExamQuestion();
 }
@@ -310,12 +304,7 @@ function doStartNextRound() {
  */
 function showExamFinalResult() {
   sfxGrandCelebrate();
-  var qp  = document.getElementById('exam-question-panel');
-  var rop = document.getElementById('exam-round-panel');
-  var rp  = document.getElementById('exam-result-panel');
-  if (qp)  qp.style.display  = 'none';
-  if (rop) rop.style.display = 'none';
-  if (rp)  rp.style.display  = '';
+  switchExamPanel('result');
 
   var allChars    = Object.keys(examResults);
   var totalPassed = allChars.filter(function(c){ return examResults[c].passed; }).length;
@@ -333,9 +322,9 @@ function showExamFinalResult() {
     grid.className = 'exam-compact-grid';
     grid.innerHTML = allChars.map(function(c) {
       var r      = examResults[c];
-      var cls    = r.skipped ? 'skip' : r.mistakes === 0 ? 'pass' : r.passed ? 'ok' : 'fail';
-      var icon   = r.skipped ? '—'    : r.mistakes === 0 ? '⭕'   : r.passed ? '⭕'  : '✖';
-      var lblTxt = r.skipped ? '跳過' : r.mistakes === 0 ? '完美' : r.passed ? '通過' : '未過';
+      var cls    = r.skipped ? 'skip' : r.passed ? 'pass' : 'fail';
+      var icon   = r.skipped ? '—'    : r.passed ? '⭕'   : '✖';
+      var lblTxt = r.skipped ? '跳過' : r.passed ? '通過' : '不通過';
       return '<div class="exam-compact-card ' + cls + '">'
         + '<div class="exam-compact-glyph">' + c + '</div>'
         + '<div class="exam-compact-icon">' + icon + '</div>'
@@ -347,4 +336,24 @@ function showExamFinalResult() {
   var pf = document.getElementById('exam-progress-fill');
   if (pf) pf.style.width = '100%';
   updateProgressBar();
+  saveActivity();
+}
+
+/**
+ * 將本次測驗結果寫入 Firestore activities 子集合
+ */
+function saveActivity() {
+  if (!db || !currentStudent) return;
+  var allChars = Object.keys(examResults);
+  var passed   = allChars.filter(function(c){ return examResults[c].passed; });
+  var failed   = allChars.filter(function(c){ return !examResults[c].passed && !examResults[c].skipped; });
+  var skipped  = allChars.filter(function(c){ return examResults[c].skipped; });
+  db.collection('students').doc(currentStudent.id)
+    .collection('activities').add({
+      time:    new Date().toISOString(),
+      lesson:  currentLessonLabel || '自由練習',
+      passed:  passed,
+      failed:  failed,
+      skipped: skipped
+    }).catch(function(e){ console.warn('saveActivity error:', e); });
 }

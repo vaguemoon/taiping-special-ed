@@ -30,6 +30,9 @@ function switchToDict() {
   var oldFbar = document.getElementById('dict-float-bar');
   if (oldFbar) oldFbar.remove();
 
+  var oldOv = document.getElementById('dict-overlay');
+  if (oldOv) oldOv.remove();
+
   setTimeout(function(){ initDictCanvas(); }, 80);
 }
 
@@ -193,7 +196,7 @@ function selfEval(result) {
 
   if (result === 'great') {
     sfxCelebrate();
-    charStatus[char] = 'practiced';
+    markDictated(char);
 
     if (dAllStrokes.length > 0 && dSize > 0) {
       var ns = dAllStrokes.map(function(s) {
