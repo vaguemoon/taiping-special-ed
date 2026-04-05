@@ -54,6 +54,7 @@ function loadCharInfo(char) {
       return res.json();
     })
     .then(function(data) {
+      console.log('[moedict]', char, data); // 暫時除錯，確認後移除
       var zhuyin  = (data.heteronyms && data.heteronyms[0] && data.heteronyms[0].bopomofo) || '－';
       var radical = data.radical || '－';
       var strokes = data.stroke_count != null ? String(data.stroke_count) : '－';
