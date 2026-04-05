@@ -33,6 +33,13 @@ function getGridPx() {
  * 結果快取於 charInfoCache，避免重複請求
  * @param {string} char 目標漢字
  */
+function stripHtml(str) {
+  if (!str) return '';
+  return str.replace(/<[^>]+>/g, '')
+            .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+            .replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function loadCharInfo(char) {
   var elZ = document.getElementById('info-zhuyin');
   var elR = document.getElementById('info-radical');
@@ -54,7 +61,7 @@ function loadCharInfo(char) {
     })
     .then(function(data) {
       var zhuyin  = (data.heteronyms && data.heteronyms[0] && data.heteronyms[0].bopomofo) || '－';
-      var radical = data.radical || '－';
+      var radical = stripHtml(data.radical) || '－';
       var strokes = data.stroke_count != null ? String(data.stroke_count) : '－';
 
       // 收集造詞：從各定義的 example 欄位，將 ～ 替換為字本身，最多 3 個
@@ -66,19 +73,18 @@ function loadCharInfo(char) {
             if (!d.example) return;
             d.example.forEach(function(ex) {
               if (words.length >= 3) return;
-              var w = ex.replace(/～/g, char).trim();
+              var w = stripHtml(ex).replace(/～/g, char).trim();
               if (w.length >= 2 && words.indexOf(w) === -1) words.push(w);
             });
           });
         });
       }
 
-      // 字義：取第一個定義，移除括號內的補充說明，保持簡短
+      // 字義：取第一個定義，清除 HTML 後保持簡短
       var def = '－';
       if (data.heteronyms && data.heteronyms[0] &&
           data.heteronyms[0].definitions && data.heteronyms[0].definitions[0]) {
-        def = data.heteronyms[0].definitions[0].def || '－';
-        def = def.replace(/\{.*?\}/g, '').replace(/\[.*?\]/g, '').trim();
+        def = stripHtml(data.heteronyms[0].definitions[0].def) || '－';
       }
 
       var info = { zhuyin: zhuyin, radical: radical, strokes: strokes, words: words, def: def };
