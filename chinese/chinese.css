@@ -296,6 +296,8 @@
 }
 .zhuyin-tab {
   width: 100%; text-align: center;
+  white-space: nowrap; overflow: hidden;
+  font-size: 1rem; letter-spacing: 1px;
 }
 .zhuyin-tab {
   padding: 6px 16px; border-radius: 20px; border: 2px solid #c8dff5;
