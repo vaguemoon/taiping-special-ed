@@ -35,23 +35,40 @@
 </div>
 
 <div id="page-curriculum" class="page">
-  <div class="setup-page">
-    <div class="setup-title">📖 選擇今天的課程</div>
-    <div class="setup-card">
-      <select class="curriculum-select" id="version-select" onchange="onVersionChange()">
-        <option value="">－ 請選擇版本 －</option>
-      </select>
-      <div class="curriculum-row">
-        <select class="curriculum-select" id="book-select" onchange="onBookChange()" disabled>
-          <option value="">－ 選擇冊 －</option>
-        </select>
-        <select class="curriculum-select" id="lesson-select" onchange="onLessonChange()" disabled>
-          <option value="">－ 選擇課 －</option>
-        </select>
-      </div>
-      <div id="lesson-chars-preview"></div>
+  <div class="curr-stepbar">
+    <span class="curr-crumb active" id="crumb-1">出版社</span>
+    <span class="curr-crumb-sep">›</span>
+    <span class="curr-crumb" id="crumb-2">冊　次</span>
+    <span class="curr-crumb-sep">›</span>
+    <span class="curr-crumb" id="crumb-3">課　次</span>
+  </div>
+
+  <!-- Step 1：選出版社 -->
+  <div class="curr-step" id="curr-step-1">
+    <div class="curr-step-title">📖 選擇出版社</div>
+    <div class="curr-ver-cards" id="version-cards">
+      <div class="curr-loading">載入課程資料中…</div>
     </div>
-    <button class="btn-start" id="btn-start-curriculum" disabled onclick="startCurriculumLesson()">開始上課 →</button>
+  </div>
+
+  <!-- Step 2：選冊次 -->
+  <div class="curr-step" id="curr-step-2" style="display:none">
+    <button class="curr-back-btn" onclick="goToCurrStep(1)">← 返回</button>
+    <div class="curr-step-title" id="step2-title">選擇冊次</div>
+    <div class="curr-book-cards" id="book-cards"></div>
+  </div>
+
+  <!-- Step 3：選課次 -->
+  <div class="curr-step" id="curr-step-3" style="display:none">
+    <button class="curr-back-btn" onclick="goToCurrStep(2)">← 返回</button>
+    <div class="curr-step-title" id="step3-title">選擇課次</div>
+    <div class="curr-lesson-cards" id="lesson-cards"></div>
+  </div>
+
+  <!-- 固定底列：選課後出現 -->
+  <div class="curr-start-bar" id="curr-start-bar" style="display:none">
+    <div id="curr-selected-chars"></div>
+    <button class="btn-start" style="margin-top:0;max-width:480px;width:100%" onclick="startCurriculumLesson()">開始上課 →</button>
   </div>
 </div>
 

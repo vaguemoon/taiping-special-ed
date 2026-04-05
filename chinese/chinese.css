@@ -32,23 +32,98 @@
 .mode-choice-title { font-size: 2rem; font-weight: 900; color: var(--text); }
 .mode-choice-sub   { font-size: 1rem; font-weight: 600; color: var(--muted); }
 
-/* ── 課程設定頁 ── */
+/* ── 課程設定頁（自由練習用） ── */
 .setup-page  { max-width: 680px; margin: 0 auto; padding: 28px 20px 80px; }
 .setup-title { font-size: .8rem; font-weight: 800; color: var(--muted); letter-spacing: 1px; margin-bottom: 18px; }
 .setup-card  { background: var(--white); border-radius: 18px; padding: 22px 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
-.curriculum-select {
-  width: 100%; border: 2px solid #d4e8f8; border-radius: 10px;
-  padding: 11px 14px; font-size: .95rem; font-family: 'Noto Sans TC', sans-serif;
-  outline: none; background: white; color: var(--text); transition: border-color .2s; margin-bottom: 12px;
-}
-.curriculum-select:focus { border-color: var(--blue); }
-.curriculum-row { display: flex; gap: 12px; }
-.curriculum-row .curriculum-select { margin-bottom: 0; }
 .lesson-chars-chip {
   display: inline-flex; align-items: center; gap: 4px;
   background: var(--blue-lt); border: 1.5px solid #bfdbfe; border-radius: 8px;
   padding: 5px 12px; font-size: 1.1rem; font-family: 'Noto Serif TC', serif;
-  font-weight: 900; letter-spacing: 4px; color: var(--text); margin-top: 12px;
+  font-weight: 900; letter-spacing: 4px; color: var(--text); margin-top: 4px;
+}
+
+/* ── 步驟式課程選擇 ── */
+#page-curriculum { display: none; flex-direction: column; min-height: 100vh; }
+#page-curriculum.active { display: flex; }
+.curr-stepbar {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 14px 20px 10px; background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05); flex-shrink: 0;
+}
+.curr-crumb {
+  font-size: .8rem; font-weight: 800; color: var(--muted);
+  padding: 5px 14px; border-radius: 20px; transition: all .2s;
+}
+.curr-crumb.active { background: var(--blue-lt); color: var(--blue-dk); }
+.curr-crumb-sep { color: #ccc; font-size: 1rem; }
+
+.curr-step { flex: 1; padding: 20px 16px 120px; max-width: 640px; margin: 0 auto; width: 100%; }
+.curr-step-title {
+  font-size: 1rem; font-weight: 900; color: var(--text);
+  text-align: center; margin-bottom: 20px;
+}
+.curr-back-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--blue-lt); border: none; border-radius: 10px;
+  padding: 7px 14px; font-size: .82rem; font-weight: 800;
+  color: var(--blue-dk); cursor: pointer; margin-bottom: 14px;
+  font-family: 'Nunito', 'Noto Sans TC', sans-serif; transition: all .15s;
+}
+.curr-back-btn:active { transform: scale(.95); }
+.curr-loading { text-align: center; color: var(--muted); font-size: .9rem; padding: 32px 0; }
+.curr-loading-inline { font-size: .75rem; color: var(--muted); }
+
+/* 版本卡片 */
+.curr-ver-cards { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+.curr-ver-card {
+  flex: 1; min-width: 130px; max-width: 200px;
+  border-radius: 20px; border: 3px solid transparent;
+  padding: 32px 16px; display: flex; flex-direction: column;
+  align-items: center; gap: 12px; cursor: pointer;
+  transition: all .18s; font-family: 'Noto Sans TC', sans-serif;
+  box-shadow: var(--shadow);
+}
+.curr-ver-card:hover  { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+.curr-ver-card:active { transform: scale(.95); }
+.curr-ver-icon { font-size: 2.8rem; }
+.curr-ver-name { font-size: 1.25rem; font-weight: 900; }
+
+/* 冊次卡片 */
+.curr-book-cards {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px;
+}
+.curr-book-card {
+  background: white; border-radius: 16px; box-shadow: var(--shadow);
+  border: 3px solid #d4e8f8; padding: 22px 8px;
+  font-size: 1.1rem; font-weight: 900; color: var(--text);
+  cursor: pointer; transition: all .18s;
+  font-family: 'Noto Sans TC', sans-serif; text-align: center;
+}
+.curr-book-card:hover  { border-color: var(--blue); transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.curr-book-card:active { transform: scale(.94); }
+
+/* 課次卡片 */
+.curr-lesson-cards { display: flex; flex-direction: column; gap: 10px; }
+.curr-lesson-card {
+  background: white; border-radius: 16px; box-shadow: var(--shadow);
+  border: 3px solid transparent; padding: 15px 18px;
+  cursor: pointer; transition: all .18s; text-align: left; width: 100%;
+  font-family: 'Noto Sans TC', sans-serif;
+}
+.curr-lesson-card:hover  { border-color: #bfdbfe; transform: translateY(-2px); }
+.curr-lesson-card:active { transform: scale(.98); }
+.curr-lesson-card.active { border-color: var(--blue); background: var(--blue-lt); }
+.curr-lesson-num   { font-size: .72rem; font-weight: 800; color: var(--muted); margin-bottom: 2px; }
+.curr-lesson-name  { font-size: 1rem; font-weight: 900; color: var(--text); margin-bottom: 6px; }
+.curr-lesson-chars { font-size: 1.05rem; font-family: 'Noto Serif TC', serif; color: var(--blue-dk); letter-spacing: 3px; }
+
+/* 底部確認列 */
+.curr-start-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: white; padding: 10px 16px 20px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,.1);
+  display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 50;
 }
 .char-input {
   width: 100%; border: 2.5px solid #d4e8f8; border-radius: 12px;
