@@ -239,7 +239,8 @@
   font-weight: 900; color: var(--blue-dk); cursor: pointer;
   transition: all .15s; letter-spacing: 1px; user-select: none;
 }
-.char-word-chip:active { background: var(--blue); color: white; transform: scale(.94); }
+.char-word-chip.active { background: var(--blue); color: white; }
+.char-word-chip:active { filter: brightness(.88); transform: scale(.94); }
 .char-def-text {
   font-size: .9rem; font-weight: 600; color: var(--text); line-height: 1.65;
 }

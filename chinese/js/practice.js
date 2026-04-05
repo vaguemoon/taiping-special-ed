@@ -64,30 +64,33 @@ function loadCharInfo(char) {
       var radical = stripHtml(data.radical) || '－';
       var strokes = data.stroke_count != null ? String(data.stroke_count) : '－';
 
-      // 收集造詞：從各定義的 example 欄位，將 ～ 替換為字本身，最多 3 個
-      var words = [];
+      // 建立造詞→字義對應表：從「」內抓詞，每個詞記住來源定義的字義，最多 3 組
+      var wordDefPairs = [];
       if (data.heteronyms) {
         data.heteronyms.forEach(function(h) {
           if (!h.definitions) return;
           h.definitions.forEach(function(d) {
-            if (!d.example) return;
+            if (wordDefPairs.length >= 3 || !d.example) return;
+            var defText = stripHtml(d.def) || '－';
             d.example.forEach(function(ex) {
-              if (words.length >= 3) return;
-              var w = stripHtml(ex).replace(/～/g, char).trim();
-              if (w.length >= 2 && words.indexOf(w) === -1) words.push(w);
+              if (wordDefPairs.length >= 3) return;
+              var cleaned = stripHtml(ex).replace(/～/g, char);
+              // 抓取「」內的詞語
+              var matches = cleaned.match(/「([^」]+)」/g) || [];
+              matches.forEach(function(m) {
+                if (wordDefPairs.length >= 3) return;
+                var word = m.replace(/「|」/g, '').trim();
+                var already = wordDefPairs.some(function(p) { return p.word === word; });
+                if (word.length >= 2 && !already) {
+                  wordDefPairs.push({ word: word, def: defText });
+                }
+              });
             });
           });
         });
       }
 
-      // 字義：取第一個定義，清除 HTML 後保持簡短
-      var def = '－';
-      if (data.heteronyms && data.heteronyms[0] &&
-          data.heteronyms[0].definitions && data.heteronyms[0].definitions[0]) {
-        def = stripHtml(data.heteronyms[0].definitions[0].def) || '－';
-      }
-
-      var info = { zhuyin: zhuyin, radical: radical, strokes: strokes, words: words, def: def };
+      var info = { zhuyin: zhuyin, radical: radical, strokes: strokes, wordDefPairs: wordDefPairs };
       charInfoCache[char] = info;
       applyCharInfo(info);
     })
@@ -103,22 +106,31 @@ function applyCharInfo(info) {
   if (elZ) elZ.textContent = info.zhuyin;
   if (elR) elR.textContent = info.radical;
   if (elS) elS.textContent = info.strokes;
+
+  var pairs = info.wordDefPairs || [];
+
   if (elW) {
     elW.innerHTML = '';
-    var list = info.words || [];
-    if (list.length === 0) {
+    if (pairs.length === 0) {
       elW.textContent = '－';
     } else {
-      list.forEach(function(w) {
+      pairs.forEach(function(pair, idx) {
         var chip = document.createElement('span');
-        chip.className = 'char-word-chip';
-        chip.textContent = w;
-        chip.onclick = function() { speakChar(w); };
+        chip.className = 'char-word-chip' + (idx === 0 ? ' active' : '');
+        chip.textContent = pair.word;
+        chip.onclick = function() {
+          elW.querySelectorAll('.char-word-chip').forEach(function(c) { c.classList.remove('active'); });
+          chip.classList.add('active');
+          if (elD) elD.textContent = pair.def;
+          speakChar(pair.word);
+        };
         elW.appendChild(chip);
       });
     }
   }
-  if (elD) elD.textContent = info.def || '－';
+
+  // 預設顯示第一個詞的字義
+  if (elD) elD.textContent = (pairs.length > 0 ? pairs[0].def : '－');
 }
 
 function showCharInfoError() {
