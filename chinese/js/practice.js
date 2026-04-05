@@ -129,6 +129,7 @@ function applyCharInfo(info) {
       elT.querySelectorAll('.zhuyin-tab').forEach(function(t) { t.classList.remove('active'); });
       tab.classList.add('active');
       renderWordDef(h, elW, elD);
+      speakChar(chars[currentIdx]);
     };
     elT.appendChild(tab);
   });
@@ -410,4 +411,70 @@ function retryExam() {
   var bb = document.getElementById('bottom-bar');
   if (bb) bb.style.display = 'none';
   initExam(chars[currentIdx]);
+}
+
+// ── 視窗大小改變時重建 HanziWriter（確保 SVG 跟著 CSS --grid 更新） ──
+
+var _resizeTimer = null;
+var _lastGridPx  = 0;
+
+window.addEventListener('resize', function() {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(function() {
+    // 取得 CSS 計算後的新格子尺寸
+    var newSz = getGridPxFromCSS();
+    if (!newSz || Math.abs(newSz - _lastGridPx) < 4) return; // 變化不足 4px 不重建
+    _lastGridPx = newSz;
+    rebuildWriters();
+  }, 200);
+});
+
+/**
+ * 從 CSS --grid 變數取得實際像素值（比 getBoundingClientRect 更早得到正確值）
+ */
+function getGridPxFromCSS() {
+  var dummy = document.querySelector('.practice-grid-wrap') ||
+              document.querySelector('.quiz-box') ||
+              document.querySelector('.dict-canvas-wrap');
+  if (!dummy) return 0;
+  return Math.round(dummy.getBoundingClientRect().width) || 0;
+}
+
+/**
+ * 依目前模式重建 HanziWriter，使用新的格子尺寸
+ */
+function rebuildWriters() {
+  var char = chars[currentIdx];
+  if (!char) return;
+
+  if (currentMode === 'practice') {
+    var rt = document.getElementById('ref-target');
+    var qt = document.getElementById('quiz-target');
+    var isRefVisible = rt && !rt.classList.contains('hidden-panel');
+
+    if (isRefVisible && rt) {
+      rt.innerHTML = '';
+      refWriter = null;
+      requestAnimationFrame(function() {
+        var sz = rt.getBoundingClientRect().width || getGridPxFromCSS();
+        currentPracticeSz = sz;
+        createRefWriter(char, sz);
+      });
+    } else if (qt && !quizCompleted) {
+      qt.innerHTML = '';
+      quizWriter = null;
+      requestAnimationFrame(function() {
+        var sz = qt.getBoundingClientRect().width || getGridPxFromCSS();
+        quizWriter = HanziWriter.create('quiz-target', char, {
+          width: sz, height: sz, padding: Math.round(sz * 0.07),
+          strokeColor: '#2d6fa8', outlineColor: '#c8dff5',
+          drawingColor: '#2d6fa8', drawingWidth: Math.max(4, Math.round(sz * 0.013)),
+          highlightColor: '#ffd54f', showCharacter: false, showOutline: true, leniency: 1.2,
+          onLoadCharDataSuccess: function(){ startQuiz(); }
+        });
+      });
+    }
+  } else if (currentMode === 'single-exam') {
+    initExam(char);
+  }
 }
