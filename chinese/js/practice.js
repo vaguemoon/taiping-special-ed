@@ -66,9 +66,13 @@ function loadCharInfo(char) {
       var strokes = data.stroke_count != null ? String(data.stroke_count) : '－';
 
       // 每個讀音（heteronym）建立一個物件，包含注音與其造詞字義對應
+      // 以 bopomofo 去重，最多保留 4 個讀音
+      var seenBopomofo = {};
       var heteronyms = [];
       (data.heteronyms || []).forEach(function(h) {
         var bopomofo = h.bopomofo || '－';
+        if (seenBopomofo[bopomofo] || heteronyms.length >= 4) return;
+        seenBopomofo[bopomofo] = true;
         var wordDefPairs = [];
         (h.definitions || []).forEach(function(d) {
           if (!d.example) return;
@@ -139,7 +143,6 @@ function renderWordDef(h, elW, elD) {
     elW.innerHTML = '';
     if (pairs.length === 0) {
       elW.textContent = '－';
-      if (elD) elD.textContent = h.fallbackDef;
     } else {
       pairs.forEach(function(pair, idx) {
         var chip = document.createElement('span');
@@ -148,14 +151,21 @@ function renderWordDef(h, elW, elD) {
         chip.onclick = function() {
           elW.querySelectorAll('.char-word-chip').forEach(function(c) { c.classList.remove('active'); });
           chip.classList.add('active');
-          if (elD) elD.textContent = pair.def;
+          setDefText(elD, pair.def);
           speakChar(pair.word);
         };
         elW.appendChild(chip);
       });
-      if (elD) elD.textContent = pairs[0].def;
     }
   }
+  // 字義：有造詞用第一個造詞的字義，否則用 fallbackDef
+  setDefText(elD, pairs.length > 0 ? pairs[0].def : h.fallbackDef);
+}
+
+function setDefText(elD, text) {
+  if (!elD) return;
+  elD.textContent = text || '－';
+  elD.onclick = function() { speakChar(elD.textContent); };
 }
 
 function showCharInfoError() {
