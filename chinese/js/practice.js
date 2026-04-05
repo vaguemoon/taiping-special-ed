@@ -129,7 +129,7 @@ function applyCharInfo(info) {
       elT.querySelectorAll('.zhuyin-tab').forEach(function(t) { t.classList.remove('active'); });
       tab.classList.add('active');
       renderWordDef(h, elW, elD);
-      speakChar(chars[currentIdx]);
+      speakChar(h.bopomofo);
     };
     elT.appendChild(tab);
   });
