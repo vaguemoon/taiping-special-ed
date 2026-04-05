@@ -54,7 +54,9 @@ function loadCharInfo(char) {
       return res.json();
     })
     .then(function(data) {
-      console.log('[moedict]', char, data); // 暫時除錯，確認後移除
+      console.log('[moedict keys]', Object.keys(data));
+      console.log('[moedict h0]', data.heteronyms && data.heteronyms[0] ? Object.keys(data.heteronyms[0]) : 'no h0');
+      console.log('[moedict values]', { radical: data.radical, stroke_count: data.stroke_count, bopomofo: data.heteronyms && data.heteronyms[0] && data.heteronyms[0].bopomofo });
       var zhuyin  = (data.heteronyms && data.heteronyms[0] && data.heteronyms[0].bopomofo) || '－';
       var radical = data.radical || '－';
       var strokes = data.stroke_count != null ? String(data.stroke_count) : '－';
