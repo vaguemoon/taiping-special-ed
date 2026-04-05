@@ -91,12 +91,8 @@ function goToCurrStep(step) {
     var crumb = document.getElementById('crumb-' + n);
     if (crumb) crumb.classList.toggle('active', n <= step);
   });
-  if (step < 3) {
-    var bar = document.getElementById('curr-start-bar');
-    if (bar) bar.style.display = 'none';
-    if (step < 3) currSelectedLesson = null;
-    if (step < 2) currSelectedBook = null;
-  }
+  if (step < 3) currSelectedLesson = null;
+  if (step < 2) currSelectedBook = null;
 }
 
 // ── Step 1 → 選版本 ──
@@ -152,8 +148,6 @@ function selectBook(bookId) {
   lessonCards.innerHTML = '';
   document.getElementById('step3-title').textContent =
     currSelectedVer.name + '　' + bookId;
-  var bar = document.getElementById('curr-start-bar');
-  if (bar) bar.style.display = 'none';
 
   lessons.forEach(function(lesson) {
     var card = document.createElement('button');
