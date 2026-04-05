@@ -260,11 +260,7 @@ function switchToPractice() {
   if (fbar) fbar.remove();
 
   var bb = document.getElementById('bottom-bar');
-  if (bb) {
-    bb.style.display = '';
-    bb.innerHTML = '<button class="btn-big" id="btn-mode-switch" style="background:#c8d8e8;color:#8da4b8;cursor:not-allowed" disabled>'
-      + '<span class="btn-big-icon">📝</span><span>完成練習後開始默寫</span></button>';
-  }
+  if (bb) bb.style.display = 'none';
 
   switchPracticeTab('ref');
 
