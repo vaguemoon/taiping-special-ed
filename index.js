@@ -225,10 +225,9 @@ function saveProfile(){
   currentStudent.nickname=nickname;
   currentStudent.avatar=selectedAvatar;
   sessionStorage.setItem('hub_student',JSON.stringify(currentStudent));
-  updateBadge();
   db.collection('students').doc(currentStudent.id)
     .set({nickname:nickname,avatar:selectedAvatar},{merge:true})
-    .then(function(){showToast('✅ 已儲存！');renderHub();showPanel('hub');setTopbarMode('hub');})
+    .then(function(){showToast('✅ 已儲存！');renderHub();showPanel('hub');})
     .catch(function(){showToast('儲存失敗，請重試');});
 }
 
@@ -262,7 +261,7 @@ window.addEventListener('load',function(){
     if(saved){
       var student=JSON.parse(saved);
       currentStudent=student; selectedAvatar=student.avatar||'🐣';
-      updateBadge(); renderHub(); showTopbar(); setTopbarMode('hub'); showPanel('hub');
+      renderHub(); showPanel('hub');
       (function waitDb(){if(!db){setTimeout(waitDb,200);return;}loadActivity();})();
     }
   }catch(e){}
