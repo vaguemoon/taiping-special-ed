@@ -170,12 +170,17 @@
 }
 .char-card.mastered .char-card-check { display: flex; }
 @keyframes card-breathe {
-  0%,100% { box-shadow: 0 0 0 2px rgba(245,166,35,.7), 0 0 10px 2px rgba(245,166,35,.2), var(--shadow-md); }
-  50%      { box-shadow: 0 0 0 3px rgba(245,166,35,1),  0 0 22px 8px rgba(245,166,35,.45), var(--shadow-lg); }
+  0%,100% { box-shadow: 0 0 0 2px rgba(24,95,165,.6), 0 0 10px 2px rgba(24,95,165,.15), var(--shadow-md); }
+  50%      { box-shadow: 0 0 0 3px rgba(24,95,165,1),  0 0 24px 8px rgba(74,144,217,.5),  var(--shadow-lg); }
 }
 .char-card-recommended {
-  border-color: #F5A623 !important;
+  border-color: #185FA5 !important;
+  background: #f0f7ff !important;
   animation: card-breathe 2s ease-in-out infinite;
+}
+.status-rec {
+  background: #185FA5; color: white;
+  font-size: .7rem; font-weight: 800; padding: 3px 10px; border-radius: 20px;
 }
 .menu-exam-bar {
   position: fixed; bottom: 0; left: 0; right: 0; padding: 8px 14px 16px;
