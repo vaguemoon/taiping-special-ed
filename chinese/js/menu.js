@@ -58,6 +58,9 @@ function renderMenu() {
   saveProgress();
   updateProgressBar();
 
+  // 找出推薦字：筆畫最少的 new 字（利用已快取的萌典資料）
+  var recIdx = _getRecommendedIdx();
+
   var statusLabel = { new:'尚未學習', dictated:'通過默寫', mastered:'通過測驗' };
   var statusClass = { new:'status-new', dictated:'status-new', mastered:'status-mastered' };
 
@@ -66,18 +69,44 @@ function renderMenu() {
     var st   = (raw === 'mastered' || raw === 'dictated') ? raw : 'new';
     var base = st === 'mastered' ? 'char-card mastered' : st === 'dictated' ? 'char-card dictated' : 'char-card';
     var sel  = examSelectMode && examSelected[i];
-    var card = base + (sel ? ' exam-select-active' : '');
+    var isRec = (!examSelectMode && i === recIdx);
+    var card = base + (sel ? ' exam-select-active' : '') + (isRec ? ' char-card-recommended' : '');
     var onclick = examSelectMode
       ? 'onCardSelectToggle(' + i + ')'
       : 'onCardClick(event,' + i + ')';
     return '<div class="' + card + '" id="card-' + i + '" onclick="' + onclick + '">'
       + (sel ? '<div class="char-card-select-check">✓</div>' : '<div class="char-card-check">✓</div>')
+      + (isRec ? '<div class="char-card-rec-badge">✨</div>' : '')
       + '<div class="char-card-glyph">' + c + '</div>'
       + '<div class="char-card-status ' + statusClass[st] + '">' + statusLabel[st] + '</div>'
       + '</div>';
   }).join('');
 
   _renderExamButtons();
+}
+
+/**
+ * 找出筆畫最少的 new 字的索引，作為推薦練習的字
+ * 優先用 charInfoCache 的筆畫數，快取未載入則取第一個 new 字
+ */
+function _getRecommendedIdx() {
+  var newIdxs = [];
+  chars.forEach(function(c, i) {
+    if ((charStatus[c] || 'new') === 'new') newIdxs.push(i);
+  });
+  if (!newIdxs.length) return -1;
+
+  // 若快取有筆畫數，依筆畫數排序取最少
+  var withStrokes = newIdxs.filter(function(i) {
+    return charInfoCache[chars[i]] && charInfoCache[chars[i]].strokes !== '－';
+  });
+  if (withStrokes.length) {
+    withStrokes.sort(function(a, b) {
+      return parseInt(charInfoCache[chars[a]].strokes) - parseInt(charInfoCache[chars[b]].strokes);
+    });
+    return withStrokes[0];
+  }
+  return newIdxs[0]; // 快取未載入時退回第一個 new 字
 }
 
 /**
@@ -100,39 +129,51 @@ function _renderExamButtons() {
           '<span class="btn-big-icon">📝</span><span>開始測驗（' + n + ' 字）</span></button>' +
       '</div>';
   } else {
-    // ── 推薦模式：自動抓 5 個未測的字 ──
-    var notMastered = chars.filter(function(c){ return charStatus[c] !== 'mastered'; });
-    var recommended = notMastered.slice(0, 5);
-    var recLabel = recommended.join('　');
-    var hasRec   = recommended.length > 0;
+    // ── 一般模式：依 dictated 狀態顯示可測驗的字 ──
+    var dictated  = chars.filter(function(c){ return charStatus[c] === 'dictated'; });
+    var mastered  = chars.filter(function(c){ return charStatus[c] === 'mastered'; });
+    var allDone   = mastered.length === chars.length;
+    var canTest   = dictated.length > 0;
 
-    bb.innerHTML =
-      '<div class="exam-rec-bar">' +
-        (hasRec
-          ? '<div class="exam-rec-label">✨ 建議今天練習</div>' +
-            '<div class="exam-rec-chars">' + recLabel + '</div>'
-          : '<div class="exam-rec-label">🎉 所有字都通過了！</div>'
-        ) +
-      '</div>' +
-      '<div style="display:flex;gap:10px;">' +
-        '<button class="btn-big" style="background:#e6f1fb;color:#185FA5;border:1.5px solid #85B7EB;flex:0 0 auto;padding:13px 20px;" onclick="enterExamSelectMode()">' +
-          '<span>自己調整</span></button>' +
-        '<button class="btn-big btn-big-danger" id="btn-start-exam" style="flex:1;" ' +
-          (hasRec ? 'onclick="startRecommendedExam()"' : 'disabled style="opacity:.4"') + '>' +
-          '<span class="btn-big-icon">📝</span><span>直接開始（' + recommended.length + ' 字）</span></button>' +
-      '</div>';
+    if (allDone) {
+      bb.innerHTML =
+        '<div class="exam-rec-bar" style="justify-content:center;">' +
+          '<div class="exam-rec-label" style="font-size:.9rem;">🎉 所有字都通過測驗了！</div>' +
+        '</div>' +
+        '<button class="btn-big" style="background:#e6f1fb;color:#185FA5;border:1.5px solid #85B7EB;" onclick="enterExamSelectMode()">' +
+          '<span>自己調整複習</span></button>';
+    } else if (canTest) {
+      var dictLabel = dictated.join('　');
+      bb.innerHTML =
+        '<div class="exam-rec-bar">' +
+          '<div class="exam-rec-label">📝 可以測驗了</div>' +
+          '<div class="exam-rec-chars">' + dictLabel + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;">' +
+          '<button class="btn-big" style="background:#e6f1fb;color:#185FA5;border:1.5px solid #85B7EB;flex:0 0 auto;padding:13px 20px;" onclick="enterExamSelectMode()">' +
+            '<span>自己調整</span></button>' +
+          '<button class="btn-big btn-big-danger" id="btn-start-exam" style="flex:1;" onclick="startDictatedExam()">' +
+            '<span class="btn-big-icon">📝</span><span>開始測驗（' + dictated.length + ' 字）</span></button>' +
+        '</div>';
+    } else {
+      bb.innerHTML =
+        '<div class="exam-rec-bar">' +
+          '<div class="exam-rec-label">先練習生字，練習完後可以進行測驗</div>' +
+        '</div>' +
+        '<button class="btn-big" style="background:#e6f1fb;color:#185FA5;border:1.5px solid #85B7EB;" onclick="enterExamSelectMode()">' +
+          '<span>自己調整</span></button>';
+    }
     updateProgressBar();
   }
 }
 
 /**
- * 以推薦的 5 個字開始測驗
+ * 測驗所有 dictated 的字
  */
-function startRecommendedExam() {
-  var notMastered = chars.filter(function(c){ return charStatus[c] !== 'mastered'; });
-  var recommended = notMastered.slice(0, 5);
-  if (!recommended.length) return;
-  startFullExam(recommended);
+function startDictatedExam() {
+  var dictated = chars.filter(function(c){ return charStatus[c] === 'dictated'; });
+  if (!dictated.length) return;
+  startFullExam(dictated);
 }
 
 /**
