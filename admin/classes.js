@@ -14,10 +14,16 @@ function generateInviteCode() {
   return code;
 }
 
-/* ── 取得邀請連結 ── */
-function getInviteLink(code) {
-  var base = window.location.href.replace(/\/admin\.html.*$/, '/index.html');
-  return base + '?join=' + code;
+/* ── 複製邀請碼 ── */
+function copyCode(code) {
+  var text = code;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text)
+      .then(function() { showToast('✅ 邀請碼已複製：' + code); })
+      .catch(function() { fallbackCopy(text, code); });
+  } else {
+    fallbackCopy(text, code);
+  }
 }
 
 /* ── 載入此教師的所有班級 ── */
@@ -62,7 +68,6 @@ function renderClasses() {
   }
 
   wrap.innerHTML = currentClasses.map(function(cls) {
-    var link = getInviteLink(cls.inviteCode);
     var inactive = !cls.active;
     return '<div class="class-card' + (inactive ? ' class-inactive' : '') + '">' +
       '<div class="class-card-top">' +
@@ -72,6 +77,7 @@ function renderClasses() {
             '<span class="class-code">' + cls.inviteCode + '</span>' +
             '<span class="class-status-badge ' + (cls.active ? 'badge-green' : 'badge-gray') + '">' +
               (cls.active ? '邀請中' : '已停用') + '</span>' +
+            '<button class="btn-copy-code" onclick="copyCode(\'' + cls.inviteCode + '\')">複製邀請碼</button>' +
           '</div>' +
         '</div>' +
         '<div class="class-top-actions">' +
@@ -79,10 +85,6 @@ function renderClasses() {
             (cls.active ? '停用' : '啟用') + '</button>' +
           '<button class="btn-cls-delete" onclick="confirmDeleteClass(\'' + cls.id + '\',\'' + escHtml(cls.name) + '\')">刪除</button>' +
         '</div>' +
-      '</div>' +
-      '<div class="class-link-row">' +
-        '<div class="class-link-text" title="' + link + '">' + link + '</div>' +
-        '<button class="btn-copy-link" onclick="copyInviteLink(\'' + link + '\')">複製連結</button>' +
       '</div>' +
       '<div class="class-footer" id="cs-' + cls.id + '">' +
         '<span style="color:var(--muted);font-size:.78rem">載入學生數…</span>' +
@@ -126,22 +128,12 @@ function confirmDeleteClass(classId, name) {
     .catch(function(e) { showToast('刪除失敗：' + e.message); });
 }
 
-/* ── 複製邀請連結 ── */
-function copyInviteLink(link) {
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(link)
-      .then(function() { showToast('✅ 邀請連結已複製！'); })
-      .catch(function() { fallbackCopy(link); });
-  } else {
-    fallbackCopy(link);
-  }
-}
-function fallbackCopy(text) {
+function fallbackCopy(text, code) {
   var ta = document.createElement('textarea');
   ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
   document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); showToast('✅ 邀請連結已複製！'); }
-  catch(e) { showToast('請手動複製連結'); }
+  try { document.execCommand('copy'); showToast('✅ 邀請碼已複製：' + code); }
+  catch(e) { showToast('請手動複製邀請碼'); }
   document.body.removeChild(ta);
 }
 

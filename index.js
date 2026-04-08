@@ -262,7 +262,83 @@ function showProfile(){
   document.getElementById('profile-header-name').textContent=currentStudent.nickname||currentStudent.name;
   selectedAvatar=currentStudent.avatar||'🐣';
   renderAvatarGrid(); renderThemeGrid(); applySoundUI();
+  loadStudentClass();
   showPanel('profile');
+}
+
+/* ── 班級加入 ── */
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function loadStudentClass(){
+  if(!db||!currentStudent) return;
+  var wrap=document.getElementById('class-join-wrap');
+  if(!wrap) return;
+  db.collection('students').doc(currentStudent.id).get().then(function(doc){
+    var classId=doc.exists?doc.data().classId:null;
+    if(classId){
+      db.collection('classes').doc(classId).get().then(function(cdoc){
+        if(cdoc.exists){
+          var cls=cdoc.data();
+          wrap.innerHTML=
+            '<div class="class-joined-row">'+
+              '<div>'+
+                '<div class="class-joined-name">🏫 '+escHtml(cls.name)+'</div>'+
+                '<div class="class-joined-code">邀請碼：'+cls.inviteCode+'</div>'+
+              '</div>'+
+              '<button class="btn-leave-class" onclick="leaveClass()">離開班級</button>'+
+            '</div>';
+        } else { renderJoinForm(wrap); }
+      }).catch(function(){ renderJoinForm(wrap); });
+    } else { renderJoinForm(wrap); }
+  }).catch(function(){ renderJoinForm(wrap); });
+}
+function renderJoinForm(wrap){
+  wrap.innerHTML=
+    '<div class="join-class-row">'+
+      '<input id="join-code-input" type="text" placeholder="輸入 6 碼邀請碼" maxlength="6"'+
+        ' class="join-code-input"'+
+        ' oninput="this.value=this.value.toUpperCase()">'+
+      '<button class="btn-join-class" onclick="joinClass()">加入</button>'+
+    '</div>'+
+    '<div id="join-class-error" class="join-class-error"></div>';
+}
+function joinClass(){
+  var input=document.getElementById('join-code-input');
+  var code=(input?input.value.trim().toUpperCase():'');
+  var errEl=document.getElementById('join-class-error');
+  if(errEl) errEl.textContent='';
+  if(code.length!==6){showJoinError('請輸入 6 碼邀請碼');return;}
+  if(!db||!currentStudent) return;
+  db.collection('classes').where('inviteCode','==',code).where('active','==',true).get()
+    .then(function(snap){
+      if(snap.empty){showJoinError('找不到這個邀請碼，請確認是否正確或班級已停用');return;}
+      var classId=snap.docs[0].id;
+      return db.collection('students').doc(currentStudent.id).set({classId:classId},{merge:true})
+        .then(function(){
+          currentStudent.classId=classId;
+          sessionStorage.setItem('hub_student',JSON.stringify(currentStudent));
+          showToast('✅ 已加入班級！');
+          loadStudentClass();
+        });
+    })
+    .catch(function(e){showJoinError('加入失敗：'+e.message);});
+}
+function showJoinError(msg){
+  var el=document.getElementById('join-class-error');
+  if(el){el.textContent=msg;}
+}
+function leaveClass(){
+  if(!confirm('確定要離開目前的班級嗎？')) return;
+  if(!db||!currentStudent) return;
+  db.collection('students').doc(currentStudent.id).update({classId:firebase.firestore.FieldValue.delete()})
+    .then(function(){
+      delete currentStudent.classId;
+      sessionStorage.setItem('hub_student',JSON.stringify(currentStudent));
+      showToast('已離開班級');
+      loadStudentClass();
+    })
+    .catch(function(e){showToast('操作失敗：'+e.message);});
 }
 function renderAvatarGrid(){
   document.getElementById('avatar-grid').innerHTML=AVATARS.map(function(av){

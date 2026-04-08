@@ -394,12 +394,12 @@ body {
   flex:1; font-size:.75rem; color:var(--muted); font-weight:600;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;
 }
-.btn-copy-link {
-  padding:5px 12px; border-radius:7px; border:1.5px solid var(--border);
-  background:white; font-size:.75rem; font-weight:800; cursor:pointer;
+.btn-copy-code {
+  padding:4px 10px; border-radius:7px; border:1.5px solid #bfdbfe;
+  background:var(--blue-lt); font-size:.75rem; font-weight:800; cursor:pointer;
   font-family:inherit; color:var(--blue); flex-shrink:0; transition:all .15s;
 }
-.btn-copy-link:hover { background:var(--blue-lt); border-color:var(--blue); }
+.btn-copy-code:hover { background:#dbeafe; border-color:var(--blue); }
 .class-footer { font-size:.78rem; }
 .class-stat { font-weight:700; color:var(--gray); }
 .class-empty {
