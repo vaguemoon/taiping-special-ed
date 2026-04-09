@@ -402,6 +402,18 @@ window.addEventListener('message',function(e){
   else if(e.data.type==='hanzi-logout') doLogout();
 });
 
+/* 管理者隱藏入口：連點學校名稱 5 次跳轉 */
+(function(){
+  var taps=0, timer=null;
+  document.addEventListener('click', function(e){
+    if(!e.target || e.target.id !== 'school-name-tap') { taps=0; return; }
+    taps++;
+    clearTimeout(timer);
+    if(taps>=5){ taps=0; window.location.href='super-admin-login.html'; return; }
+    timer = setTimeout(function(){ taps=0; }, 1500);
+  });
+})();
+
 /* 啟動 */
 window.addEventListener('load',function(){
   initFirebase(); applyTheme(currentTheme);
