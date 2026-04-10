@@ -307,48 +307,51 @@ function renderAchievementPage() {
   html += '<div class="ach-prog-bar"><div class="ach-prog-fill" style="width:' + pct + '%"></div></div>';
   html += '</div></div>';
 
-  // ── 成就格子說明 ──
-  html += '<div class="ach-legend">';
-  html += '<span class="ach-legend-item locked-demo" style="opacity:.4;filter:grayscale(1)">✏️</span> 未解鎖';
-  html += '&nbsp;&nbsp;<span class="ach-legend-item unlocked-demo">✏️</span> 已解鎖';
-  html += '</div>';
-
-  // ── 成就格子 ──
-  html += '<div class="ach-grid-wrap">';
+  // ── 成就卡片 ──
+  html += '<div class="ach-cards-wrap">';
   ACH_DEFS.forEach(function(def) {
     var val = def.getValue();
-    html += '<div class="ach-row">';
-    html += '<div class="ach-row-label"><span class="ach-row-icon">' + def.icon + '</span><span class="ach-row-name">' + def.label + '</span></div>';
-    html += '<div class="ach-cells">';
+
+    // 找最後一個已解鎖的 index（用於進度線寬度）
+    var lastUnlockedIdx = -1;
+    def.thresholds.forEach(function(_, idx) {
+      if (achStats.unlockedAchievements[def.id + '_lv' + (idx + 1)]) lastUnlockedIdx = idx;
+    });
+    // 進度線寬度：延伸到最後解鎖節點的中心
+    var linePct = lastUnlockedIdx < 0 ? 0
+      : Math.round((lastUnlockedIdx + 0.5) / def.thresholds.length * 100);
+
+    html += '<div class="ach-card">';
+
+    // 卡片標題
+    html += '<div class="ach-card-header">';
+    html += '<span class="ach-card-icon">' + def.icon + '</span>';
+    html += '<span class="ach-card-label">' + def.label + '</span>';
+    html += '<span class="ach-card-cur">目前 ' + val + ' ' + def.unit + '</span>';
+    html += '</div>';
+
+    // 節點軌道
+    html += '<div class="ach-track-wrap">';
+    html += '<div class="ach-track-line"><div class="ach-track-line-fg" style="width:' + linePct + '%"></div></div>';
+    html += '<div class="ach-nodes">';
+
     def.thresholds.forEach(function(threshold, idx) {
       var key      = def.id + '_lv' + (idx + 1);
       var unlocked = !!achStats.unlockedAchievements[key];
-      var lvIdx    = idx + 1; // 1-10
-      var bg       = unlocked ? ACH_LV_BG[lvIdx]     : ACH_LV_BG[0];
-      var border   = unlocked ? ACH_LV_BORDER[lvIdx]  : ACH_LV_BORDER[0];
-      var color    = unlocked ? ACH_LV_TEXT[lvIdx]    : ACH_LV_TEXT[0];
+      var lvIdx    = idx + 1;
+      var circleStyle = unlocked
+        ? 'background:' + ACH_LV_BG[lvIdx] + ';border-color:' + ACH_LV_BORDER[lvIdx] + ';color:' + ACH_LV_TEXT[lvIdx]
+        : '';
 
-      html += '<div class="ach-cell ' + (unlocked ? 'ach-unlocked' : 'ach-locked') + '" ';
-      html += 'style="background:' + bg + ';border-color:' + border + ';color:' + color + '"';
-      if (!unlocked) {
-        html += ' title="需達 ' + threshold + ' ' + def.unit + '（目前 ' + val + ' ' + def.unit + '）"';
-      } else {
-        html += ' title="' + def.label + ' Lv' + lvIdx + '：達成 ' + threshold + ' ' + def.unit + '，獲得 ' + def.stars[idx] + ' ★"';
-      }
-      html += '>';
-      if (unlocked) {
-        html += '<div class="ach-cell-icon">' + def.icon + '</div>';
-        html += '<div class="ach-cell-lv">Lv' + lvIdx + '</div>';
-        html += '<div class="ach-cell-star">+' + def.stars[idx] + '★</div>';
-      } else {
-        var pct = Math.min(100, Math.round(val / threshold * 100));
-        html += '<div class="ach-cell-dim-icon">' + def.icon + '</div>';
-        html += '<div class="ach-cell-prog-wrap"><div class="ach-cell-prog-fill" style="width:' + pct + '%"></div></div>';
-        html += '<div class="ach-cell-progress-txt">' + val + '/' + threshold + '</div>';
-      }
+      html += '<div class="ach-node ' + (unlocked ? 'ach-node-unlocked' : 'ach-node-locked') + '">';
+      html += '<div class="ach-node-circle" style="' + circleStyle + '">' + def.icon + '</div>';
+      html += '<div class="ach-node-lv">Lv' + lvIdx + '</div>';
+      html += '<div class="ach-node-val">' + threshold + def.unit + '</div>';
+      html += '<div class="ach-node-star">+' + def.stars[idx] + '★</div>';
       html += '</div>';
     });
-    html += '</div></div>';
+
+    html += '</div></div></div>';
   });
   html += '</div>';
 
