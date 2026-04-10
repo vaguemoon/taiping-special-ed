@@ -341,7 +341,10 @@ function renderAchievementPage() {
         html += '<div class="ach-cell-lv">Lv' + lvIdx + '</div>';
         html += '<div class="ach-cell-star">+' + def.stars[idx] + '★</div>';
       } else {
+        var pct = Math.min(100, Math.round(val / threshold * 100));
         html += '<div class="ach-cell-dim-icon">' + def.icon + '</div>';
+        html += '<div class="ach-cell-prog-wrap"><div class="ach-cell-prog-fill" style="width:' + pct + '%"></div></div>';
+        html += '<div class="ach-cell-progress-txt">' + val + '/' + threshold + '</div>';
       }
       html += '</div>';
     });
