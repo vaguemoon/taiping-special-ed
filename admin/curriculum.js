@@ -86,8 +86,13 @@ function loadVersions() {
     });
   }).catch(function(e) {
     var w = document.getElementById('version-list-wrap');
-    if (w) w.innerHTML =
-      '<div style="color:var(--red);font-size:.88rem;font-weight:700">載入失敗：' + e.message + '</div>';
+    if (w) {
+      var div = document.createElement('div');
+      div.style.cssText = 'color:var(--red);font-size:.88rem;font-weight:700';
+      div.textContent = '載入失敗：' + e.message;
+      w.innerHTML = '';
+      w.appendChild(div);
+    }
   });
 }
 
@@ -182,8 +187,11 @@ function loadVersionContent(vId, vName, container) {
       container.dataset.loaded = '1';
     })
     .catch(function(e) {
-      container.innerHTML =
-        '<div style="color:var(--red);font-size:.88rem;padding:12px 0">載入失敗：' + e.message + '</div>';
+      var div = document.createElement('div');
+      div.style.cssText = 'color:var(--red);font-size:.88rem;padding:12px 0';
+      div.textContent = '載入失敗：' + e.message;
+      container.innerHTML = '';
+      container.appendChild(div);
     });
 }
 
@@ -401,6 +409,10 @@ function importCSV() {
         document.getElementById('csv-preview').innerHTML = '';
         loadVersions();
       }
+    }).catch(function(e) {
+      showToast('❌ 版本「' + vName + '」匯入失敗：' + e.message);
+      btn.innerHTML = '<span>📥</span><span>匯入</span>';
+      btn.disabled = false;
     });
   });
 }

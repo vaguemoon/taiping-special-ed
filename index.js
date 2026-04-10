@@ -279,7 +279,7 @@ function showProfile(){
   document.getElementById('profile-avatar-big').textContent=currentStudent.avatar||'🐣';
   document.getElementById('profile-header-name').textContent=currentStudent.nickname||currentStudent.name;
   selectedAvatar=currentStudent.avatar||'🐣';
-  renderAvatarGrid(); renderThemeGrid(); applySoundUI();
+  renderAvatarGrid(); _renderHubThemeGrid(); applySoundUI();
   loadStudentClass();
   showPanel('profile');
 }
@@ -365,14 +365,14 @@ function renderAvatarGrid(){
   }).join('');
 }
 function selectAvatar(av){selectedAvatar=av;document.getElementById('profile-avatar-big').textContent=av;renderAvatarGrid();}
-function renderThemeGrid(){
+function _renderHubThemeGrid(){
   var cur=localStorage.getItem('theme')||'blue';
   document.getElementById('theme-grid').innerHTML=THEMES.map(function(t){
     return '<button class="theme-btn'+(t.id===cur?' selected':'')+
       '" style="background:'+t.bg+';color:'+t.blueDk+'" onclick="selectTheme(\''+t.id+'\')">'+t.name+'</button>';
   }).join('');
 }
-function selectTheme(id){applyTheme(id);renderThemeGrid();}
+function selectTheme(id){applyTheme(id);_renderHubThemeGrid();}
 function applySoundUI(){
   var on=soundEnabled;
   var btn=document.getElementById('sound-toggle');

@@ -98,13 +98,17 @@ var ACH_LV_TEXT = [
 //  核心函式
 // ═══════════════════════════════════════════
 
+/** 計算目前星星對應的稱號等級 index */
+function computeTitleIndex(stars) {
+  for (var i = TITLE_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (stars >= TITLE_THRESHOLDS[i]) return i;
+  }
+  return 0;
+}
+
 /** 計算目前星星對應的稱號 */
 function computeTitle(stars) {
-  var lv = 0;
-  for (var i = TITLE_THRESHOLDS.length - 1; i >= 0; i--) {
-    if (stars >= TITLE_THRESHOLDS[i]) { lv = i; break; }
-  }
-  return TITLE_NAMES[lv];
+  return TITLE_NAMES[computeTitleIndex(stars)];
 }
 
 /** 加星（不觸發 Firestore 寫入，由 checkAchievements 統一存檔） */
@@ -202,7 +206,7 @@ function handleDailyLogin() {
 function onExamCharPassed(char) {
   addStars(1);
   // 精熟字庫去重
-  if (achStats.masteredChars.indexOf(char) === -1) {
+  if (!achStats.masteredChars.includes(char)) {
     achStats.masteredChars.push(char);
   }
   // 今日練習字數
@@ -279,10 +283,7 @@ function renderAchievementPage() {
   if (!page) return;
 
   // ── 稱號進度計算 ──
-  var currentLvIdx = 0;
-  for (var i = TITLE_THRESHOLDS.length - 1; i >= 0; i--) {
-    if (achStats.stars >= TITLE_THRESHOLDS[i]) { currentLvIdx = i; break; }
-  }
+  var currentLvIdx = computeTitleIndex(achStats.stars);
   var isMaxLv    = (currentLvIdx === TITLE_THRESHOLDS.length - 1);
   var prevT      = TITLE_THRESHOLDS[currentLvIdx];
   var nextT      = isMaxLv ? prevT : TITLE_THRESHOLDS[currentLvIdx + 1];
