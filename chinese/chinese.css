@@ -144,31 +144,33 @@
   width: 24px; height: 24px; border-radius: 6px; font-size: .75rem;
   border: 1.5px solid #bbb;
 }
-.locked-demo   { background: #e8e8e8; color: #aaa; font-weight: 900; }
+.locked-demo   { background: #e8e8e8; border-color: #c0c0c0; }
 .unlocked-demo { background: #4a90d9; border-color: #2d6fa8; }
 
 .ach-grid-wrap { padding: 6px 10px 16px; display: flex; flex-direction: column; gap: 10px; }
-.ach-row { display: flex; align-items: center; gap: 8px; }
+.ach-row { display: flex; align-items: stretch; gap: 8px; }
 .ach-row-label {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  width: 46px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  width: 40px; flex-shrink: 0;
 }
 .ach-row-icon  { font-size: 1.3rem; line-height: 1; }
-.ach-row-name  { font-size: .6rem; font-weight: 800; color: var(--muted); text-align: center; }
-.ach-cells { display: flex; gap: 5px; flex-wrap: nowrap; overflow-x: auto; flex: 1; }
+.ach-row-name  { font-size: .58rem; font-weight: 800; color: var(--muted); text-align: center; }
+.ach-cells {
+  display: grid; grid-template-columns: repeat(10, 1fr);
+  gap: 4px; flex: 1; min-width: 0;
+}
 .ach-cell {
-  width: 44px; min-width: 44px; height: 52px; border-radius: 10px;
+  aspect-ratio: 1 / 1.15; border-radius: 10px;
   border: 2px solid #bbb; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 1px;
-  cursor: default; transition: transform .1s; flex-shrink: 0;
+  cursor: default; transition: transform .12s; overflow: hidden;
 }
 .ach-unlocked { cursor: pointer; }
-.ach-unlocked:active { transform: scale(.93); }
-.ach-cell-icon { font-size: 1.1rem; line-height: 1; }
-.ach-cell-lv   { font-size: .6rem; font-weight: 900; }
-.ach-cell-star { font-size: .6rem; font-weight: 700; }
-.ach-cell-lock { font-size: 1rem; font-weight: 900; }
-.ach-cell-need { font-size: .55rem; font-weight: 700; text-align: center; line-height: 1.2; }
+.ach-unlocked:active { transform: scale(.90); }
+.ach-cell-icon     { font-size: clamp(.7rem, 2.2vw, 1.2rem); line-height: 1; }
+.ach-cell-lv       { font-size: clamp(.45rem, 1.2vw, .62rem); font-weight: 900; }
+.ach-cell-star     { font-size: clamp(.4rem, 1.1vw, .58rem); font-weight: 700; }
+.ach-cell-dim-icon { font-size: clamp(.7rem, 2.2vw, 1.2rem); line-height: 1; opacity: .18; filter: grayscale(1); }
 
 .ach-daily-summary {
   margin: 0 12px 24px; padding: 14px 16px;

@@ -309,7 +309,7 @@ function renderAchievementPage() {
 
   // ── 成就格子說明 ──
   html += '<div class="ach-legend">';
-  html += '<span class="ach-legend-item locked-demo">?</span> 未解鎖';
+  html += '<span class="ach-legend-item locked-demo" style="opacity:.4;filter:grayscale(1)">✏️</span> 未解鎖';
   html += '&nbsp;&nbsp;<span class="ach-legend-item unlocked-demo">✏️</span> 已解鎖';
   html += '</div>';
 
@@ -341,8 +341,7 @@ function renderAchievementPage() {
         html += '<div class="ach-cell-lv">Lv' + lvIdx + '</div>';
         html += '<div class="ach-cell-star">+' + def.stars[idx] + '★</div>';
       } else {
-        html += '<div class="ach-cell-lock">?</div>';
-        html += '<div class="ach-cell-need">' + threshold + '<br>' + def.unit + '</div>';
+        html += '<div class="ach-cell-dim-icon">' + def.icon + '</div>';
       }
       html += '</div>';
     });
