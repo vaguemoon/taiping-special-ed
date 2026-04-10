@@ -81,6 +81,7 @@ function renderClasses() {
           '</div>' +
         '</div>' +
         '<div class="class-top-actions">' +
+          '<button class="btn-share-class" onclick="showShareModal(\'' + escHtml(cls.name) + '\',\'' + cls.inviteCode + '\')">📤 分享</button>' +
           '<button class="btn-cls-toggle" onclick="toggleClassActive(\'' + cls.id + '\',' + !cls.active + ')">' +
             (cls.active ? '停用' : '啟用') + '</button>' +
           '<button class="btn-cls-delete" onclick="confirmDeleteClass(\'' + cls.id + '\',\'' + escHtml(cls.name) + '\')">刪除</button>' +
@@ -183,6 +184,82 @@ function createClass() {
       errEl.textContent = '建立失敗：' + e.message;
       btnEl.disabled = false; btnEl.textContent = '建立班級';
     });
+}
+
+/* ── 分享 Modal ── */
+var APP_URL = 'https://vaguemoon.github.io/taiping-special-ed/';
+var _shareCode = '';
+var _shareQR   = null;
+
+function showShareModal(className, inviteCode) {
+  _shareCode = inviteCode;
+
+  document.getElementById('share-modal-classname').textContent = className;
+  document.getElementById('share-url-text').textContent        = APP_URL;
+  document.getElementById('share-invite-code').textContent     = inviteCode;
+
+  /* 產生 QR Code（清除舊的再重建） */
+  var qrEl = document.getElementById('share-qrcode');
+  qrEl.innerHTML = '';
+  if (typeof QRCode !== 'undefined') {
+    new QRCode(qrEl, {
+      text:          APP_URL,
+      width:         160,
+      height:        160,
+      correctLevel:  QRCode.CorrectLevel.M
+    });
+  }
+
+  document.getElementById('share-modal').style.display = 'flex';
+}
+
+function hideShareModal() {
+  document.getElementById('share-modal').style.display = 'none';
+}
+
+function copyShareUrl() {
+  _copyText(APP_URL, 'App 網址已複製！');
+}
+
+function copyShareCode() {
+  _copyText(_shareCode, '邀請碼已複製：' + _shareCode);
+}
+
+function _copyText(text, msg) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text)
+      .then(function() { showToast('✅ ' + msg); })
+      .catch(function() { _fallback(text, msg); });
+  } else {
+    _fallback(text, msg);
+  }
+}
+
+function _fallback(text, msg) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast('✅ ' + msg); }
+  catch(e) { showToast('請手動複製'); }
+  document.body.removeChild(ta);
+}
+
+function nativeShare() {
+  if (navigator.share) {
+    navigator.share({
+      title: '練字趣 — 國字學習 App',
+      text:  '邀請碼：' + _shareCode + '　加入後就能開始練習！',
+      url:   APP_URL
+    }).catch(function() {});
+  } else {
+    /* 桌面版瀏覽器：直接複製完整文字 */
+    _copyText(
+      '練字趣 App：' + APP_URL + '\n班級邀請碼：' + _shareCode,
+      '分享文字已複製，貼到 LINE 或 Email 傳給家長！'
+    );
+  }
 }
 
 /* ── 切換到班級學生名單 ── */

@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#4a90d9">
 <title>臺東縣太平國小資源班</title>
+<link rel="manifest" href="/taiping-special-ed/manifest.json">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -255,5 +257,13 @@
 <script src="shared.js"></script>
 <script src="auth.js"></script>
 <script src="hub.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/taiping-special-ed/sw.js')
+      .catch(function(err) { console.warn('SW 註冊失敗:', err); });
+  });
+}
+</script>
 </body>
 </html>

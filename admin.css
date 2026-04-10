@@ -394,6 +394,12 @@ body {
 .badge-green { background:var(--green-lt); color:var(--green); }
 .badge-gray  { background:#f1f5f9; color:var(--muted); }
 .class-top-actions { display:flex; gap:6px; flex-shrink:0; }
+.btn-share-class {
+  padding:6px 12px; border-radius:8px; border:1.5px solid #bfdbfe;
+  background:#eff6ff; font-size:.78rem; font-weight:700; cursor:pointer;
+  font-family:inherit; color:#1d4ed8; transition:all .15s;
+}
+.btn-share-class:hover { background:#dbeafe; }
 .btn-cls-toggle {
   padding:6px 12px; border-radius:8px; border:1.5px solid var(--border);
   background:white; font-size:.78rem; font-weight:700; cursor:pointer;
