@@ -93,6 +93,9 @@ function doLogin(){
 function onLoginSuccess(student){
   currentStudent=student; selectedAvatar=student.avatar||'🐣';
   sessionStorage.setItem('hub_student',JSON.stringify(student));
+  db.collection('students').doc(student.id)
+    .update({ lastSeen: firebase.firestore.FieldValue.serverTimestamp() })
+    .catch(function(){});
   renderHub(); showPanel('hub'); loadActivity();
   showToast('👋 歡迎，'+(student.nickname||student.name)+'！');
 }
