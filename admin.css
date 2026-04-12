@@ -455,3 +455,46 @@ body {
 }
 @keyframes spin { to { transform:rotate(360deg); } }
 .loading-wrap { padding:40px; text-align:center; color:var(--muted); font-weight:700; }
+
+/* ══════════════════════════════════════
+   響應式斷點（admin.html）
+   教師後台以平板/桌機為主，補強手機支援
+   ══════════════════════════════════════ */
+
+/* 平板（≤ 768px） */
+@media (max-width: 768px) {
+  .admin-topbar   { padding: 0 14px; height: 52px; }
+  .admin-main     { padding: 16px 14px; }
+  .admin-tabs     { flex-wrap: wrap; width: 100%; }
+  .admin-tab      { flex: 1; text-align: center; padding: 8px 12px; font-size: .82rem; }
+  .stats-row      { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .stat-num       { font-size: 1.6rem; }
+}
+
+/* 手機（≤ 480px） */
+@media (max-width: 480px) {
+  .admin-topbar          { padding: 0 10px; }
+  .topbar-brand-sub      { display: none; }
+  .admin-main            { padding: 12px 10px; }
+  .stats-row             { grid-template-columns: 1fr 1fr; }
+  .stat-num              { font-size: 1.5rem; }
+  .lesson-grid           { grid-template-columns: 1fr; }
+
+  /* 學生表格在手機改成卡片式 */
+  .student-table thead   { display: none; }
+  .student-table td      { display: block; padding: 6px 12px; font-size: .85rem; }
+  .student-table td:first-child { padding-top: 12px; font-weight: 900; }
+  .student-table td:last-child  { padding-bottom: 12px; }
+  .student-table tr      { display: block; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; background: white; }
+  .student-table tr:hover td { background: transparent; }
+
+  /* 課程列表 */
+  .lesson-row-chars { font-size: .88rem; letter-spacing: 2px; }
+  .lesson-row-name  { display: none; }
+
+  /* 班級卡片 */
+  .class-top-actions  { flex-wrap: wrap; gap: 4px; }
+  .class-assign-row   { flex-wrap: wrap; }
+  .class-assign-input { width: 100%; }
+  .btn-assign-save    { width: 100%; }
+}

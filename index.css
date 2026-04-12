@@ -172,3 +172,64 @@ body{font-family:'Nunito','Noto Sans TC',sans-serif;background:var(--bg);color:v
 .class-joined-code{font-size:.78rem;font-weight:600;color:var(--muted);letter-spacing:2px}
 .btn-leave-class{padding:6px 12px;border:1.5px solid #fecaca;border-radius:8px;background:#fff5f5;color:var(--red);font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .15s;flex-shrink:0}
 .btn-leave-class:active{background:#fee2e2}
+
+/* ══════════════════════════════════════
+   響應式斷點（index.html 專屬）
+   ══════════════════════════════════════ */
+
+/* 平板（≤ 768px） */
+@media (max-width: 768px) {
+  .hub-body    { padding: 20px 14px 60px; }
+  .role-wrap   { gap: 28px; }
+}
+
+/* 手機（≤ 480px） */
+@media (max-width: 480px) {
+  /* 角色選擇 */
+  .role-wrap     { gap: 20px; padding: 20px; }
+  .role-card     { padding: 20px 10px 16px; border-radius: 18px; }
+  .role-icon     { font-size: 2.4rem; }
+  .role-name     { font-size: .95rem; }
+  .role-title    { font-size: 1.5rem; }
+  .role-subtitle { font-size: .82rem; }
+
+  /* 登入頁 */
+  .slogin-wrap, .tlogin-wrap { padding: 14px; }
+  .login-card, .tlogin-card  { padding: 20px 16px; border-radius: 18px; }
+  .login-title               { font-size: 1.4rem; margin-bottom: 18px; }
+  .pin-pad                   { gap: 8px; margin-bottom: 14px; }
+  .pin-btn                   { padding: 11px; font-size: 1.1rem; }
+
+  /* Hub 主頁 */
+  .hub-body           { padding: 14px 12px 60px; }
+  .hub-profile-card   { padding: 12px 14px; border-radius: 16px; }
+  .hub-profile-avatar { font-size: 2.2rem; }
+  .hub-welcome-name   { font-size: 1.05rem; }
+  .hub-welcome-sub    { font-size: .72rem; }
+  .subjects-grid      { gap: 10px; }
+  .subject-card       { padding: 16px 10px 14px; border-radius: 16px; }
+  .subject-icon       { font-size: 1.9rem; }
+  .subject-name       { font-size: .9rem; }
+  .subject-desc       { font-size: .7rem; }
+
+  /* 個人設定 - 頭像格 6→4 欄 */
+  .profile-body .avatar-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .avatar-btn                { font-size: 1.4rem; padding: 6px; }
+
+  /* 主題色格 3→2 欄 */
+  .theme-grid { grid-template-columns: 1fr 1fr; }
+
+  /* 個人資料 header */
+  .profile-header      { padding: 20px 16px 18px; }
+  .profile-avatar-big  { font-size: 2.4rem; }
+  .profile-header-name { font-size: 1.1rem; }
+}
+
+/* 極窄手機（≤ 360px） */
+@media (max-width: 360px) {
+  .role-cards    { gap: 10px; }
+  .role-title    { font-size: 1.3rem; }
+  .pin-btn       { padding: 9px; font-size: 1rem; }
+  .subject-icon  { font-size: 1.7rem; }
+  .subject-name  { font-size: .85rem; }
+}

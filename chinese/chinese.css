@@ -738,3 +738,65 @@
 }
 .btn-exam-pulse   { animation: examBtnPulse 0.7s ease 3, examBtnShine 0.7s ease 3; }
 .btn-exam-breathe { animation: examBtnBreath 1.8s ease-in-out infinite, examBtnShine 3.6s ease-in-out infinite; }
+
+/* ══════════════════════════════════════
+   響應式斷點（chinese.html 專屬，直立手機）
+   ══════════════════════════════════════ */
+
+/* 手機（≤ 480px，直立） */
+@media (max-width: 480px) and (orientation: portrait) {
+  /* 頂端列：收緊間距防止溢出 */
+  #page-topbar   { padding: 0 6px; gap: 4px; }
+  .btn-back-hub,
+  .btn-back      { padding: 5px 8px; font-size: .74rem; }
+  #topbar-name   { max-width: 46px; }
+  .tb-crumb      { padding: 3px 7px; font-size: .72rem; max-width: 72px; }
+
+  /* 首頁兩大模式卡 */
+  .mode-choice       { padding: 30px 16px; gap: 14px; }
+  .mode-choice-icon  { font-size: 3.5rem; }
+  .mode-choice-title { font-size: 1.5rem; }
+  .mode-choice-sub   { font-size: .85rem; }
+
+  /* 版本選擇卡 */
+  .curr-ver-card  { padding: 22px 12px; }
+  .curr-ver-icon  { font-size: 2.2rem; }
+  .curr-ver-name  { font-size: 1.05rem; }
+
+  /* 冊次卡片 */
+  .curr-book-cards { gap: 10px; }
+  .curr-book-card  { padding: 16px 10px; min-height: 88px; border-radius: 16px; }
+  .curr-book-icon  { font-size: 1.8rem; }
+  .curr-book-label { font-size: 1.15rem; }
+  .curr-book-meta  { font-size: .74rem; }
+
+  /* 課次卡片 */
+  .curr-lesson-card  { padding: 11px 12px; }
+  .curr-lesson-name  { font-size: .88rem; }
+  .curr-lesson-chars { font-size: .8rem; }
+
+  /* 模式選擇頁（單字大卡） */
+  .mode-select-char { width: 120px; height: 120px; font-size: 4.5rem; border-radius: 18px; }
+  .mode-select-hint { font-size: .88rem; }
+
+  /* 生字卡字體 */
+  .char-card-glyph { font-size: clamp(2.4rem, 9vw, 3.6rem); }
+
+  /* 測驗語音按鈕 */
+  .btn-exam-voice        { padding: 14px 24px; }
+  .exam-voice-label      { font-size: 1rem; }
+
+  /* 步驟麵包屑 */
+  .curr-crumb     { padding: 4px 10px; font-size: .74rem; }
+  .curr-stepbar   { padding: 10px 14px 8px; gap: 4px; }
+}
+
+/* 極窄手機（≤ 360px，直立） */
+@media (max-width: 360px) and (orientation: portrait) {
+  .mode-choice-icon  { font-size: 3rem; }
+  .mode-choice-title { font-size: 1.3rem; }
+  .mode-select-char  { width: 100px; height: 100px; font-size: 3.8rem; }
+  .curr-book-label   { font-size: 1rem; }
+  .btn-back-hub,
+  .btn-back          { padding: 4px 7px; font-size: .7rem; }
+}
