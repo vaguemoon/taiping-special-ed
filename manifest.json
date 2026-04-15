@@ -2,21 +2,21 @@
   "name": "上學趣",
   "short_name": "上學趣",
   "description": "國小生字學習 App — 筆順練習與手寫測驗",
-  "start_url": "/taiping-special-ed/",
-  "scope": "/taiping-special-ed/",
+  "start_url": "/QuEDU/",
+  "scope": "/QuEDU/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#eef5fc",
   "theme_color": "#4a90d9",
   "icons": [
     {
-      "src": "/taiping-special-ed/icon-192.png",
+      "src": "/QuEDU/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/taiping-special-ed/icon-512.png",
+      "src": "/QuEDU/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

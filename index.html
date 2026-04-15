@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#4a90d9">
 <title>上學趣</title>
-<link rel="manifest" href="/taiping-special-ed/manifest.json">
+<link rel="manifest" href="/QuEDU/manifest.json">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -313,7 +313,7 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/taiping-special-ed/sw.js')
+    navigator.serviceWorker.register('/QuEDU/sw.js')
       .catch(function(err) { console.warn('SW 註冊失敗:', err); });
   });
 }

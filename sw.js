@@ -8,8 +8,8 @@ self.addEventListener('install', function(e) {
     caches.open(CACHE_NAME)
       .then(function(cache) {
         return cache.addAll([
-          '/taiping-special-ed/',
-          '/taiping-special-ed/index.html'
+          '/QuEDU/',
+          '/QuEDU/index.html'
         ]);
       })
       .then(function() { return self.skipWaiting(); })

@@ -223,7 +223,7 @@ function createClass() {
 }
 
 /* ── 分享 Modal ── */
-var APP_URL = 'https://vaguemoon.github.io/taiping-special-ed/';
+var APP_URL = 'https://vaguemoon.github.io/QuEDU/';
 var _shareCode = '';
 var _shareQR   = null;
 
