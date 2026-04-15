@@ -429,3 +429,50 @@ body {
 .btn-mode-select-sub         { font-size: .78rem; font-weight: 700; opacity: .75; }
 .btn-mode-practice { background: linear-gradient(135deg,#e8f4fd,#c8dff5); color: var(--blue-dk); border: 3px solid var(--blue); }
 .btn-mode-exam     { background: linear-gradient(135deg,#fff0e0,#ffd5b0); color: #b05000;       border: 3px solid var(--orange); }
+
+/* ══════════════════════════════════════
+   響應式斷點（共用元件）
+   ══════════════════════════════════════ */
+
+/* 平板（≤ 768px） */
+@media (max-width: 768px) {
+  :root {
+    --radius:    18px;
+    --radius-sm: 11px;
+  }
+  .overlay-box { max-width: 280px; padding: 24px 20px; }
+}
+
+/* 手機（≤ 480px） */
+@media (max-width: 480px) {
+  :root {
+    --radius:    14px;
+    --radius-sm: 9px;
+  }
+
+  /* 學習卡字體流體縮放 */
+  .item-card-glyph { font-size: clamp(2.2rem, 9vw, 3.6rem); }
+
+  /* 頭像格：5 欄 → 4 欄 */
+  .avatar-grid { grid-template-columns: repeat(4, 1fr); }
+
+  /* 底部按鈕列 */
+  .bottom-bar { padding: 8px 12px 12px; }
+  .btn-big    { padding: 13px; font-size: 1rem; }
+
+  /* 模式選擇大卡 */
+  .btn-mode-select       { padding: 16px 12px; min-width: 110px; }
+  .btn-mode-select-icon  { font-size: 2.2rem; }
+  .btn-mode-select-title { font-size: 1rem; }
+
+  /* 成績格字體 */
+  .score-item-glyph { font-size: 1.6rem; }
+  .exam-score-grid  { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+}
+
+/* 極窄手機（≤ 360px） */
+@media (max-width: 360px) {
+  .item-card-glyph  { font-size: 2rem; }
+  .btn-big          { padding: 11px; font-size: .92rem; }
+  .btn-mode-select  { padding: 14px 10px; min-width: 100px; }
+}

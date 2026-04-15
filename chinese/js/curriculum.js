@@ -288,3 +288,88 @@ function startAssignedLesson() {
   renderMenu();
   showPage('menu');
 }
+
+// ── 自行輸入模式 ──
+
+/**
+ * 從字串中提取不重複的 CJK 漢字（最多 20 字）
+ */
+function _extractCJK(str) {
+  var unique = [];
+  for (var i = 0; i < str.length; i++) {
+    var code = str.charCodeAt(i);
+    if ((code >= 0x4E00 && code <= 0x9FFF) || (code >= 0x3400 && code <= 0x4DBF)) {
+      var c = str[i];
+      if (unique.indexOf(c) === -1) unique.push(c);
+    }
+    if (unique.length >= 20) break;
+  }
+  return unique;
+}
+
+/**
+ * 開啟自行輸入頁，並清空上次的輸入
+ */
+function openCustomInputPage() {
+  var input = document.getElementById('custom-chars-input');
+  if (input) input.value = '';
+  var preview = document.getElementById('custom-chars-preview');
+  var emptyEl = document.getElementById('custom-chars-empty');
+  if (preview) {
+    preview.innerHTML = '';
+    if (emptyEl) preview.appendChild(emptyEl);
+    emptyEl && (emptyEl.style.display = '');
+  }
+  var count = document.getElementById('custom-input-count');
+  if (count) count.textContent = '0 / 20 字';
+  var btn = document.getElementById('btn-start-custom');
+  if (btn) btn.disabled = true;
+  showPage('custom-input');
+}
+
+/**
+ * 輸入框 oninput 回呼：從現有文字提取漢字更新預覽，完全不修改 input.value
+ * （修改 value 會打斷 IME 組字，導致無法輸入）
+ */
+function onCustomInputChange() {
+  var input = document.getElementById('custom-chars-input');
+  if (!input) return;
+
+  var unique = _extractCJK(input.value);
+
+  // 更新預覽
+  var preview = document.getElementById('custom-chars-preview');
+  var emptyEl = document.getElementById('custom-chars-empty');
+  if (preview) {
+    if (unique.length) {
+      preview.innerHTML = unique.map(function(c) {
+        return '<span class="assigned-char-chip">' + c + '</span>';
+      }).join('');
+    } else {
+      preview.innerHTML = '';
+      if (emptyEl) { preview.appendChild(emptyEl); emptyEl.style.display = ''; }
+    }
+  }
+
+  var count = document.getElementById('custom-input-count');
+  if (count) count.textContent = unique.length + ' / 20 字';
+
+  var btn = document.getElementById('btn-start-custom');
+  if (btn) btn.disabled = (unique.length === 0);
+}
+
+/**
+ * 以自行輸入的漢字開始練習
+ */
+function startCustomLesson() {
+  var input = document.getElementById('custom-chars-input');
+  if (!input) return;
+  var unique = _extractCJK(input.value);
+  if (!unique.length) return;
+  sfxTap();
+  currentLessonLabel = '自行輸入';
+  chars = unique;
+  chars.forEach(function(c) { if (!charStatus[c]) charStatus[c] = 'new'; });
+  renderMenu();
+  showPage('menu');
+}

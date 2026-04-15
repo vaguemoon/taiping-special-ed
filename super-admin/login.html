@@ -7,7 +7,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="../admin/admin.css">
 <style>
 body {
   display:flex; align-items:center; justify-content:center;
@@ -72,7 +72,7 @@ body {
   </div>
 </div>
 
-<script src="shared.js"></script>
+<script src="../shared/shared.js"></script>
 <script>
 'use strict';
 
@@ -118,7 +118,7 @@ function checkAdminAndRedirect(user) {
     db.collection('superAdmins').doc(emailKey).get()
       .then(function(doc) {
         if (doc.exists && doc.data().enabled !== false) {
-          window.location.href = 'super-admin.html';
+          window.location.href = 'index.html';
         } else {
           auth.signOut();
           showError('此帳號（' + user.email + '）沒有管理者權限。\n請聯繫系統負責人新增授權。');

@@ -107,6 +107,14 @@
   max-width: 480px; margin: 0 auto; padding: 20px 16px; display: flex;
   flex-direction: column; gap: 8px;
 }
+/* 設定頁：頭像格（shared.css 的 .avatar-grid 是 5 欄，這裡改 4 欄更適合） */
+#settings-avatar-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 4px;
+}
+/* 設定頁：主題色格（3 欄，index.css 未載入故在此補上） */
+#page-settings #theme-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 4px;
+}
 .settings-section-title {
   font-size: .82rem; font-weight: 900; color: var(--muted);
   text-transform: uppercase; letter-spacing: .05em;
@@ -146,6 +154,8 @@
 .ach-header-info { flex: 1; min-width: 0; }
 .ach-name { font-size: 1rem; font-weight: 900; color: var(--blue-dk); margin-bottom: 2px; }
 .ach-stars-count { font-size: 1.1rem; font-weight: 900; color: #e67e22; }
+.ach-stars-breakdown { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 4px 0 2px; }
+.ach-stars-breakdown span { font-size: .75rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
 .ach-next-hint { font-size: .78rem; font-weight: 700; color: var(--muted); margin: 4px 0 6px; }
 .ach-prog-bar {
   height: 8px; background: #dde; border-radius: 4px; overflow: hidden;
@@ -235,14 +245,50 @@
   cursor: pointer; transition: all .18s; border: none;
   font-family: 'Nunito', 'Noto Sans TC', sans-serif;
 }
-.mode-choice:first-child { background: #e8f4fd; border-right: 1px solid var(--border); }
-.mode-choice:last-child  { background: #fff4e6; }
-@media(max-width:600px) { .mode-choice:first-child { border-right: none; border-bottom: 1px solid var(--border); } }
+.mode-choice-left     { background: #e8f4fd; border-right: 1px solid var(--border); }
+.mode-choice-right    { flex: 1; display: flex; flex-direction: column; }
+.mode-choice-assigned { background: #fff4e6; border-bottom: 1px solid var(--border); }
+.mode-choice-custom   { background: #f0fff8; }
+/* 右側兩個半格：縮小圖示與文字以配合較小空間 */
+.mode-choice-right .mode-choice { gap: 12px; padding: 20px 24px; }
+.mode-choice-right .mode-choice-icon  { font-size: 3.2rem; }
+.mode-choice-right .mode-choice-title { font-size: 1.6rem; }
+.mode-choice-right .mode-choice-sub   { font-size: .88rem; }
+@media(max-width:600px) {
+  .mode-choice-left  { border-right: none; border-bottom: 1px solid var(--border); }
+  .mode-choice-right { flex-direction: row; }
+  .mode-choice-assigned { border-bottom: none; border-right: 1px solid var(--border); }
+  .mode-choice-right .mode-choice { gap: 8px; padding: 16px 10px; }
+  .mode-choice-right .mode-choice-icon  { font-size: 2.4rem; }
+  .mode-choice-right .mode-choice-title { font-size: 1.2rem; }
+  .mode-choice-right .mode-choice-sub   { font-size: .78rem; }
+}
 .mode-choice:hover  { filter: brightness(.95); transform: scale(1.01); }
 .mode-choice:active { filter: brightness(.9);  transform: scale(.99); }
 .mode-choice-icon  { font-size: 5rem; }
 .mode-choice-title { font-size: 2rem; font-weight: 900; color: var(--text); }
 .mode-choice-sub   { font-size: 1rem; font-weight: 600; color: var(--muted); }
+
+/* ── 自行輸入頁 ── */
+.custom-input-desc {
+  font-size: .88rem; font-weight: 700; color: var(--muted);
+  margin-bottom: 14px; line-height: 1.6;
+}
+.custom-input-wrap { display: flex; flex-direction: column; gap: 10px; margin-bottom: 4px; }
+.custom-chars-textarea {
+  width: 100%; box-sizing: border-box;
+  border: 2.5px solid #d4e8f8; border-radius: 14px;
+  padding: 14px 16px; font-size: 1.6rem;
+  font-family: 'LXGW WenKai TC', 'Noto Serif TC', serif;
+  outline: none; transition: border-color .2s; color: var(--text);
+  letter-spacing: 6px; resize: none; height: 80px; line-height: 1.5;
+}
+.custom-chars-textarea:focus { border-color: var(--blue); }
+.custom-input-count {
+  text-align: right; font-size: .8rem; font-weight: 800;
+  color: var(--muted); padding-right: 2px;
+}
+.custom-chars-preview { margin-bottom: 0; }
 
 /* ── 課程設定頁 ── */
 .setup-page  { max-width: 680px; margin: 0 auto; padding: 28px 20px 80px; }
@@ -738,3 +784,72 @@
 }
 .btn-exam-pulse   { animation: examBtnPulse 0.7s ease 3, examBtnShine 0.7s ease 3; }
 .btn-exam-breathe { animation: examBtnBreath 1.8s ease-in-out infinite, examBtnShine 3.6s ease-in-out infinite; }
+
+/* ══════════════════════════════════════
+   響應式斷點（chinese.html 專屬，直立手機）
+   ══════════════════════════════════════ */
+
+/* 手機（≤ 480px，直立） */
+@media (max-width: 480px) and (orientation: portrait) {
+  /* 頂端列：收緊間距防止溢出 */
+  #page-topbar   { padding: 0 6px; gap: 4px; }
+  .btn-back-hub,
+  .btn-back      { padding: 5px 8px; font-size: .74rem; }
+  #topbar-name   { max-width: 46px; }
+  .tb-crumb      { padding: 3px 7px; font-size: .72rem; max-width: 72px; }
+
+  /* 首頁模式卡（左側大卡） */
+  .mode-choice-left  { padding: 30px 16px; gap: 14px; }
+  .mode-choice-left .mode-choice-icon  { font-size: 3.5rem; }
+  .mode-choice-left .mode-choice-title { font-size: 1.5rem; }
+  .mode-choice-left .mode-choice-sub   { font-size: .85rem; }
+  /* 右側兩個半格（已在 600px 斷點設定，此處再收緊） */
+  .mode-choice-right .mode-choice { gap: 6px; padding: 12px 8px; }
+  .mode-choice-right .mode-choice-icon  { font-size: 2rem; }
+  .mode-choice-right .mode-choice-title { font-size: 1.05rem; }
+  .mode-choice-right .mode-choice-sub   { font-size: .72rem; }
+
+  /* 版本選擇卡 */
+  .curr-ver-card  { padding: 22px 12px; }
+  .curr-ver-icon  { font-size: 2.2rem; }
+  .curr-ver-name  { font-size: 1.05rem; }
+
+  /* 冊次卡片 */
+  .curr-book-cards { gap: 10px; }
+  .curr-book-card  { padding: 16px 10px; min-height: 88px; border-radius: 16px; }
+  .curr-book-icon  { font-size: 1.8rem; }
+  .curr-book-label { font-size: 1.15rem; }
+  .curr-book-meta  { font-size: .74rem; }
+
+  /* 課次卡片 */
+  .curr-lesson-card  { padding: 11px 12px; }
+  .curr-lesson-name  { font-size: .88rem; }
+  .curr-lesson-chars { font-size: .8rem; }
+
+  /* 模式選擇頁（單字大卡） */
+  .mode-select-char { width: 120px; height: 120px; font-size: 4.5rem; border-radius: 18px; }
+  .mode-select-hint { font-size: .88rem; }
+
+  /* 生字卡字體 */
+  .char-card-glyph { font-size: clamp(2.4rem, 9vw, 3.6rem); }
+
+  /* 測驗語音按鈕 */
+  .btn-exam-voice        { padding: 14px 24px; }
+  .exam-voice-label      { font-size: 1rem; }
+
+  /* 步驟麵包屑 */
+  .curr-crumb     { padding: 4px 10px; font-size: .74rem; }
+  .curr-stepbar   { padding: 10px 14px 8px; gap: 4px; }
+}
+
+/* 極窄手機（≤ 360px，直立） */
+@media (max-width: 360px) and (orientation: portrait) {
+  .mode-choice-left .mode-choice-icon  { font-size: 3rem; }
+  .mode-choice-left .mode-choice-title { font-size: 1.3rem; }
+  .mode-choice-right .mode-choice-icon  { font-size: 1.6rem; }
+  .mode-choice-right .mode-choice-title { font-size: .95rem; }
+  .mode-select-char  { width: 100px; height: 100px; font-size: 3.8rem; }
+  .curr-book-label   { font-size: 1rem; }
+  .btn-back-hub,
+  .btn-back          { padding: 4px 7px; font-size: .7rem; }
+}

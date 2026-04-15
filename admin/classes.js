@@ -88,15 +88,32 @@ function renderClasses() {
         '</div>' +
       '</div>' +
       '<div class="class-assign-section">' +
-        '<div class="class-assign-label">📝 今日指派生字</div>' +
-        '<div class="class-assign-row">' +
-          '<input type="text" class="class-assign-input" id="assign-' + cls.id + '"' +
-            ' placeholder="輸入今日指派生字，例如：山水火土木" maxlength="30"' +
-            ' value="' + escHtml((cls.assignedChars || []).join('')) + '">' +
-          '<button class="btn-assign-save" onclick="saveAssignedChars(\'' + cls.id + '\')">儲存</button>' +
+        /* ── APP 頁籤列 ── */
+        '<div class="app-tabs-mini">' +
+          '<button class="app-tab-mini active" id="cls-tabbtn-chinese-' + cls.id + '"' +
+            ' onclick="switchClassTab(\'' + cls.id + '\',\'chinese\',this)">📖 識字趣</button>' +
+          '<button class="app-tab-mini" id="cls-tabbtn-multiply-' + cls.id + '"' +
+            ' onclick="switchClassTab(\'' + cls.id + '\',\'multiply\',this)">✖️ 乘法趣</button>' +
         '</div>' +
-        '<div class="class-assign-preview" id="assign-count-' + cls.id + '">' +
-          ((cls.assignedChars && cls.assignedChars.length) ? '目前指派 ' + cls.assignedChars.length + ' 字：' + cls.assignedChars.join(' ') : '尚未指派') +
+        /* ── 識字趣指派面板 ── */
+        '<div id="cls-tab-chinese-' + cls.id + '">' +
+          '<div class="class-assign-label">📝 今日指派生字</div>' +
+          '<div class="class-assign-row">' +
+            '<input type="text" class="class-assign-input" id="assign-' + cls.id + '"' +
+              ' placeholder="輸入今日指派生字，例如：山水火土木" maxlength="30"' +
+              ' value="' + escHtml((cls.assignedChars || []).join('')) + '">' +
+            '<button class="btn-assign-save" onclick="saveAssignedChars(\'' + cls.id + '\')">儲存</button>' +
+          '</div>' +
+          '<div class="class-assign-preview" id="assign-count-' + cls.id + '">' +
+            ((cls.assignedChars && cls.assignedChars.length) ? '目前指派 ' + cls.assignedChars.length + ' 字：' + cls.assignedChars.join(' ') : '尚未指派') +
+          '</div>' +
+        '</div>' +
+        /* ── 乘法趣面板 ── */
+        '<div id="cls-tab-multiply-' + cls.id + '" style="display:none">' +
+          '<div class="class-assign-label">✖️ 乘法趣指派</div>' +
+          '<div style="font-size:.82rem;color:var(--muted);font-weight:600;padding:6px 0">' +
+            '乘法趣讓學生自由練習 0–10 所有乘法表，無需手動指派。' +
+          '</div>' +
         '</div>' +
       '</div>' +
       '<div class="class-footer" id="cs-' + cls.id + '">' +
@@ -223,7 +240,7 @@ function createClass() {
 }
 
 /* ── 分享 Modal ── */
-var APP_URL = 'https://vaguemoon.github.io/taiping-special-ed/';
+var APP_URL = 'https://vaguemoon.github.io/QuEDU/';
 var _shareCode = '';
 var _shareQR   = null;
 
@@ -285,17 +302,27 @@ function _fallback(text, msg) {
 function nativeShare() {
   if (navigator.share) {
     navigator.share({
-      title: '練字趣 — 國字學習 App',
-      text:  '邀請碼：' + _shareCode + '　加入後就能開始練習！',
+      title: '上學趣 — 國字學習 App',
+      text:  '上學趣 App 邀請您加入班級！\n班級邀請碼：' + _shareCode + '\n加入後就能開始練習！',
       url:   APP_URL
     }).catch(function() {});
   } else {
     /* 桌面版瀏覽器：直接複製完整文字 */
     _copyText(
-      '練字趣 App：' + APP_URL + '\n班級邀請碼：' + _shareCode,
+      '上學趣 App 邀請您加入班級！\n班級邀請碼：' + _shareCode + '\n加入後就能開始練習！\n' + APP_URL,
       '分享文字已複製，貼到 LINE 或 Email 傳給家長！'
     );
   }
+}
+
+/* ── 班級卡片：切換 APP 頁籤 ── */
+function switchClassTab(classId, appId, btn) {
+  ['chinese', 'multiply'].forEach(function(id) {
+    var tabBtn  = document.getElementById('cls-tabbtn-' + id + '-' + classId);
+    var tabPane = document.getElementById('cls-tab-'    + id + '-' + classId);
+    if (tabBtn)  tabBtn.classList.toggle('active', id === appId);
+    if (tabPane) tabPane.style.display = id === appId ? '' : 'none';
+  });
 }
 
 /* ── 切換到班級學生名單 ── */

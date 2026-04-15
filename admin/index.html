@@ -68,8 +68,13 @@
           </div>
           <div class="stat-card stat-yellow">
             <div class="stat-num" id="roster-stat-mastered">—</div>
-            <div class="stat-lbl">平均通過字數</div>
+            <div class="stat-lbl" id="roster-stat-mastered-lbl">平均通過字數</div>
           </div>
+        </div>
+        <!-- APP 頁籤列 -->
+        <div class="app-tabs-mini" id="roster-app-tabs" style="margin-bottom:16px">
+          <button class="app-tab-mini active" onclick="switchRosterTab('chinese', this)">📖 識字趣</button>
+          <button class="app-tab-mini" onclick="switchRosterTab('multiply', this)">✖️ 乘法趣</button>
         </div>
         <div class="card">
           <div class="card-title">
@@ -111,19 +116,35 @@
         </div>
       </div>
 
-      <!-- 課程完成狀況 -->
-      <div class="card" style="margin-bottom:14px">
-        <div class="card-title">📚 課程完成狀況</div>
-        <div id="detail-course-progress">
-          <div class="loading-wrap"><div class="spinner"></div></div>
+      <!-- APP 頁籤列 -->
+      <div class="app-tabs-mini" id="student-app-tabs" style="margin-bottom:16px">
+        <button class="app-tab-mini active" onclick="switchStudentTab('chinese', this)">📖 識字趣</button>
+        <button class="app-tab-mini" onclick="switchStudentTab('multiply', this)">✖️ 乘法趣</button>
+      </div>
+
+      <!-- 識字趣面板 -->
+      <div id="student-panel-chinese">
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-title">📚 課程完成狀況</div>
+          <div id="detail-course-progress">
+            <div class="loading-wrap"><div class="spinner"></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">🕐 最近測驗紀錄</div>
+          <div id="detail-activities">
+            <div class="loading-wrap"><div class="spinner"></div></div>
+          </div>
         </div>
       </div>
 
-      <!-- 最近測驗紀錄 -->
-      <div class="card">
-        <div class="card-title">🕐 最近測驗紀錄</div>
-        <div id="detail-activities">
-          <div class="loading-wrap"><div class="spinner"></div></div>
+      <!-- 乘法趣面板 -->
+      <div id="student-panel-multiply" style="display:none">
+        <div class="card">
+          <div class="card-title">✖️ 乘法趣進度</div>
+          <div id="detail-multiply-progress">
+            <div class="loading-wrap"><div class="spinner"></div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -195,10 +216,10 @@
 <div id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="shared.js"></script>
-<script src="admin/init.js"></script>
-<script src="admin/classes.js"></script>
-<script src="admin/overview.js"></script>
-<script src="admin/students.js"></script>
+<script src="../shared/shared.js"></script>
+<script src="init.js"></script>
+<script src="classes.js"></script>
+<script src="overview.js"></script>
+<script src="students.js"></script>
 </body>
 </html>

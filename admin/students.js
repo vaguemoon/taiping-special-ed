@@ -6,17 +6,37 @@
 
 var currentDetailId = null;
 
+/* ── 切換學生詳細頁 APP 頁籤 ── */
+function switchStudentTab(appId, btn) {
+  ['chinese', 'multiply'].forEach(function(id) {
+    var panel = document.getElementById('student-panel-' + id);
+    if (panel) panel.style.display = id === appId ? '' : 'none';
+  });
+  var tabsEl = document.getElementById('student-app-tabs');
+  if (tabsEl) {
+    tabsEl.querySelectorAll('.app-tab-mini').forEach(function(b) { b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+  }
+}
+
 function showStudentDetail(studentId) {
   if (!db) return;
   currentDetailId = studentId;
   document.getElementById('panel-classes').style.display = 'none';
   document.getElementById('panel-student').style.display  = '';
+
+  /* 重置頁籤到識字趣 */
+  switchStudentTab('chinese',
+    document.querySelector('#student-app-tabs .app-tab-mini'));
+
   document.getElementById('detail-course-progress').innerHTML =
     '<div class="loading-wrap"><div class="spinner"></div></div>';
   document.getElementById('detail-activities').innerHTML =
     '<div class="loading-wrap"><div class="spinner"></div></div>';
+  document.getElementById('detail-multiply-progress').innerHTML =
+    '<div class="loading-wrap"><div class="spinner"></div></div>';
 
-  // ── 學生基本資料 + 課程完成狀況（同一組查詢）──
+  // ── 識字趣：學生基本資料 + 漢字進度 + 課程結構 ──
   Promise.all([
     db.collection('students').doc(studentId).get(),
     db.collection('students').doc(studentId).collection('progress').doc('hanzi').get(),
@@ -31,7 +51,7 @@ function showStudentDetail(studentId) {
     var cs = pDoc.exists ? (pDoc.data().charStatus || {}) : {};
     var masteredCount = Object.values(cs).filter(function(v){ return v === 'mastered'; }).length;
     document.getElementById('detail-sub').textContent =
-      '已通過測驗 ' + masteredCount + ' / ' + Object.keys(cs).length + ' 個字';
+      '識字趣 ' + masteredCount + ' 字・使用多個 APP';
     renderCourseProgress(currSnap, cs);
   }).catch(function(e){
     document.getElementById('detail-course-progress').innerHTML =
@@ -39,12 +59,11 @@ function showStudentDetail(studentId) {
     console.warn('course progress error:', e);
   });
 
-  // ── 最近測驗紀錄（獨立查詢，避免 orderBy 索引問題影響上方區塊）──
+  // ── 識字趣：最近測驗紀錄 ──
   db.collection('students').doc(studentId).collection('activities').get()
     .then(function(snap) {
       var acts = [];
       snap.forEach(function(doc){ acts.push(doc.data()); });
-      // 用 time 字串排序後取最近 3 筆
       acts.sort(function(a, b){ return (b.time || '').localeCompare(a.time || ''); });
       renderActivities(acts.slice(0, 3));
     }).catch(function(e){
@@ -52,6 +71,15 @@ function showStudentDetail(studentId) {
       document.getElementById('detail-activities').innerHTML =
         '<div style="color:var(--red);font-size:.82rem;font-weight:700;padding:8px;background:#fff5f5;border-radius:8px">'
         + '⚠️ 讀取失敗：' + (e.message || e.code || String(e)) + '</div>';
+    });
+
+  // ── 乘法趣：進度 ──
+  db.collection('students').doc(studentId).collection('progress').doc('multiply').get()
+    .then(function(doc) {
+      renderMultiplyProgress(doc.exists ? doc.data() : null);
+    }).catch(function(e) {
+      console.warn('multiply progress error:', e);
+      renderMultiplyProgress(null);
     });
 }
 
@@ -225,6 +253,63 @@ function renderActivities(acts) {
 }
 
 function pad2(n){ return n < 10 ? '0' + n : '' + n; }
+
+/* ── 乘法趣進度渲染 ── */
+function renderMultiplyProgress(data) {
+  var wrap = document.getElementById('detail-multiply-progress');
+  if (!wrap) return;
+
+  if (!data) {
+    wrap.innerHTML =
+      '<div style="color:var(--muted);font-size:.88rem;font-weight:600;padding:8px 0">' +
+      '學生尚未使用乘法趣。</div>';
+    return;
+  }
+
+  var fill     = data.masteredFill    || [];
+  var rev      = data.masteredReverse || [];
+  var correct  = data.totalCorrect    || 0;
+  var attempts = data.totalAttempts   || 0;
+  var acc      = attempts ? Math.round(correct / attempts * 100) : 0;
+  var lastStr  = data.lastStudied
+    ? new Date(data.lastStudied).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '—';
+
+  /* 統計摘要 */
+  var html =
+    '<div class="multiply-stat-row">' +
+      _mcChip(correct,  '答對題數') +
+      _mcChip(acc + '%','答題正確率') +
+      '<div class="multiply-stat-chip"><div class="mc-num" style="font-size:.95rem;padding-top:2px">' + lastStr + '</div><div class="mc-lbl">最後練習</div></div>' +
+    '</div>';
+
+  /* 填空精熟表格 */
+  html += '<div style="font-size:.82rem;font-weight:800;color:var(--muted);margin-bottom:6px;letter-spacing:.04em">✏️ 填空測驗精熟（' + fill.length + ' / 11）</div>';
+  html += '<div class="multiply-table-grid" style="margin-bottom:14px">';
+  for (var i = 0; i <= 10; i++) {
+    var done = fill.indexOf(String(i)) !== -1;
+    html += '<div class="multiply-table-cell' + (done ? ' done' : '') + '">' + (done ? '✓' : i) + '</div>';
+  }
+  html += '</div>';
+
+  /* 拆解精熟表格 */
+  html += '<div style="font-size:.82rem;font-weight:800;color:var(--muted);margin-bottom:6px;letter-spacing:.04em">🔍 積的拆解精熟（' + rev.length + ' / 11）</div>';
+  html += '<div class="multiply-table-grid">';
+  for (var j = 0; j <= 10; j++) {
+    var revDone = rev.indexOf(String(j)) !== -1;
+    html += '<div class="multiply-table-cell' + (revDone ? ' done' : '') + '">' + (revDone ? '✓' : j) + '</div>';
+  }
+  html += '</div>';
+
+  wrap.innerHTML = html;
+}
+
+function _mcChip(val, lbl) {
+  return '<div class="multiply-stat-chip">' +
+    '<div class="mc-num">' + val + '</div>' +
+    '<div class="mc-lbl">' + lbl + '</div>' +
+    '</div>';
+}
 
 function deleteStudent() {
   if (!currentDetailId) return;

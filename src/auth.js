@@ -156,7 +156,7 @@ function doTeacherLogin() {
   if (!auth) { showToast('系統初始化中，請稍後再試'); return; }
   btnEl.disabled = true; btnEl.textContent = '登入中…';
   auth.signInWithEmailAndPassword(email, password)
-    .then(function() { window.location.href = 'admin.html'; })
+    .then(function() { window.location.href = 'admin/'; })
     .catch(function() {
       errEl.textContent = '帳號或密碼不正確'; errEl.classList.add('show');
       btnEl.disabled = false; btnEl.textContent = '登入後台';
@@ -182,7 +182,7 @@ function doTeacherRegister() {
         });
       }
     })
-    .then(function() { window.location.href = 'admin.html'; })
+    .then(function() { window.location.href = 'admin/'; })
     .catch(function(e) {
       var msg = {
         'auth/email-already-in-use': '此 Email 已被註冊，請直接登入',
@@ -199,7 +199,7 @@ function doGoogleLogin() {
   var errEl    = document.getElementById('teacher-login-error');
   errEl.classList.remove('show');
   auth.signInWithPopup(provider)
-    .then(function() { window.location.href = 'admin.html'; })
+    .then(function() { window.location.href = 'admin/'; })
     .catch(function(e) {
       var msg = {
         'auth/popup-closed-by-user':  '視窗已關閉，請再試一次',

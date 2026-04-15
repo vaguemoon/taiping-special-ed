@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#4a90d9">
 <title>上學趣</title>
-<link rel="manifest" href="/taiping-special-ed/manifest.json">
+<link rel="manifest" href="/QuEDU/manifest.json">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="shared/shared.css">
 <script>
 (function(){var M={blue:'#eef5fc,#4a90d9,#2d6fa8,#e8f4fd',green:'#edfbf4,#27ae60,#1e8449,#d5f5e3',
   purple:'#f3f0fc,#8e44ad,#6c3483,#e8daef',orange:'#fff8f0,#e67e22,#ca6f1e,#fdebd0',
@@ -17,7 +17,7 @@
   try{var v=(M[localStorage.getItem('theme')]||M.blue).split(','),r=document.documentElement.style;
   ['--bg','--blue','--blue-dk','--blue-lt'].forEach(function(k,i){r.setProperty(k,v[i]);});}catch(e){}})();
 </script>
-<link rel="stylesheet" href="index.css">
+<link rel="stylesheet" href="src/index.css">
 </head>
 <body>
 <div class="app">
@@ -27,8 +27,7 @@
     <div class="panel active" id="panel-role">
       <div class="role-wrap">
         <div class="role-header">
-          <div class="role-school" id="school-name-tap">上學趣</div>
-          <div class="role-title">學習<span>系統</span></div>
+          <img src="assets/登入icon.png" class="role-logo-img" alt="上學趣">
           <div class="role-subtitle">請選擇你的身份</div>
         </div>
         <!-- 公告橫幅（由 checkSiteSettings 控制顯示） -->
@@ -260,68 +259,85 @@
   </div>
 </div>
 
-<!-- PWA 安裝橫幅 -->
-<div id="pwa-install-banner" class="pwa-banner" style="display:none">
-  <div class="pwa-banner-left">
-    <div class="pwa-banner-icon">📱</div>
-    <div>
-      <div class="pwa-banner-title">安裝練字趣 App</div>
-      <div class="pwa-banner-sub">加入主畫面，隨時快速開啟</div>
+<!-- iOS 安裝引導覆蓋層 -->
+<div id="ios-install-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:24px">
+  <div style="background:white;border-radius:24px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+    <div style="text-align:center;margin-bottom:22px">
+      <div style="font-size:2.6rem;margin-bottom:8px">🏫</div>
+      <div style="font-size:1.1rem;font-weight:900;color:#1a1a2e">歡迎使用上學趣！</div>
+      <div style="font-size:.82rem;font-weight:600;color:#999;margin-top:4px">請先將 App 加到主畫面，以後直接點圖示開啟</div>
     </div>
-  </div>
-  <div class="pwa-banner-btns">
-    <button class="btn-pwa-install" onclick="doInstallPwa()">安裝</button>
-    <button class="btn-pwa-dismiss" onclick="dismissPwaBanner()">✕</button>
+
+    <!-- Step 1 -->
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+      <div style="min-width:28px;height:28px;border-radius:50%;background:#4a90d9;color:white;font-weight:900;font-size:.85rem;display:flex;align-items:center;justify-content:center">1</div>
+      <div>
+        <div style="font-weight:800;font-size:.9rem;color:#222">點右上角的 🧭 羅盤圖示</div>
+        <div style="font-size:.78rem;color:#999;margin-top:3px;font-weight:600;line-height:1.5">選擇「在 Safari 中開啟」</div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px">
+      <div style="min-width:28px;height:28px;border-radius:50%;background:#4a90d9;color:white;font-weight:900;font-size:.85rem;display:flex;align-items:center;justify-content:center">2</div>
+      <div>
+        <div style="font-weight:800;font-size:.9rem;color:#222">點下方工具列的 <span style="font-size:1.05rem">⬜↑</span> 分享按鈕</div>
+        <div style="font-size:.78rem;color:#999;margin-top:3px;font-weight:600;line-height:1.5">在選單中找到「加入主畫面」並點選</div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:26px">
+      <div style="min-width:28px;height:28px;border-radius:50%;background:#4a90d9;color:white;font-weight:900;font-size:.85rem;display:flex;align-items:center;justify-content:center">3</div>
+      <div>
+        <div style="font-weight:800;font-size:.9rem;color:#222">點右上角「新增」</div>
+        <div style="font-size:.78rem;color:#999;margin-top:3px;font-weight:600;line-height:1.5">完成後關閉 Safari<br>從主畫面的上學趣圖示進入 App</div>
+      </div>
+    </div>
+
+    <button onclick="dismissInstallGuide()"
+      style="width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#4a90d9,#2d6fa8);color:white;font-size:.95rem;font-weight:900;cursor:pointer;font-family:inherit;margin-bottom:9px">
+      ✅ 已加入主畫面，進入 App
+    </button>
+    <button onclick="skipInstallGuide()"
+      style="width:100%;padding:10px;border:1.5px solid #ddd;border-radius:12px;background:white;color:#aaa;font-size:.83rem;font-weight:700;cursor:pointer;font-family:inherit">
+      暫時略過
+    </button>
   </div>
 </div>
 
 <div id="toast"></div>
-<script src="shared.js"></script>
-<script src="auth.js"></script>
-<script src="hub.js"></script>
+<script src="shared/shared.js"></script>
+<script src="src/auth.js"></script>
+<script src="src/hub.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/taiping-special-ed/sw.js')
+    navigator.serviceWorker.register('/QuEDU/sw.js')
       .catch(function(err) { console.warn('SW 註冊失敗:', err); });
   });
 }
 
-/* ── PWA 安裝提示 ── */
-var _deferredInstallPrompt = null;
-
-window.addEventListener('beforeinstallprompt', function(e) {
-  e.preventDefault(); // 阻止瀏覽器自動顯示（含「Chrome 捷徑」選項的那個）
-  _deferredInstallPrompt = e;
-  // 若本次 session 未被關閉，延遲 2 秒後顯示我們的橫幅
-  if (!sessionStorage.getItem('pwa-banner-dismissed')) {
-    setTimeout(function() {
-      var banner = document.getElementById('pwa-install-banner');
-      if (banner) banner.style.display = 'flex';
-    }, 2000);
+/* ── iOS 安裝引導 ── */
+(function() {
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  var isStandalone = window.navigator.standalone === true;
+  if (isIOS && !isStandalone
+      && !localStorage.getItem('ios-install-guided')
+      && !sessionStorage.getItem('ios-install-skipped')) {
+    document.getElementById('ios-install-overlay').style.display = 'flex';
   }
-});
+})();
 
-function doInstallPwa() {
-  if (!_deferredInstallPrompt) return;
-  _deferredInstallPrompt.prompt(); // 直接呼叫 → 只顯示「加入主畫面」對話框，無 Chrome 捷徑選項
-  _deferredInstallPrompt.userChoice.then(function() {
-    _deferredInstallPrompt = null;
-    var banner = document.getElementById('pwa-install-banner');
-    if (banner) banner.style.display = 'none';
-  });
+function dismissInstallGuide() {
+  localStorage.setItem('ios-install-guided', '1');
+  document.getElementById('ios-install-overlay').style.display = 'none';
 }
 
-function dismissPwaBanner() {
-  var banner = document.getElementById('pwa-install-banner');
-  if (banner) banner.style.display = 'none';
-  sessionStorage.setItem('pwa-banner-dismissed', '1');
+function skipInstallGuide() {
+  sessionStorage.setItem('ios-install-skipped', '1');
+  document.getElementById('ios-install-overlay').style.display = 'none';
 }
-
-window.addEventListener('appinstalled', function() {
-  var banner = document.getElementById('pwa-install-banner');
-  if (banner) banner.style.display = 'none';
-});
 </script>
 </body>
 </html>
