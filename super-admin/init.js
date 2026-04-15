@@ -14,7 +14,7 @@ window.addEventListener('load', function() {
     if (!auth) { setTimeout(waitAuth, 150); return; }
     auth.onAuthStateChanged(function(user) {
       if (!user) {
-        window.location.href = 'super-admin-login.html';
+        window.location.href = 'login.html';
         return;
       }
       // 二次驗證：確認仍在 superAdmins 白名單
@@ -25,7 +25,7 @@ window.addEventListener('load', function() {
           .then(function(doc) {
             if (!doc.exists || doc.data().enabled === false) {
               auth.signOut().then(function() {
-                window.location.href = 'super-admin-login.html';
+                window.location.href = 'login.html';
               });
               return;
             }
@@ -35,7 +35,7 @@ window.addEventListener('load', function() {
             onAdminReady();
           })
           .catch(function() {
-            window.location.href = 'super-admin-login.html';
+            window.location.href = 'login.html';
           });
       })();
     });
@@ -51,10 +51,10 @@ function onAdminReady() {
 function doLogout() {
   if (auth) {
     auth.signOut().then(function() {
-      window.location.href = 'super-admin-login.html';
+      window.location.href = 'login.html';
     });
   } else {
-    window.location.href = 'super-admin-login.html';
+    window.location.href = 'login.html';
   }
 }
 

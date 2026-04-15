@@ -268,7 +268,7 @@ window.addEventListener('message', function(e) {
     if (!e.target || e.target.id !== 'school-name-tap') { taps = 0; return; }
     taps++;
     clearTimeout(timer);
-    if (taps >= 5) { taps = 0; window.location.href = 'super-admin-login.html'; return; }
+    if (taps >= 5) { taps = 0; window.location.href = 'super-admin/login.html'; return; }
     timer = setTimeout(function() { taps = 0; }, 1500);
   });
 })();

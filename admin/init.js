@@ -6,6 +6,12 @@
 
 var currentTeacher = null; // Firebase Auth User 物件
 
+/* ── 子 APP 登錄表（新增 APP 時只需在此加一筆）── */
+var APP_REGISTRY = [
+  { id: 'chinese',  label: '識字趣', icon: '📖', color: 'var(--blue)',  progress: 'hanzi'    },
+  { id: 'multiply', label: '乘法趣', icon: '✖️',  color: 'var(--green)', progress: 'multiply' }
+];
+
 function onFirebaseReady() {
   loadClasses();
 }
@@ -19,7 +25,7 @@ window.addEventListener('load', function() {
     auth.onAuthStateChanged(function(user) {
       if (!user) {
         // 未登入 → 回登入頁
-        window.location.href = 'index.html';
+        window.location.href = '../index.html';
         return;
       }
       currentTeacher = user;
@@ -33,7 +39,7 @@ window.addEventListener('load', function() {
         db.collection('teachers').doc(user.uid).get().then(function(doc) {
           if (doc.exists && doc.data().blocked) {
             auth.signOut().then(function() {
-              window.location.href = 'index.html';
+              window.location.href = '../index.html';
             });
             return;
           }
@@ -57,10 +63,10 @@ window.addEventListener('load', function() {
 function doLogout() {
   if (auth) {
     auth.signOut().then(function() {
-      window.location.href = 'index.html';
+      window.location.href = '../index.html';
     });
   } else {
-    window.location.href = 'index.html';
+    window.location.href = '../index.html';
   }
 }
 

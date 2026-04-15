@@ -9,7 +9,7 @@
 <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<link rel="stylesheet" href="../shared.css">
+<link rel="stylesheet" href="../shared/shared.css">
 <script>
 (function(){var M={blue:'#eef5fc,#4a90d9,#2d6fa8,#e8f4fd',green:'#edfbf4,#27ae60,#1e8449,#d5f5e3',
   purple:'#f3f0fc,#8e44ad,#6c3483,#e8daef',orange:'#fff8f0,#e67e22,#ca6f1e,#fdebd0',
@@ -51,16 +51,23 @@
 </div>
 
 <div id="page-mode-select" class="page fill active">
-  <button class="mode-choice" onclick="showPage('curriculum')">
+  <button class="mode-choice mode-choice-left" onclick="showPage('curriculum')">
     <div class="mode-choice-icon">📚</div>
     <div class="mode-choice-title">選擇課程</div>
     <div class="mode-choice-sub">從課本選課文</div>
   </button>
-  <button class="mode-choice" onclick="openAssignedPage()">
-    <div class="mode-choice-icon">📋</div>
-    <div class="mode-choice-title">老師指派</div>
-    <div class="mode-choice-sub">今日指定生字</div>
-  </button>
+  <div class="mode-choice-right">
+    <button class="mode-choice mode-choice-assigned" onclick="openAssignedPage()">
+      <div class="mode-choice-icon">📋</div>
+      <div class="mode-choice-title">老師指派</div>
+      <div class="mode-choice-sub">今日指定生字</div>
+    </button>
+    <button class="mode-choice mode-choice-custom" onclick="openCustomInputPage()">
+      <div class="mode-choice-icon">✍️</div>
+      <div class="mode-choice-title">自行輸入</div>
+      <div class="mode-choice-sub">自訂想練習的字</div>
+    </button>
+  </div>
 </div>
 
 <div id="page-curriculum" class="page">
@@ -94,6 +101,23 @@
       <div class="assigned-empty">載入中…</div>
     </div>
     <button class="btn-start" id="btn-start-assigned" disabled onclick="startAssignedLesson()">開始上課 →</button>
+  </div>
+</div>
+
+<div id="page-custom-input" class="page">
+  <div class="setup-page">
+    <div class="setup-title">✍️ 自行輸入生字</div>
+    <div class="custom-input-desc">輸入想練習的國字，重複的字只算一次，最多 20 字</div>
+    <div class="custom-input-wrap">
+      <textarea id="custom-chars-input" class="custom-chars-textarea"
+        placeholder="例如：山水木火土金" maxlength="60"
+        oninput="onCustomInputChange()"></textarea>
+      <div class="custom-input-count" id="custom-input-count">0 / 20 字</div>
+      <div class="assigned-preview-card custom-chars-preview" id="custom-chars-preview" style="min-height:64px">
+        <div class="assigned-empty" id="custom-chars-empty">輸入國字後，會在這裡預覽</div>
+      </div>
+    </div>
+    <button class="btn-start" id="btn-start-custom" disabled onclick="startCustomLesson()">開始練習 →</button>
   </div>
 </div>
 
@@ -271,7 +295,7 @@
 </div>
 
 <div id="toast"></div>
-<script src="../shared.js"></script>
+<script src="../shared/shared.js"></script>
 <script src="js/nav.js"></script>
 <script src="js/state.js"></script>
 <script src="js/voice.js"></script>
