@@ -191,7 +191,7 @@ function updateToggleAllBtn(containerId) {
 
 function setPracticeType(type) {
   practiceType = type;
-  ['choice', 'fill', 'reverse'].forEach(function(t) {
+  ['fill', 'reverse'].forEach(function(t) {
     var btn = document.getElementById('ptype-' + t);
     if (btn) btn.classList.toggle('active', t === type);
   });
@@ -253,15 +253,14 @@ function renderPracticeQuestion() {
     if (qEl) qEl.innerHTML =
       '<span class="q-blank">?</span> × <span class="q-blank">?</span> = <span class="q-product">' + (q.a * q.b) + '</span>';
     if (optsEl) { optsEl.style.display = ''; renderReverseOptions('practice-options', q, false); }
-  } else if (practiceType === 'fill') {
+  } else {
     if (qEl) qEl.innerHTML =
       '<span class="q-num">' + q.a + '</span> × <span class="q-num">' + q.b + '</span> = <span class="q-blank" id="fill-display">＿</span>';
     fillInputStr = '';
-    if (fillPad) fillPad.style.display = '';
-  } else {
-    if (qEl) qEl.innerHTML =
-      '<span class="q-num">' + q.a + '</span> × <span class="q-num">' + q.b + '</span> = <span class="q-blank">?</span>';
-    if (optsEl) { optsEl.style.display = ''; renderChoiceOptions('practice-options', q, false); }
+    if (fillPad) {
+      fillPad.style.display = '';
+      fillPad.querySelectorAll('button').forEach(function(btn) { btn.disabled = false; });
+    }
   }
 }
 

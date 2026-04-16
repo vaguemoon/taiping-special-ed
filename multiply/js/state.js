@@ -8,7 +8,7 @@
 var currentStudent = null;
 
 // ── 練習模式狀態 ──
-var practiceType    = 'choice';  // 'choice' | 'fill' | 'reverse'
+var practiceType    = 'fill';    // 'fill' | 'reverse'
 var practicePool    = [];        // [{a,b}] 本次題目池
 var practiceQ       = null;      // 當前題目 {a, b}
 var practiceStreak  = 0;
