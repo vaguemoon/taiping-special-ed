@@ -38,7 +38,7 @@
     <!-- 分頁 -->
     <div class="admin-tabs">
       <button class="admin-tab active" id="tab-classes"    onclick="switchTab('classes')">🏫 班級管理</button>
-      <button class="admin-tab"        id="tab-quiz-bank"  onclick="switchTab('quiz-bank')">📝 語文題庫</button>
+      <button class="admin-tab"        id="tab-quiz"       onclick="switchTab('quiz')">📝 語文練習</button>
     </div>
 
     <!-- 班級管理 -->
@@ -90,6 +90,105 @@
       </div>
 
     </div>
+
+    <!-- ══ 語文練習 ══ -->
+    <div id="panel-quiz" style="display:none">
+
+      <!-- App 子頁籤 -->
+      <div class="app-tabs-mini" style="margin-bottom:20px">
+        <button class="app-tab-mini active" onclick="switchQuizTab('bank', this)">📚 題庫管理</button>
+        <button class="app-tab-mini"        onclick="switchQuizTab('sessions', this)">📋 測驗管理</button>
+      </div>
+
+      <!-- 題庫管理 -->
+      <div id="qpanel-bank">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="display:flex;align-items:center;gap:8px">
+            📤 上傳題庫 .xlsx
+            <button onclick="downloadQbTemplate()"
+              style="margin-left:auto;padding:6px 14px;border:1.5px solid var(--blue);border-radius:8px;
+                     background:var(--blue-lt,#eef5fc);color:var(--blue-dk,#2d6fa8);font-size:.78rem;
+                     font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;
+                     transition:background .15s"
+              onmouseover="this.style.background='var(--blue)';this.style.color='white'"
+              onmouseout="this.style.background='var(--blue-lt,#eef5fc)';this.style.color='var(--blue-dk,#2d6fa8)'">
+              ⬇️ 下載 Excel 範例
+            </button>
+          </div>
+          <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px;line-height:1.7">
+            工作表需包含欄位：<strong>課次、課名、題型、題幹、選項一、選項二、選項三（選項四選填）、答案</strong>（第一列為標題列）。<br>
+            題型限：詞語解釋／詞語填空／選擇題。選擇題答案欄填數字 <strong>1／2／3</strong>，對應選項一／二／三。
+          </p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+            <div style="flex:1;min-width:140px">
+              <label style="display:block;font-size:.78rem;font-weight:800;color:var(--muted);margin-bottom:6px">版本</label>
+              <select id="qb-version" onchange="updateQbGrade()" style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit">
+                <option value="">── 請選擇 ──</option>
+                <option value="康軒">康軒版</option>
+                <option value="南一">南一版</option>
+                <option value="翰林">翰林版</option>
+              </select>
+            </div>
+            <div style="flex:1;min-width:140px">
+              <label style="display:block;font-size:.78rem;font-weight:800;color:var(--muted);margin-bottom:6px">冊次</label>
+              <select id="qb-volume" onchange="updateQbGrade()" style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit">
+                <option value="">── 請選擇 ──</option>
+                <option value="一上">一上</option><option value="一下">一下</option>
+                <option value="二上">二上</option><option value="二下">二下</option>
+                <option value="三上">三上</option><option value="三下">三下</option>
+                <option value="四上">四上</option><option value="四下">四下</option>
+                <option value="五上">五上</option><option value="五下">五下</option>
+                <option value="六上">六上</option><option value="六下">六下</option>
+              </select>
+            </div>
+            <!-- Hidden combined grade field consumed by quiz-bank.js -->
+            <input type="hidden" id="qb-grade">
+            <div style="flex:2;min-width:220px">
+              <label style="display:block;font-size:.78rem;font-weight:800;color:var(--muted);margin-bottom:6px">選擇 .xlsx 檔案</label>
+              <input type="file" id="qb-file" accept=".xlsx" onchange="previewQuizBank()" style="font-size:.88rem">
+            </div>
+          </div>
+          <div id="qb-errors" style="display:none;margin-bottom:12px"></div>
+          <div id="qb-preview-wrap" style="display:none;margin-bottom:4px">
+            <div style="font-size:.82rem;font-weight:800;color:var(--muted);margin-bottom:6px">
+              前 10 筆預覽（共 <span id="qb-total-count">0</span> 筆有效題目）
+            </div>
+            <div style="overflow-x:auto">
+              <table id="qb-preview-table" style="width:100%;border-collapse:collapse;font-size:.82rem"></table>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:10px">
+              <button class="btn btn-primary" onclick="uploadQuizBank()">⬆️ 上傳至 Firebase</button>
+              <button class="btn btn-secondary" onclick="clearQuizBankPreview()">✕ 取消</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;gap:8px">
+            📊 我的題庫
+            <button class="btn btn-secondary" style="margin-left:auto;padding:6px 14px;font-size:.78rem" onclick="loadQuizBankStats()">重新整理</button>
+          </div>
+          <div id="qb-stats-wrap">
+            <div class="loading-wrap"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div><!-- /qpanel-bank -->
+
+      <!-- 測驗管理 -->
+      <div id="qpanel-sessions" style="display:none">
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;gap:8px">
+            📋 測驗列表
+            <button class="btn-save-lesson" style="margin-left:auto;padding:8px 16px;font-size:.82rem" onclick="showCreateSessionModal()">＋ 新增測驗</button>
+            <button class="btn btn-secondary" style="padding:6px 14px;font-size:.78rem" onclick="loadQuizSessions()">重新整理</button>
+          </div>
+          <div id="qs-list-wrap">
+            <div class="loading-wrap"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div><!-- /qpanel-sessions -->
+
+    </div><!-- /panel-quiz -->
 
     <!-- 課程管理已移至管理者後台 (super-admin.html) -->
 
@@ -214,70 +313,72 @@
   </div>
 </div>
 
-<!-- ══════════════════ 語文題庫管理面板 ══════════════════ -->
-<div id="panel-quiz-bank" style="display:none">
+<!-- 新增測驗 Modal -->
+<div id="qs-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px">
+  <div style="background:white;border-radius:20px;padding:28px 24px;max-width:420px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,.2)">
+    <div style="font-size:1.1rem;font-weight:900;margin-bottom:20px">📋 新增測驗</div>
 
-  <!-- 上傳 xlsx -->
-  <div class="card" style="max-width:780px;margin:0 auto 24px">
-    <div class="card-title">📤 上傳題庫 .xlsx</div>
-    <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">
-      工作表需包含欄位：<strong>課次、課名、題型、題幹、答案</strong>（第一列為標題列）。<br>
-      題型限：詞語解釋／詞語填空／選擇題。選擇題以 <code>|</code> 分隔選項。
-    </p>
+    <label style="font-size:.78rem;font-weight:800;color:var(--muted);display:block;margin-bottom:5px">測驗名稱</label>
+    <input id="qs-name" type="text" placeholder="例如：第七課複習、期中練習"
+      maxlength="30"
+      style="width:100%;border:2px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.95rem;font-family:inherit;outline:none;margin-bottom:14px">
 
-    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <div class="form-group" style="flex:1;min-width:180px">
-        <label>年級</label>
-        <select id="qb-grade" style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div>
+        <label style="font-size:.78rem;font-weight:800;color:var(--muted);display:block;margin-bottom:5px">年級</label>
+        <select id="qs-grade" onchange="_updateSessionLessonOptions()"
+          style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit">
           <option value="">── 請選擇 ──</option>
-          <option value="康軒三上">康軒三上</option>
-          <option value="康軒三下">康軒三下</option>
-          <option value="康軒五上">康軒五上</option>
-          <option value="康軒五下">康軒五下</option>
         </select>
       </div>
-      <div style="flex:2;min-width:220px">
-        <label style="display:block;font-size:.78rem;font-weight:800;color:var(--muted);margin-bottom:6px">選擇 .xlsx 檔案</label>
-        <input type="file" id="qb-file" accept=".xlsx" onchange="previewQuizBank()" style="font-size:.88rem">
+      <div>
+        <label style="font-size:.78rem;font-weight:800;color:var(--muted);display:block;margin-bottom:5px">課次</label>
+        <select id="qs-lesson"
+          style="width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:8px;font-size:.9rem;font-family:inherit">
+          <option value="">── 請選擇 ──</option>
+        </select>
       </div>
     </div>
 
-    <!-- 預覽表格 -->
-    <div id="qb-preview-wrap" style="display:none;margin-bottom:16px">
-      <div style="font-size:.82rem;font-weight:800;color:var(--muted);margin-bottom:6px">
-        前 10 筆預覽（共 <span id="qb-total-count">0</span> 筆）
+    <div style="font-size:.78rem;font-weight:800;color:var(--muted);margin-bottom:8px">各題型題數</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="text-align:center">
+        <div style="font-size:.72rem;color:var(--muted);font-weight:700;margin-bottom:4px">詞語解釋</div>
+        <input id="qs-count-explain" type="number" min="0" max="20" value="3"
+          style="width:100%;border:2px solid var(--border);border-radius:8px;padding:7px;font-size:1rem;text-align:center;font-family:inherit;outline:none">
       </div>
-      <div style="overflow-x:auto">
-        <table id="qb-preview-table" style="width:100%;border-collapse:collapse;font-size:.82rem"></table>
+      <div style="text-align:center">
+        <div style="font-size:.72rem;color:var(--muted);font-weight:700;margin-bottom:4px">詞語填空</div>
+        <input id="qs-count-fillin" type="number" min="0" max="20" value="3"
+          style="width:100%;border:2px solid var(--border);border-radius:8px;padding:7px;font-size:1rem;text-align:center;font-family:inherit;outline:none">
       </div>
-      <div style="margin-top:14px;display:flex;gap:10px">
-        <button class="btn btn-primary" onclick="uploadQuizBank()">⬆️ 上傳至 Firebase</button>
-        <button class="btn btn-secondary" onclick="clearQuizBankPreview()">✕ 取消</button>
+      <div style="text-align:center">
+        <div style="font-size:.72rem;color:var(--muted);font-weight:700;margin-bottom:4px">選擇題</div>
+        <input id="qs-count-mc" type="number" min="0" max="20" value="4"
+          style="width:100%;border:2px solid var(--border);border-radius:8px;padding:7px;font-size:1rem;text-align:center;font-family:inherit;outline:none">
       </div>
     </div>
-  </div>
 
-  <!-- 現有題庫統計 -->
-  <div class="card" style="max-width:780px;margin:0 auto">
-    <div class="card-title" style="display:flex;align-items:center;gap:8px">
-      📊 現有題庫
-      <button class="btn btn-secondary" style="margin-left:auto;padding:6px 14px;font-size:.78rem" onclick="loadQuizBankStats()">重新整理</button>
-    </div>
-    <div id="qb-stats-wrap">
-      <div class="loading-wrap"><div class="spinner"></div></div>
+    <div id="qs-modal-error" style="font-size:.82rem;font-weight:700;color:var(--red);min-height:20px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:10px">
+      <button onclick="hideCreateSessionModal()"
+        style="flex:1;padding:11px;border:2px solid var(--border);border-radius:10px;background:var(--gray-lt);font-size:.9rem;font-weight:800;cursor:pointer;font-family:inherit;color:var(--gray)">取消</button>
+      <button id="btn-create-session" onclick="createQuizSession()"
+        style="flex:2;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--blue-dk));color:white;font-size:.9rem;font-weight:900;cursor:pointer;font-family:inherit">建立</button>
     </div>
   </div>
 </div>
 
 <div id="toast"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="../shared/shared.js"></script>
 <script src="init.js"></script>
 <script src="classes.js"></script>
 <script src="overview.js"></script>
 <script src="students.js"></script>
 <script src="quiz-bank.js"></script>
+<script src="quiz-sessions.js"></script>
 </body>
 </html>

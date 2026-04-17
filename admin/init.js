@@ -72,11 +72,29 @@ function doLogout() {
 }
 
 function switchTab(tab) {
-  ['classes', 'quiz-bank'].forEach(function(t) {
+  ['classes', 'quiz'].forEach(function(t) {
     document.getElementById('panel-'+t).style.display = t===tab ? '' : 'none';
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
   });
   document.getElementById('panel-student').style.display = 'none';
-  if (tab === 'classes')    { backToClasses(); loadClasses(); }
-  if (tab === 'quiz-bank')  { loadQuizBankStats(); }
+  if (tab === 'classes') { backToClasses(); loadClasses(); }
+  if (tab === 'quiz')    { loadQuizBankStats(); loadQuizSessions(); }
+}
+
+/* ── 題庫年級組合 ── */
+function updateQbGrade() {
+  var v = document.getElementById('qb-version').value;
+  var s = document.getElementById('qb-volume').value;
+  document.getElementById('qb-grade').value = (v && s) ? v + s : '';
+}
+
+/* ── 語文練習內子頁籤 ── */
+function switchQuizTab(subId, btn) {
+  ['bank', 'sessions'].forEach(function(id) {
+    var el = document.getElementById('qpanel-' + id);
+    if (el) el.style.display = id === subId ? '' : 'none';
+  });
+  var tabs = document.querySelectorAll('#panel-quiz .app-tab-mini');
+  tabs.forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
 }
