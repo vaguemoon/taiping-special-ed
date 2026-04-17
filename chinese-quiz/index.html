@@ -31,6 +31,8 @@
         onkeydown="if(event.key==='Enter')lookupSession()">
       <div id="code-error" style="font-size:.82rem;font-weight:700;color:#d93025;min-height:20px;margin-bottom:8px;text-align:center"></div>
       <button class="btn-start" id="btn-join" onclick="lookupSession()">進入測驗</button>
+      <!-- 曾參加過且仍開放的測驗 -->
+      <div id="history-section" style="display:none;margin-top:20px"></div>
     </div>
 
     <!-- Step: 確認資訊 -->
@@ -65,6 +67,7 @@ var FB_CONFIG = {
 
 var db            = null;
 var sessionData   = null;   /* loaded quizSession document data */
+var HISTORY_KEY   = 'cq_session_history';
 
 /* ── Navigation ── */
 function returnToHub() {
@@ -111,6 +114,7 @@ function showStep(name) {
 
     if (!db) { showStep('offline'); return; }
     showStep('code');
+    renderHistorySection();
   } catch(e) {
     /* Last-resort fallback: show the code input anyway */
     try { showStep('code'); } catch(e2) {}
@@ -166,9 +170,75 @@ function lookupSession() {
     });
 }
 
+/* ── 歷史記錄 ── */
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch(e) { return []; }
+}
+
+function saveToHistory(data) {
+  var list = loadHistory().filter(function(h) { return h.code !== data.code; });
+  list.unshift({
+    code:       data.code       || '',
+    name:       data.name       || '未命名',
+    grade:      data.grade      || '',
+    lesson:     data.lesson     || '',
+    lessonName: data.lessonName || '',
+    teacherUid: data.teacherUid || '',
+    counts:     data.counts     || {}
+  });
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 10))); }
+  catch(e) {}
+}
+
+function renderHistorySection() {
+  var histEl = document.getElementById('history-section');
+  if (!histEl || !db) return;
+  var list = loadHistory().filter(function(h) { return h.code; });
+  if (!list.length) return;
+  var codes = list.map(function(h) { return h.code; }).slice(0, 10);
+  db.collection('quizSessions')
+    .where('code', 'in', codes)
+    .where('active', '==', true)
+    .get()
+    .then(function(snap) {
+      var active = {};
+      snap.docs.forEach(function(d) { active[d.data().code] = true; });
+      var items = list.filter(function(h) { return active[h.code]; });
+      if (!items.length) return;
+      var html = '<div class="history-title">最近的測驗</div>';
+      items.forEach(function(h) {
+        var c = h.counts || {};
+        var total = (c.explain || 0) + (c.fillIn || 0) + (c.mc || 0);
+        html +=
+          '<div class="history-item">' +
+            '<div class="history-item-info">' +
+              '<div class="history-item-name">' + escHtml(h.name) + '</div>' +
+              '<div class="history-item-meta">' +
+                escHtml(h.grade) + '　第 ' + escHtml(h.lesson) + ' 課' +
+                (h.lessonName && h.lessonName !== h.lesson ? '　' + escHtml(h.lessonName) : '') +
+                (total ? '　共 ' + total + ' 題' : '') +
+              '</div>' +
+            '</div>' +
+            '<button class="btn-history-enter" onclick="enterFromHistory(\'' + escJs(h.code) + '\')">重新進入</button>' +
+          '</div>';
+      });
+      histEl.innerHTML = html;
+      histEl.style.display = '';
+    })
+    .catch(function() {});
+}
+
+function enterFromHistory(code) {
+  var ci = document.getElementById('code-input');
+  if (ci) ci.value = code;
+  lookupSession();
+}
+
 /* ── 進入作答 ── */
 function goQuiz() {
   if (!sessionData) return;
+  saveToHistory(sessionData);
   try {
     sessionStorage.setItem('quiz_settings', JSON.stringify({
       grade:      sessionData.grade,

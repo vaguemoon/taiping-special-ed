@@ -740,6 +740,61 @@ body {
   line-height: 1.6;
 }
 
+/* ═══ History section (student entry) ═══ */
+.history-title {
+  font-family: 'Noto Serif TC', serif;
+  font-size: .72rem;
+  font-weight: 900;
+  color: var(--ink-lt);
+  letter-spacing: 1px;
+  border-top: 1px solid var(--rule-lt);
+  padding-top: 14px;
+  margin-bottom: 10px;
+}
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.history-item-info { flex: 1; min-width: 0; }
+.history-item-name {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-item-meta {
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--ink-lt);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.btn-history-enter {
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  border-radius: 8px;
+  padding: 5px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.btn-history-enter:hover { background: var(--accent); color: #fff; }
+
 /* ═══ Responsive ═══ */
 @media (max-width: 480px) {
   .quiz-sheet-title { font-size: 1.1rem; letter-spacing: 2px; }
