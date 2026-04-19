@@ -72,6 +72,7 @@ function doLogout() {
 }
 
 function switchTab(tab) {
+  if (document.getElementById('tool-modal').style.display === 'flex') closeToolModal();
   ['classes', 'quiz', 'tools'].forEach(function(t) {
     document.getElementById('panel-'+t).style.display = t===tab ? '' : 'none';
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
