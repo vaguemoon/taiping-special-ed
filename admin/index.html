@@ -508,5 +508,22 @@ window.addEventListener('message', function(e) {
   if (e.data === 'close-tool') closeToolModal();
 });
 </script>
+
+<!-- 語文練習試卷分享 Modal -->
+<div id="qs-share-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px">
+  <div style="background:white;border-radius:20px;padding:28px 24px;max-width:400px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,.2)">
+    <div style="font-size:1.1rem;font-weight:900;margin-bottom:6px">📤 分享試卷給班級</div>
+    <div id="qs-share-doc-name" style="font-size:.82rem;color:var(--muted);font-weight:600;margin-bottom:16px;word-break:break-all"></div>
+    <div id="qs-share-class-list" style="max-height:260px;overflow-y:auto;border:1.5px solid var(--border);border-radius:12px;padding:4px 8px"></div>
+    <div id="qs-share-loading" style="text-align:center;padding:14px;font-size:.85rem;color:var(--muted);display:none">載入班級中…</div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button onclick="closeQuizShareModal()"
+        style="padding:9px 18px;border:1.5px solid var(--border);border-radius:10px;background:white;font-size:.85rem;font-weight:800;cursor:pointer;font-family:inherit;color:var(--muted)">取消</button>
+      <button id="qs-share-confirm-btn" onclick="saveQuizShareSettings()"
+        style="padding:9px 18px;border:none;border-radius:10px;background:var(--blue);color:white;font-size:.85rem;font-weight:800;cursor:pointer;font-family:inherit">✅ 確認分享</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

@@ -38,6 +38,12 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
+    // 班級分享的語文練習試卷 —— 學生（無 Auth）可讀，教師可寫
+    match /classes/{classId}/sharedQuizSessions/{docId} {
+      allow read:  if true;
+      allow write: if request.auth != null;
+    }
+
     // 學生 —— PIN 登入不走 Firebase Auth，需要公開讀寫
     match /students/{studentId} {
       allow read:  if true;
@@ -66,10 +72,14 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
-    // 語文練習作答結果 —— 學生（無 Auth）可讀寫，教師可讀
+    // 語文練習作答結果 —— 學生（無 Auth）可讀，create 需有基本欄位，禁止事後修改/刪除
     match /quizResults/{doc} {
-      allow read:  if true;
-      allow write: if true;
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['sessionId', 'score', 'studentId'])
+                    && request.resource.data.score is int
+                    && request.resource.data.score >= 0
+                    && request.resource.data.score <= 100;
+      allow update, delete: if false;
     }
   }
 }

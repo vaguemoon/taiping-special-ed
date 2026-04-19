@@ -76,7 +76,7 @@ var SUBJECTS = [
   {
     id: 'chinese-quiz', file: 'chinese-quiz/index.html',
     icon: '📝', name: '語文練習', desc: '詞語填空與選擇題練習',
-    type: 'quiz',
+    type: 'quiz', studentMode: true,
     theme: 'theme-purple', badge: '語文練習', badgeClass: 'blue',
     getLevel: function(sid) {
       // 讀最近一次語文練習的分數當作標籤
@@ -370,7 +370,7 @@ function saveProfile() {
 
 window.addEventListener('message', function(e) {
   if (!e.data) return;
-  if (e.data.type === 'hanzi-back-to-hub' || e.data.type === 'multiply-back-to-hub' || e.data.type === 'chinese-quiz-back-to-hub') returnToHub();
+  if (e.data.type === 'hanzi-back-to-hub' || e.data.type === 'multiply-back-to-hub' || e.data.type === 'chinese-quiz-back-to-hub' || e.data.type === 'exam-reader-back-to-hub') returnToHub();
   else if (e.data.type === 'hanzi-logout' || e.data.type === 'multiply-logout') doLogout();
 });
 

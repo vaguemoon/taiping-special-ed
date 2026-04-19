@@ -16,48 +16,31 @@
   <div class="entry-card">
     <div class="entry-logo">📝</div>
     <h1 class="entry-title">語文練習</h1>
-    <div class="entry-student" id="entry-student">載入中…</div>
+    <div class="entry-student" id="entry-student"></div>
     <div class="entry-error"   id="entry-error"></div>
 
-    <!-- Step: 輸入測驗代碼 -->
-    <div class="setup-step" id="step-code" style="display:none">
-      <div class="setup-label">輸入老師給的測驗代碼</div>
-      <input id="code-input" type="text" maxlength="4"
-        placeholder="例如：AB12"
-        autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
-        style="width:100%;text-align:center;font-size:2rem;font-weight:900;letter-spacing:.25em;
-               border:3px solid var(--ink-lt);border-radius:12px;padding:12px;
-               font-family:monospace;outline:none;background:var(--paper);color:var(--ink);
-               text-transform:uppercase;margin-bottom:4px"
-        oninput="this.value=this.value.toUpperCase()"
-        onkeydown="if(event.key==='Enter')lookupSession()">
-      <div id="code-error" style="font-size:.82rem;font-weight:700;color:#d93025;min-height:20px;margin-bottom:8px;text-align:center"></div>
-      <button class="btn-start" id="btn-join" onclick="lookupSession()">進入測驗</button>
-      <!-- history moved to past-quiz side panel -->
+    <!-- 分享試卷清單 -->
+    <div class="setup-step" id="step-list">
+      <div id="quiz-list-body">
+        <div class="past-panel-empty">載入中…</div>
+      </div>
     </div>
 
-    <!-- Step: 確認資訊 -->
-    <div class="setup-step" id="step-confirm" style="display:none">
-      <div id="session-info" style="background:var(--paper-dk,#f0ede4);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:.88rem;line-height:1.9"></div>
-      <button class="btn-start" onclick="goQuiz()">開始作答</button>
-      <button class="setup-back" style="margin-top:8px;width:100%;text-align:center" onclick="showStep('code')">‹ 重新輸入代碼</button>
+    <!-- 無班級提示 -->
+    <div class="setup-step" id="step-no-class" style="display:none">
+      <div class="offline-notice">請先在個人設定中加入班級</div>
     </div>
 
-    <!-- Offline fallback -->
+    <!-- 離線備援 -->
     <div class="setup-step" id="step-offline" style="display:none">
       <div class="offline-notice">⚠️ 無法連線伺服器<br>請確認網路後再試</div>
-      <button class="btn-start" onclick="showStep('code')">重試</button>
+      <button class="btn-start" onclick="initStudentMode()">重試</button>
     </div>
 
     <div class="entry-divider"></div>
     <button class="btn-entry-return" onclick="returnToHub()">← 返回主頁</button>
   </div>
 
-<!-- ─── Past-quiz side panel ─── -->
-<div class="past-quiz-panel" id="past-quiz-panel">
-  <div class="past-panel-title">過去的測驗</div>
-  <div id="past-panel-body"><div class="past-panel-empty">載入中…</div></div>
-</div>
 
 </div><!-- /.entry-wrapper -->
 </div>
@@ -74,10 +57,11 @@ var FB_CONFIG = {
   appId:             '1:158917910126:web:e52a1d0456d1fd4fe6907f'
 };
 
-var db            = null;
-var sessionData   = null;   /* loaded quizSession document data */
-var sessionDocId  = null;   /* Firestore doc ID of loaded quizSession */
-var HISTORY_KEY   = 'cq_session_history';
+var db = null;
+
+/* ── URL Params ── */
+var _urlParams     = new URLSearchParams(window.location.search);
+var studentClassId = _urlParams.get('classId') || '';
 
 /* ── Navigation ── */
 function returnToHub() {
@@ -85,37 +69,19 @@ function returnToHub() {
 }
 
 function showStep(name) {
-  ['code', 'confirm', 'offline'].forEach(function(s) {
+  ['list', 'no-class', 'offline'].forEach(function(s) {
     var el = document.getElementById('step-' + s);
     if (el) el.style.display = (s === name) ? '' : 'none';
   });
-  if (name === 'code') {
-    var ce = document.getElementById('code-error');
-    var ci = document.getElementById('code-input');
-    if (ce) ce.textContent = '';
-    if (ci) ci.value = '';
-    setTimeout(function() {
-      var inp = document.getElementById('code-input');
-      if (inp) try { inp.focus(); } catch(e) {}
-    }, 80);
-  }
 }
 
 /* ── Init ── */
 (function init() {
-  /* Wrap everything — if any uncaught exception occurs we still show a usable screen */
   try {
-    var stuEl = document.getElementById('entry-student');
-
-    /* hub_student is optional: app works with or without it (direct access / testing) */
     var student = null;
-    try {
-      var saved = sessionStorage.getItem('hub_student');
-      if (saved) student = JSON.parse(saved);
-    } catch(e) {}
-
+    try { student = JSON.parse(sessionStorage.getItem('hub_student')); } catch(e) {}
     var name = (student && (student.nickname || student.name)) || '';
-    stuEl.textContent = name ? name + '，請輸入老師給的測驗代碼' : '請輸入老師給的測驗代碼';
+    document.getElementById('entry-student').textContent = name;
 
     try {
       if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
@@ -123,237 +89,88 @@ function showStep(name) {
     } catch(e) { db = null; }
 
     if (!db) { showStep('offline'); return; }
-    showStep('code');
-    renderPastPanel();
+
+    if (!studentClassId) {
+      showStep('no-class');
+      return;
+    }
+
+    initStudentMode();
   } catch(e) {
-    /* Last-resort fallback: show the code input anyway */
-    try { showStep('code'); } catch(e2) {}
+    showStep('offline');
   }
 })();
 
-/* ── 查詢測驗代碼 ── */
-function lookupSession() {
-  var code    = (document.getElementById('code-input').value || '').trim().toUpperCase();
-  var errEl   = document.getElementById('code-error');
-  var btn     = document.getElementById('btn-join');
-
-  if (!code) { errEl.textContent = '請輸入代碼'; return; }
-  if (code.length !== 4) { errEl.textContent = '代碼為 4 碼，請確認'; return; }
-
-  errEl.textContent    = '';
-  btn.disabled         = true;
-  btn.textContent      = '查詢中…';
-
-  db.collection('quizSessions')
-    .where('code',   '==', code)
-    .where('active', '==', true)
-    .get()
-    .then(function(snap) {
-      btn.disabled    = false;
-      btn.textContent = '進入測驗';
-
-      if (snap.empty) {
-        errEl.textContent = '找不到代碼「' + code + '」，請確認代碼是否正確或測驗是否已關閉';
-        return;
-      }
-
-      sessionDocId    = snap.docs[0].id;
-      sessionData     = snap.docs[0].data();
-      var counts      = sessionData.counts || {};
-      var total       = (counts.explain || 0) + (counts.fillIn || 0) + (counts.mc || 0);
-
-      var infoEl = document.getElementById('session-info');
-      infoEl.innerHTML =
-        '<div style="font-size:1rem;font-weight:900;margin-bottom:6px">' + escHtml(sessionData.name || '未命名') + '</div>' +
-        '<div>📚 ' + escHtml(sessionData.grade || '') + '　第 ' + escHtml(sessionData.lesson || '') + ' 課　' + escHtml(sessionData.lessonName || '') + '</div>' +
-        '<div style="color:var(--ink-lt);font-size:.82rem;margin-top:4px">' +
-          '詞語解釋 ' + (counts.explain || 0) + ' 題 ／ ' +
-          '詞語填空 ' + (counts.fillIn  || 0) + ' 題 ／ ' +
-          '選擇題 '   + (counts.mc      || 0) + ' 題　共 <strong>' + total + '</strong> 題' +
-        '</div>';
-
-      showStep('confirm');
-    })
-    .catch(function(e) {
-      btn.disabled    = false;
-      btn.textContent = '進入測驗';
-      errEl.textContent = '查詢失敗，請確認網路連線';
-    });
-}
-
-/* ── 歷史記錄 ── */
-function loadHistory() {
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
-  catch(e) { return []; }
-}
-
-function saveToHistory(data) {
-  var list = loadHistory().filter(function(h) { return h.code !== data.code; });
-  var entry = {
-    code:       data.code       || '',
-    name:       data.name       || '未命名',
-    grade:      data.grade      || '',
-    lesson:     data.lesson     || '',
-    lessonName: data.lessonName || '',
-    teacherUid: data.teacherUid || '',
-    counts:     data.counts     || {},
-    type:       data.type       || 'random'
-  };
-  if (data.type === 'custom' && data.questionIds) {
-    entry.questionIds = data.questionIds;
-  }
-  list.unshift(entry);
-  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, 10))); }
-  catch(e) {}
-}
-
-/* ── 過去測驗側欄 ── */
-var PANEL_EMPTY_HTML = '<div class="past-panel-empty">完成測驗後，<br>做過的試卷會顯示在這裡</div>';
-
-function renderPastPanel() {
-  var panel   = document.getElementById('past-quiz-panel');
-  var bodyEl  = document.getElementById('past-panel-body');
-  if (!panel || !bodyEl) return;
-
-  /* 一律顯示側欄；無資料時顯示空白提示 */
-  panel.style.display = '';
-
-  if (!db) { bodyEl.innerHTML = PANEL_EMPTY_HTML; return; }
-
-  var student = null;
-  try { student = JSON.parse(sessionStorage.getItem('hub_student')); } catch(e) {}
-
-  if (student && student.id) {
-    /* ── 主路徑：Firestore quizResults ── */
-    db.collection('quizResults')
-      .where('studentId', '==', student.id)
-      .get()
-      .catch(function() { return { empty: true, docs: [] }; })
-      .then(function(resultSnap) {
-        if (resultSnap.empty) { _renderLocalPanel(bodyEl); return; }
-
-        /* 依 sessionCode 分組，保留最高分 */
-        var byCode = {};
-        resultSnap.docs.forEach(function(doc) {
-          var d = doc.data();
-          if (!d.sessionCode) return;
-          if (!byCode[d.sessionCode] || d.score > byCode[d.sessionCode].bestScore) {
-            byCode[d.sessionCode] = {
-              code:       d.sessionCode,
-              name:       d.sessionName  || '未命名',
-              grade:      d.grade        || '',
-              lesson:     d.lesson       || '',
-              lessonName: d.lessonName   || '',
-              bestScore:  d.score        || 0,
-              timestamp:  d.timestamp    || ''
-            };
-          }
-        });
-
-        var codes = Object.keys(byCode);
-        if (!codes.length) { _renderLocalPanel(bodyEl); return; }
-
-        /* 確認哪些仍在開放（active=true） */
-        db.collection('quizSessions')
-          .where('code', 'in', codes.slice(0, 30))
-          .where('active', '==', true)
-          .get()
-          .then(function(sessionSnap) {
-            var activeCodes = {};
-            sessionSnap.docs.forEach(function(d) { activeCodes[d.data().code] = true; });
-
-            var items = codes
-              .filter(function(c) { return activeCodes[c]; })
-              .map(function(c) { return byCode[c]; })
-              .sort(function(a, b) { return b.timestamp.localeCompare(a.timestamp); });
-
-            if (!items.length) { _renderLocalPanel(bodyEl); return; }
-            _showPanelItems(bodyEl, items, true);
-          })
-          .catch(function() { _renderLocalPanel(bodyEl); });
-      })
-      .catch(function() { _renderLocalPanel(bodyEl); });
-  } else {
-    /* ── 備援路徑：localStorage ── */
-    _renderLocalPanel(bodyEl);
-  }
-}
-
-/* 渲染清單項目 */
-function _showPanelItems(bodyEl, items, showScore) {
-  if (!items.length) { bodyEl.innerHTML = PANEL_EMPTY_HTML; return; }
-  var html = '';
-  items.forEach(function(h) {
-    var scoreHtml = showScore && h.bestScore != null
-      ? '<div class="past-panel-score">' + h.bestScore + '<span style="font-size:.65rem;font-weight:700;color:var(--ink-lt)"> 分</span></div>'
-      : '';
-    html +=
-      '<div class="past-panel-item">' +
-        '<div class="past-panel-info">' +
-          '<div class="past-panel-name">' + escHtml(h.name) + '</div>' +
-          '<div class="past-panel-meta">' +
-            escHtml(h.grade) + '　第 ' + escHtml(h.lesson) + ' 課' +
-            (h.lessonName && h.lessonName !== h.lesson ? '　' + escHtml(h.lessonName) : '') +
-          '</div>' +
-        '</div>' +
-        scoreHtml +
-        '<button class="btn-past-enter" onclick="enterFromHistory(\'' + escJs(h.code) + '\')">進入</button>' +
-      '</div>';
-  });
-  bodyEl.innerHTML = html;
-}
-
-/* localStorage 備援路徑 */
-function _renderLocalPanel(bodyEl) {
-  var list  = loadHistory().filter(function(h) { return h.code; });
-  if (!list.length) { bodyEl.innerHTML = PANEL_EMPTY_HTML; return; }
-  var codes = list.map(function(h) { return h.code; }).slice(0, 10);
-  db.collection('quizSessions')
-    .where('code', 'in', codes)
-    .where('active', '==', true)
-    .get()
-    .then(function(snap) {
-      var active = {};
-      snap.docs.forEach(function(d) { active[d.data().code] = true; });
-      var items = list.filter(function(h) { return active[h.code]; });
-      _showPanelItems(bodyEl, items, false);
-    })
-    .catch(function() { bodyEl.innerHTML = PANEL_EMPTY_HTML; });
-}
-
-function enterFromHistory(code) {
-  var ci = document.getElementById('code-input');
-  if (ci) ci.value = code;
-  lookupSession();
-}
-
-/* ── 進入作答 ── */
-function goQuiz() {
-  if (!sessionData) return;
-  saveToHistory(sessionData);
+/* ── 載入分享試卷清單 ── */
+async function initStudentMode() {
+  var body = document.getElementById('quiz-list-body');
+  if (body) body.innerHTML = '<div class="past-panel-empty">載入中…</div>';
   try {
+    var snap = await db.collection('classes')
+      .doc(studentClassId).collection('sharedQuizSessions').get();
+    var sessions = snap.docs.map(function(d) {
+      return Object.assign({ sessionId: d.id }, d.data());
+    });
+    renderSharedList(sessions);
+  } catch(e) {
+    showStep('offline');
+  }
+}
+
+function renderSharedList(sessions) {
+  var body = document.getElementById('quiz-list-body');
+  if (!body) return;
+  if (!sessions.length) {
+    body.innerHTML = '<div class="past-panel-empty">老師尚未分享試卷</div>';
+    return;
+  }
+  body.innerHTML = sessions.map(function(s) {
+    return '<div class="shared-quiz-card" onclick="startSharedQuiz(\'' + escJs(s.sessionId) + '\')">' +
+      '<div>' +
+        '<div class="shared-quiz-name">' + escHtml(s.name || '未命名') + '</div>' +
+        '<div class="shared-quiz-meta">' + escHtml(s.grade || '') +
+          (s.lesson ? '　第 ' + escHtml(s.lesson) + ' 課' : '') +
+          (s.lessonName ? '　' + escHtml(s.lessonName) : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="shared-quiz-arrow">›</div>' +
+    '</div>';
+  }).join('');
+}
+
+/* ── 進入指定試卷 ── */
+async function startSharedQuiz(sessionId) {
+  try {
+    var doc = await db.collection('quizSessions').doc(sessionId).get();
+    if (!doc.exists || doc.data().active === false) {
+      document.getElementById('entry-error').textContent = '這份試卷已關閉，請聯繫老師';
+      initStudentMode();
+      return;
+    }
+    var d = doc.data();
     var settings = {
-      type:        sessionData.type || 'random',
-      sessionId:   sessionDocId    || '',
-      sessionCode: sessionData.code || '',
-      sessionName: sessionData.name || '',
-      grade:       sessionData.grade,
-      lesson:      sessionData.lesson,
-      lessonName:  sessionData.lessonName || sessionData.lesson,
-      teacherUid:  sessionData.teacherUid || '',
+      type:        d.type        || 'random',
+      sessionId:   sessionId,
+      sessionCode: d.code        || '',
+      sessionName: d.name        || '',
+      grade:       d.grade       || '',
+      lesson:      d.lesson      || '',
+      lessonName:  d.lessonName  || d.lesson || '',
+      teacherUid:  d.teacherUid  || '',
       counts: {
-        '詞語解釋': (sessionData.counts || {}).explain || 0,
-        '詞語填空': (sessionData.counts || {}).fillIn  || 0,
-        '選擇題':   (sessionData.counts || {}).mc      || 0
+        '詞語解釋': (d.counts || {}).explain || 0,
+        '詞語填空': (d.counts || {}).fillIn  || 0,
+        '選擇題':   (d.counts || {}).mc      || 0
       }
     };
-    if (sessionData.questionIds && sessionData.questionIds.length) {
-      settings.questionIds = sessionData.questionIds;
-    }
+    if (d.questionIds && d.questionIds.length) settings.questionIds = d.questionIds;
     sessionStorage.setItem('quiz_settings', JSON.stringify(settings));
-  } catch(e) {}
-  window.location.href = 'quiz.html';
+    window.location.href = 'quiz.html';
+  } catch(e) {
+    document.getElementById('entry-error').textContent = '載入失敗，請重試';
+  }
 }
+
 
 /* ── Helpers ── */
 function escHtml(s) {

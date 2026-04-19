@@ -17,11 +17,11 @@ var _qsCustomQuestions  = [];  /* [{ id, type, question, answer, options }] */
 var _qsCustomSelected   = {};  /* { docId: true } */
 var _qsCustomActiveTab  = '';  /* 目前頁籤的題型 */
 
-/* ── 4 碼代碼產生（A-Z 0-9，排除易混淆字符 O/0/I/1）── */
+/* ── 6 碼代碼產生（A-Z 0-9，排除易混淆字符 O/0/I/1）── */
 function _genCode() {
   var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   var code  = '';
-  for (var i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  for (var i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
 }
 
@@ -166,37 +166,38 @@ function loadQuizSessions() {
       }
       html += '</div>';
 
-      /* Code */
-      html += '<div style="display:flex;flex-direction:column;align-items:center;gap:4px">';
-      html += '<div style="font-size:1.6rem;font-weight:900;letter-spacing:.18em;color:' + nameCol + ';' +
-        'background:white;border:2px solid ' + borderCol + ';border-radius:8px;padding:4px 14px;font-family:monospace">' +
-        _qsEsc(d.code || '') + '</div>';
+      /* Status badge */
       if (active) {
-        html += '<span style="font-size:.68rem;font-weight:800;background:var(--green);color:white;border-radius:4px;padding:2px 7px">進行中</span>';
+        html += '<span style="font-size:.68rem;font-weight:800;background:var(--green);color:white;border-radius:4px;padding:2px 7px;align-self:flex-start">進行中</span>';
       } else {
-        html += '<span style="font-size:.68rem;font-weight:800;background:var(--muted);color:white;border-radius:4px;padding:2px 7px">已關閉</span>';
+        html += '<span style="font-size:.68rem;font-weight:800;background:var(--muted);color:white;border-radius:4px;padding:2px 7px;align-self:flex-start">已關閉</span>';
       }
-      html += '</div>';
       html += '</div>';/* end flex row */
 
       /* Actions */
       html += '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">';
       if (active) {
-        html += '<button onclick="closeQuizSession(\'' + s.id + '\')" ' +
+        html += '<button onclick="showQuizShareModal(\'' + _qsEscJs(s.id) + '\',\'' + _qsEscJs(d.name || '') + '\')" ' +
+          'style="padding:5px 14px;border:1.5px solid var(--blue);border-radius:7px;background:var(--blue-lt,#eef5fc);' +
+          'font-size:.78rem;font-weight:800;cursor:pointer;font-family:inherit;color:var(--blue-dk,#2d6fa8)">📤 分享給班級</button>';
+        html += '<button onclick="closeQuizSession(\'' + _qsEscJs(s.id) + '\')" ' +
           'style="padding:5px 14px;border:1.5px solid var(--muted);border-radius:7px;background:white;' +
           'font-size:.78rem;font-weight:800;cursor:pointer;font-family:inherit;color:var(--muted)">關閉測驗</button>';
       }
-      html += '<button onclick="deleteQuizSession(\'' + s.id + '\')" ' +
+      html += '<button onclick="deleteQuizSession(\'' + _qsEscJs(s.id) + '\')" ' +
         'style="padding:5px 14px;border:1.5px solid var(--red);border-radius:7px;background:white;' +
         'font-size:.78rem;font-weight:800;cursor:pointer;font-family:inherit;color:var(--red)">刪除</button>';
       html += '</div>';
+      /* 分享狀態徽章（非同步填入） */
+      html += '<div class="qs-share-status" data-session-id="' + s.id + '" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px"></div>';
 
       html += '</div>';
     });
     html += '</div>';
     wrap.innerHTML = html;
+    _refreshAllShareStatus();
   }).catch(function(e) {
-    wrap.innerHTML = '<p style="color:var(--red);font-size:.88rem">讀取失敗：' + e.message + '</p>';
+    wrap.innerHTML = '<p style="color:var(--red);font-size:.88rem">讀取失敗：' + _qsEsc(e.message) + '</p>';
   });
 }
 
@@ -236,10 +237,11 @@ function showCreateSessionModal() {
 
     var gradeEl = document.getElementById('qs-grade');
     if (gradeEl) {
-      gradeEl.innerHTML = '<option value="">── 請選擇 ──</option>';
+      var gradeOpts = '<option value="">── 請選擇 ──</option>';
       _qsGradeOptions.forEach(function(g) {
-        gradeEl.innerHTML += '<option value="' + _qsEsc(g) + '">' + _qsEsc(g) + '</option>';
+        gradeOpts += '<option value="' + _qsEsc(g) + '">' + _qsEsc(g) + '</option>';
       });
+      gradeEl.innerHTML = gradeOpts;
     }
     _updateSessionLessonOptions();
     document.getElementById('qs-modal-error').textContent = '';
@@ -259,11 +261,12 @@ function _updateSessionLessonOptions() {
   if (!gradeEl || !lessonEl) return;
   var grade   = gradeEl.value;
   var lessons = grade ? (_qsLessonOptions[grade] || []) : [];
-  lessonEl.innerHTML = '<option value="">── 請選擇 ──</option>';
+  var opts = '<option value="">── 請選擇 ──</option>';
   lessons.forEach(function(item) {
-    lessonEl.innerHTML += '<option value="' + _qsEsc(item.lesson) + '" data-name="' + _qsEsc(item.lessonName) + '">' +
+    opts += '<option value="' + _qsEsc(item.lesson) + '" data-name="' + _qsEsc(item.lessonName) + '">' +
       '第 ' + _qsEsc(item.lesson) + ' 課　' + _qsEsc(item.lessonName) + '</option>';
   });
+  lessonEl.innerHTML = opts;
 }
 
 function hideCreateSessionModal() {
@@ -508,11 +511,12 @@ function _qsCustomUpdateLesson() {
   if (!gradeEl || !lessonEl) return;
   var grade   = gradeEl.value;
   var lessons = grade ? (_qsLessonOptions[grade] || []) : [];
-  lessonEl.innerHTML = '<option value="">── 請選擇 ──</option>';
+  var opts = '<option value="">── 請選擇 ──</option>';
   lessons.forEach(function(item) {
-    lessonEl.innerHTML += '<option value="' + _qsEsc(item.lesson) + '" data-name="' + _qsEsc(item.lessonName) + '">' +
+    opts += '<option value="' + _qsEsc(item.lesson) + '" data-name="' + _qsEsc(item.lessonName) + '">' +
       '第 ' + _qsEsc(item.lesson) + ' 課　' + _qsEsc(item.lessonName) + '</option>';
   });
+  lessonEl.innerHTML = opts;
 }
 
 function _qsCustomNextStep() {
@@ -836,4 +840,143 @@ function createCustomSession() {
       });
   }
   tryCreate();
+}
+
+/* ════════════════════════════════════════
+   試卷分享給班級
+   ════════════════════════════════════════ */
+
+var _qsClassCache    = null;  /* 教師班級快取 */
+var _qsShareSessionId   = null;  /* 目前正在分享的 sessionId */
+
+function _qsEscJs(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+async function _loadClassesForShare() {
+  if (_qsClassCache) return _qsClassCache;
+  if (!db || !currentTeacher) return [];
+  var snap = await db.collection('classes')
+    .where('teacherUid', '==', currentTeacher.uid).get();
+  _qsClassCache = snap.docs.map(function(d) {
+    return { id: d.id, name: d.data().name };
+  });
+  return _qsClassCache;
+}
+
+async function _getSessionSharedClasses(sessionId) {
+  var classes = await _loadClassesForShare();
+  if (!classes.length) return [];
+  var sharedIds = [];
+  await Promise.all(classes.map(async function(cls) {
+    var doc = await db.collection('classes').doc(cls.id)
+      .collection('sharedQuizSessions').doc(sessionId).get();
+    if (doc.exists) sharedIds.push(cls.id);
+  }));
+  return sharedIds;
+}
+
+async function _refreshAllShareStatus() {
+  var els = document.querySelectorAll('.qs-share-status[data-session-id]');
+  if (!els.length) return;
+  var classes = await _loadClassesForShare().catch(function() { return []; });
+  if (!classes.length) return;
+  els.forEach(function(el) {
+    var sessionId = el.dataset.sessionId;
+    _getSessionSharedClasses(sessionId).then(function(sharedIds) {
+      el.innerHTML = sharedIds.map(function(cid) {
+        var cls = classes.find(function(c) { return c.id === cid; });
+        if (!cls) return '';
+        return '<span style="font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:20px;' +
+          'background:#e0f2fe;color:#0369a1;white-space:nowrap">' + _qsEsc(cls.name) + '</span>';
+      }).join(' ');
+    }).catch(function() {});
+  });
+}
+
+async function showQuizShareModal(sessionId, sessionName) {
+  if (!db || !currentTeacher) { showToast('Firebase 未就緒'); return; }
+  _qsShareSessionId = sessionId;
+
+  var modal    = document.getElementById('qs-share-modal');
+  var nameEl   = document.getElementById('qs-share-doc-name');
+  var listEl   = document.getElementById('qs-share-class-list');
+  var loadEl   = document.getElementById('qs-share-loading');
+  var confirmBtn = document.getElementById('qs-share-confirm-btn');
+  if (!modal) return;
+
+  nameEl.textContent   = '《' + sessionName + '》';
+  listEl.innerHTML     = '';
+  loadEl.style.display = 'block';
+  confirmBtn.disabled  = true;
+  modal.style.display  = 'flex';
+
+  try {
+    var classes   = await _loadClassesForShare();
+    var sharedIds = await _getSessionSharedClasses(sessionId);
+    loadEl.style.display = 'none';
+    confirmBtn.disabled  = false;
+
+    if (!classes.length) {
+      listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:.85rem;font-weight:600">尚未建立任何班級</div>';
+      return;
+    }
+    listEl.innerHTML = classes.map(function(cls) {
+      var checked = sharedIds.indexOf(cls.id) !== -1 ? 'checked' : '';
+      return '<label style="display:flex;align-items:center;gap:10px;padding:10px 6px;' +
+        'border-bottom:1px solid var(--border);cursor:pointer;font-weight:700;font-size:.9rem">' +
+        '<input type="checkbox" value="' + cls.id + '" ' + checked +
+        ' style="width:18px;height:18px;cursor:pointer">' +
+        _qsEsc(cls.name) + '</label>';
+    }).join('');
+  } catch(e) {
+    loadEl.style.display = 'none';
+    listEl.innerHTML = '<div style="color:var(--red);font-size:.85rem;padding:8px">載入失敗：' + _qsEsc(e.message) + '</div>';
+  }
+}
+
+function closeQuizShareModal() {
+  var modal = document.getElementById('qs-share-modal');
+  if (modal) modal.style.display = 'none';
+  _qsShareSessionId = null;
+}
+
+async function saveQuizShareSettings() {
+  if (!_qsShareSessionId || !db || !currentTeacher) return;
+  var confirmBtn = document.getElementById('qs-share-confirm-btn');
+  if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = '儲存中…'; }
+
+  var checks = document.querySelectorAll('#qs-share-class-list input[type=checkbox]');
+
+  try {
+    /* 取得 session 基本資料供分享文件儲存 */
+    var sessionDoc = await db.collection('quizSessions').doc(_qsShareSessionId).get();
+    var sd = sessionDoc.exists ? sessionDoc.data() : {};
+
+    var batch = db.batch();
+    checks.forEach(function(cb) {
+      var ref = db.collection('classes').doc(cb.value)
+        .collection('sharedQuizSessions').doc(_qsShareSessionId);
+      if (cb.checked) {
+        batch.set(ref, {
+          name:       sd.name       || '',
+          grade:      sd.grade      || '',
+          lesson:     sd.lesson     || '',
+          lessonName: sd.lessonName || '',
+          sharedAt:   firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } else {
+        batch.delete(ref);
+      }
+    });
+    await batch.commit();
+
+    showToast('✅ 分享設定已儲存');
+    closeQuizShareModal();
+    _refreshAllShareStatus();
+  } catch(e) {
+    showToast('❌ 儲存失敗：' + e.message);
+  } finally {
+    if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = '✅ 確認分享'; }
+  }
 }
