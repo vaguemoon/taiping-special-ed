@@ -72,7 +72,7 @@ function doLogout() {
 }
 
 function switchTab(tab) {
-  ['classes', 'quiz'].forEach(function(t) {
+  ['classes', 'quiz', 'tools'].forEach(function(t) {
     document.getElementById('panel-'+t).style.display = t===tab ? '' : 'none';
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
   });

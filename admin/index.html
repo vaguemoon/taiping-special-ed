@@ -8,7 +8,34 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link rel="stylesheet" href="admin.css">
-<style></style>
+<style>
+/* ══ 教學工具 ══ */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.tool-card {
+  display: flex; align-items: center; gap: 16px;
+  padding: 18px 20px;
+  background: white; border: 1.5px solid var(--border);
+  border-radius: 14px; box-shadow: var(--shadow);
+  cursor: pointer; font-family: inherit; text-align: left;
+  transition: border-color .15s, box-shadow .15s, transform .12s;
+  width: 100%;
+}
+.tool-card:hover {
+  border-color: var(--blue);
+  box-shadow: 0 4px 16px rgba(37,99,235,.12);
+  transform: translateY(-2px);
+}
+.tool-card:active { transform: scale(.98); }
+.tool-card-icon { font-size: 2rem; flex-shrink: 0; line-height: 1; }
+.tool-card-body { flex: 1; min-width: 0; }
+.tool-card-name { font-size: 1rem; font-weight: 900; color: var(--text); margin-bottom: 4px; }
+.tool-card-desc { font-size: .78rem; font-weight: 600; color: var(--muted); line-height: 1.5; }
+.tool-card-arrow { font-size: 1.1rem; color: var(--blue); flex-shrink: 0; font-weight: 900; }
+</style>
 </head>
 <body>
 
@@ -29,6 +56,7 @@
     <nav class="sidebar-nav">
       <button class="admin-tab active" id="tab-classes" onclick="switchTab('classes')">🏫 班級管理</button>
       <button class="admin-tab" id="tab-quiz" onclick="switchTab('quiz')">📝 語文練習</button>
+      <button class="admin-tab" id="tab-tools" onclick="switchTab('tools')">🎧 教學工具</button>
     </nav>
     <div class="sidebar-footer">
       <div class="sidebar-user-info">
@@ -192,6 +220,33 @@
       </div><!-- /qpanel-sessions -->
 
     </div><!-- /panel-quiz -->
+
+    <!-- 教學工具 -->
+    <div id="panel-tools" style="display:none">
+      <div class="card-title" style="margin-bottom:16px">🛠️ 教學工具</div>
+      <div class="tools-grid">
+
+        <!-- 報讀工具卡片 -->
+        <button class="tool-card" onclick="openToolModal('reader')">
+          <div class="tool-card-icon">🎧</div>
+          <div class="tool-card-body">
+            <div class="tool-card-name">報讀工具</div>
+            <div class="tool-card-desc">將 Word 文件轉換為可點擊朗讀的有聲教材</div>
+          </div>
+          <div class="tool-card-arrow">→</div>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- 教學工具 Modal -->
+    <div id="tool-modal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);flex-direction:column">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:white;border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-size:1rem;font-weight:900;color:var(--text)" id="tool-modal-title"></div>
+        <button onclick="closeToolModal()" style="padding:6px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--gray-lt);font-size:.85rem;font-weight:800;cursor:pointer;font-family:inherit;color:var(--gray)">✕ 關閉</button>
+      </div>
+      <iframe id="tool-modal-frame" src="" style="flex:1;border:none;width:100%;display:block" title="教學工具" allow="speech-synthesis; fullscreen"></iframe>
+    </div>
 
     <!-- 課程管理已移至管理者後台 (super-admin.html) -->
 
@@ -435,5 +490,23 @@
 <script src="students.js"></script>
 <script src="quiz-bank.js"></script>
 <script src="quiz-sessions.js"></script>
+<script>
+var TOOL_CONFIG = {
+  reader: { title: '🎧 報讀工具', src: '../word-to-reader/index.html' }
+};
+function openToolModal(id) {
+  var cfg = TOOL_CONFIG[id];
+  if (!cfg) return;
+  document.getElementById('tool-modal-title').textContent = cfg.title;
+  document.getElementById('tool-modal-frame').src = cfg.src;
+  document.getElementById('tool-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeToolModal() {
+  document.getElementById('tool-modal').style.display = 'none';
+  document.getElementById('tool-modal-frame').src = '';
+  document.body.style.overflow = '';
+}
+</script>
 </body>
 </html>
