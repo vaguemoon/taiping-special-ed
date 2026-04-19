@@ -17,29 +17,32 @@
 <!-- ══ 後台主畫面 ══ -->
 <div id="admin-screen">
 
-  <!-- 頂部列 -->
-  <div class="admin-topbar">
-    <div class="topbar-brand">
-      <div class="topbar-brand-icon">🏫</div>
+  <!-- 側邊欄 -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">🏫</div>
       <div>
-        <div class="topbar-brand-name">上學趣 教師後台</div>
-        <div class="topbar-brand-sub">國字學習管理系統</div>
+        <div class="sidebar-brand-name">上學趣</div>
+        <div class="sidebar-brand-sub">教師後台</div>
       </div>
     </div>
-    <div class="topbar-right">
-      <span style="font-size:.82rem;font-weight:700;color:var(--muted)" id="last-update"></span>
-      <span style="font-size:.78rem;font-weight:600;color:var(--muted)" id="teacher-email-display"></span>
-      <button class="btn-logout" onclick="doLogout()">登出</button>
+    <nav class="sidebar-nav">
+      <button class="admin-tab active" id="tab-classes" onclick="switchTab('classes')">🏫 班級管理</button>
+      <button class="admin-tab" id="tab-quiz" onclick="switchTab('quiz')">📝 語文練習</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-label">登入身份</div>
+        <div id="teacher-email-display" class="sidebar-user-email"></div>
+        <div id="last-update" class="sidebar-last-update"></div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">🚪 登出</button>
     </div>
-  </div>
+  </aside>
 
+  <!-- 主內容 -->
+  <main class="admin-content">
   <div class="admin-main">
-
-    <!-- 分頁 -->
-    <div class="admin-tabs">
-      <button class="admin-tab active" id="tab-classes"    onclick="switchTab('classes')">🏫 班級管理</button>
-      <button class="admin-tab"        id="tab-quiz"       onclick="switchTab('quiz')">📝 語文練習</button>
-    </div>
 
     <!-- 班級管理 -->
     <div id="panel-classes">
@@ -250,6 +253,8 @@
     </div>
 
   </div>
+
+  </main>
 </div>
 
 <!-- 分享班級 Modal -->
