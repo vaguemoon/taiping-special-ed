@@ -7,7 +7,10 @@
       "Bash(xargs ls *)",
       "Bash(firebase --version)",
       "Bash(python -c ' *)",
-      "Bash(awk '{print $1}')"
+      "Bash(awk '{print $1}')",
+      "Bash(ls -la /d/github/QuEDU/chinese-quiz/*.html)",
+      "Bash(xargs grep *)",
+      "Bash(find /d/github/QuEDU -type f \\\\\\( -name \"*.js\" -o -name \"*.html\" \\\\\\) -exec grep -l \"deleteQuizSession\\\\|sharedQuizSessions.*delete\\\\|cascade\" {} \\\\;)"
     ]
   }
 }

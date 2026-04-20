@@ -391,11 +391,22 @@ function closeQuizSession(id) {
     .catch(function(e) { showToast('❌ ' + e.message); });
 }
 
-function deleteQuizSession(id) {
+async function deleteQuizSession(id) {
   if (!confirm('確定刪除此測驗記錄？此操作無法復原。')) return;
-  db.collection('quizSessions').doc(id).delete()
-    .then(function() { showToast('已刪除'); loadQuizSessions(); })
-    .catch(function(e) { showToast('❌ ' + e.message); });
+  try {
+    // 先找出所有已分享此測驗的班級，一併刪除子集合紀錄
+    var sharedClassIds = await _getSessionSharedClasses(id);
+    var batch = db.batch();
+    sharedClassIds.forEach(function(classId) {
+      batch.delete(db.collection('classes').doc(classId).collection('sharedQuizSessions').doc(id));
+    });
+    batch.delete(db.collection('quizSessions').doc(id));
+    await batch.commit();
+    showToast('已刪除');
+    loadQuizSessions();
+  } catch(e) {
+    showToast('❌ ' + e.message);
+  }
 }
 
 /* ════════════════════════════════════════

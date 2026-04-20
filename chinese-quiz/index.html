@@ -108,9 +108,15 @@ async function initStudentMode() {
   try {
     var snap = await db.collection('classes')
       .doc(studentClassId).collection('sharedQuizSessions').get();
-    var sessions = snap.docs.map(function(d) {
+
+    // 逐一確認 quizSessions 主文件仍存在且為進行中，過濾已刪除/已關閉的試卷
+    var results = await Promise.all(snap.docs.map(async function(d) {
+      var qs = await db.collection('quizSessions').doc(d.id).get();
+      if (!qs.exists || qs.data().active === false) return null;
       return Object.assign({ sessionId: d.id }, d.data());
-    });
+    }));
+
+    var sessions = results.filter(function(s) { return s !== null; });
     renderSharedList(sessions);
   } catch(e) {
     showStep('offline');

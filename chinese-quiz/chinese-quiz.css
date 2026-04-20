@@ -119,6 +119,10 @@ body {
   border-radius: 10px;
   padding: 12px 14px;
   margin-bottom: 14px;
+  position: sticky;
+  top: 52px;   /* topbar 高度 ~44px + 8px 間距 */
+  z-index: 10;
+  box-shadow: 0 3px 10px var(--shadow);
 }
 .pool-label {
   font-size: .74rem;
