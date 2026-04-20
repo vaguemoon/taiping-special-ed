@@ -283,6 +283,7 @@ function onPracticeResult(correct) {
 
   if (correct) {
     practiceStreak++;
+    if (practiceStreak > maxStreak) maxStreak = practiceStreak;
     practiceCorrect++;
     totalCorrect++;
     sfxCorrect();
@@ -364,7 +365,6 @@ function onPracticeFillSubmit() {
 function initExamSelect() {
   renderExamTableChips();
   updateToggleExamBtn();
-  setExamType(examType);
   setExamTimer(examTimerSec);
 }
 
@@ -409,14 +409,6 @@ function updateToggleExamBtn() {
   var allSelected = examSelectedTables_temp.length === 11;
   btn.textContent = allSelected ? '全不選' : '全選';
   btn.classList.toggle('toggle-all-on', allSelected);
-}
-
-function setExamType(type) {
-  examType = type;
-  ['fill', 'reverse'].forEach(function(t) {
-    var btn = document.getElementById('etype-' + t);
-    if (btn) btn.classList.toggle('active', t === type);
-  });
 }
 
 function setExamTimer(sec) {
@@ -467,6 +459,7 @@ function loadExamQuestion() {
   if (nextBtn) nextBtn.classList.add('hidden');
   if (examPool.length === 0) { showRoundSummary(); return; }
   examQ = examPool[0];
+  examQ.type = Math.random() < 0.5 ? 'fill' : 'reverse';
   enableExamInput();
   renderExamQuestion();
   startExamCountdown();
@@ -494,7 +487,7 @@ function renderExamQuestion() {
   if (optsEl)  { optsEl.innerHTML = ''; optsEl.style.display = 'none'; }
   if (fillPad) fillPad.style.display = 'none';
 
-  if (examType === 'reverse') {
+  if (q.type === 'reverse') {
     if (qEl) qEl.innerHTML =
       '<span class="q-blank">?</span> × <span class="q-blank">?</span> = <span class="q-product">' + (q.a * q.b) + '</span>';
     if (optsEl) { optsEl.style.display = ''; renderReverseOptions('exam-options', q, true); }
@@ -590,7 +583,7 @@ function showExamAnswer() {
   var q   = examQ;
   var qEl = document.getElementById('exam-question');
   if (!qEl) return;
-  if (examType === 'reverse') {
+  if (q.type === 'reverse') {
     qEl.innerHTML = '<span class="q-correct-pair">' + q.a + ' × ' + q.b + '</span>' +
       ' = <span class="q-product">' + (q.a * q.b) + '</span>';
   } else {
@@ -708,10 +701,10 @@ function onExamComplete() {
     }
     if (allDone) {
       var tStr = String(t);
-      if (examType === 'fill'    && masteredFill.indexOf(tStr)    === -1) masteredFill.push(tStr);
-      if (examType === 'reverse' && masteredReverse.indexOf(tStr) === -1) masteredReverse.push(tStr);
+      if (masteredMixed.indexOf(tStr) === -1) masteredMixed.push(tStr);
     }
   });
+  examCompletedCount++;
   saveProgress();
   if (typeof checkAchievements === 'function') checkAchievements();
 }
@@ -725,12 +718,11 @@ function showExamFinalResult() {
   if (titleEl) titleEl.textContent = '全部完成！🎉';
   if (subEl)   subEl.textContent   = '共 ' + total + ' 題，歷經 ' + examRound + ' 輪全數答對！';
   if (badgeEl) {
-    var arr = examType === 'fill' ? masteredFill : masteredReverse;
     var newTables = examSelectedTables.filter(function(t) {
-      return arr.indexOf(String(t)) !== -1;
+      return masteredMixed.indexOf(String(t)) !== -1;
     });
     badgeEl.innerHTML = newTables.length
-      ? '<div class="result-badge">' + (examType === 'fill' ? '✏️ 填空精熟：' : '🔍 拆解精熟：') +
+      ? '<div class="result-badge">🏅 混合精熟：' +
         newTables.map(function(t){ return t + ' 的乘法'; }).join('、') + '</div>'
       : '';
   }
