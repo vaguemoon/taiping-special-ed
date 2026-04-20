@@ -489,7 +489,7 @@ function deleteLessonQuestions(key) {
   var label = info.grade + '　第 ' + info.lesson + ' 課' +
               (info.lessonName ? '　' + info.lessonName : '');
 
-  if (!confirm('確定要刪除「' + label + '」的所有題目嗎？\n\n此操作無法復原。')) return;
+  if (!confirm('確定要刪除「' + label + '」的所有題目嗎？\n\n使用這些題目建立的測驗場次也會同步關閉，學生將看不到這份試卷。\n\n此操作無法復原。')) return;
   if (!db) { showToast('Firebase 未就緒'); return; }
 
   db.collection('questions')
@@ -513,8 +513,47 @@ function deleteLessonQuestions(key) {
       return Promise.all(batches.map(function(b) { return b.commit(); }))
         .then(function() {
           showToast('✅ 已刪除「' + label + '」共 ' + toDelete.length + ' 題');
+          // 同步關閉所有使用這課次的測驗場次，確保學生看不到題目已刪除的試卷
+          return _deactivateSessionsForLesson(info.grade, info.lesson);
+        })
+        .then(function() {
           loadQuizBankStats();
         });
     })
     .catch(function(e) { showToast('❌ 刪除失敗：' + e.message); });
+}
+
+/**
+ * 刪除題庫課次後，同步將所有使用該課次的測驗場次標記為 active:false
+ * 確保學生端看不到題目已刪除的試卷
+ * @param {string} grade  年級（如「三上」）
+ * @param {string} lesson 課次（如「五」）
+ */
+function _deactivateSessionsForLesson(grade, lesson) {
+  if (!db || !currentTeacher) return Promise.resolve();
+  return db.collection('quizSessions')
+    .where('teacherUid', '==', currentTeacher.uid)
+    .where('grade', '==', grade)
+    .get()
+    .then(function(snap) {
+      var toClose = snap.docs.filter(function(doc) {
+        var d = doc.data();
+        return d.lesson === lesson && d.active !== false;
+      });
+      if (!toClose.length) return;
+      var batch = db.batch();
+      toClose.forEach(function(doc) {
+        batch.update(doc.ref, { active: false });
+      });
+      return batch.commit().then(function() {
+        if (toClose.length > 0) {
+          showToast('📋 相關測驗場次（' + toClose.length + ' 個）已同步關閉');
+        }
+        // 若目前測驗列表已渲染，一併刷新
+        if (typeof loadQuizSessions === 'function') loadQuizSessions();
+      });
+    })
+    .catch(function(e) {
+      console.warn('_deactivateSessionsForLesson error:', e);
+    });
 }

@@ -170,7 +170,13 @@ function speakText(text) {
 function speakQuestion(qIdx) {
   if (!window.speechSynthesis) { showToast('此裝置不支援朗讀功能'); return; }
   window.speechSynthesis.cancel();
-  var text  = quizData[qIdx].question;
+  var q    = quizData[qIdx];
+  var text = q.question;
+  /* 詞語填空：有填入答案時，把空格替換成答案後整句朗讀 */
+  if (q.type === '詞語填空' && blanks[qIdx]) {
+    _speak(text.replace(/[（(][^）)]*[）)]/, blanks[qIdx]), null);
+    return;
+  }
   var parts = text.split(/[（(][^）)]*[）)]/);   /* split at blank markers（全形或半形括號） */
   parts.length === 1 ? _speak(text, null) : _speakParts(parts, 0);
 }
