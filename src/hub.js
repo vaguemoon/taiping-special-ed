@@ -16,7 +16,7 @@ var SUBJECTS = [
   {
     id: 'chinese', file: 'chinese/index.html',
     icon: '國', name: '練字趣', desc: '國小國字筆順學習',
-    type: 'learn',
+    type: 'learn', category: 'chinese',
     theme: 'theme-blue', badge: '練字LV1', badgeClass: 'green',
     // 等級：讀自練字趣成就系統寫入的 stats/profile.title
     getLevel: function(sid) {
@@ -38,7 +38,7 @@ var SUBJECTS = [
   {
     id: 'multiply', file: 'multiply/index.html',
     icon: '✖️', name: '乘法趣', desc: '0 到 10 的乘法練習',
-    type: 'learn',
+    type: 'learn', category: 'math',
     theme: 'theme-orange', badge: '乘法LV1', badgeClass: 'green',
     // 等級：讀自乘法趣成就系統寫入的 stats/multiplyProfile.title
     getLevel: function(sid) {
@@ -70,6 +70,36 @@ var SUBJECTS = [
         .then(function(snap) {
           if (snap.empty) return null;
           return { sub: '已使用 ' + snap.size + ' 次', score: snap.size + ' 次' };
+        });
+    }
+  },
+  {
+    id: 'recognize', file: 'recognize/index.html',
+    icon: '🔊', name: '認字趣', desc: '聽音辨字・選字選詞',
+    type: 'learn', category: 'chinese',
+    theme: 'theme-teal', badge: '認字LV1', badgeClass: 'green',
+    getLevel: function(sid) {
+      return db.collection('students').doc(sid).collection('progress').doc('recognize').get()
+        .then(function(doc) {
+          if (!doc.exists) return '認字LV1';
+          var cs = doc.data().charStatus || {};
+          var ws = doc.data().wordStatus || {};
+          var m = Object.values(cs).concat(Object.values(ws)).filter(function(v){ return v === 'mastered'; }).length;
+          if (m >= 100) return '認字LV5';
+          if (m >= 50)  return '認字LV4';
+          if (m >= 20)  return '認字LV3';
+          if (m >= 5)   return '認字LV2';
+          return '認字LV1';
+        }).catch(function(){ return '認字LV1'; });
+    },
+    activity: function(sid) {
+      return db.collection('students').doc(sid).collection('progress').doc('recognize').get()
+        .then(function(doc) {
+          if (!doc.exists) return null;
+          var cs = doc.data().charStatus || {};
+          var ws = doc.data().wordStatus || {};
+          var m = Object.values(cs).concat(Object.values(ws)).filter(function(v){ return v === 'mastered'; }).length;
+          return m ? { sub: '精熟 ' + m + ' 字詞', score: m + ' 字詞' } : null;
         });
     }
   },
@@ -128,9 +158,21 @@ function renderHub() {
   var learnSubjects = SUBJECTS.filter(function(s) { return s.type !== 'quiz'; });
   var quizSubjects  = SUBJECTS.filter(function(s) { return s.type === 'quiz'; });
 
+  // 學習區分國語／數學兩個區塊
   var learnGrid = document.getElementById('subjects-grid');
-  learnGrid.style.gridTemplateColumns = learnSubjects.length === 1 ? '1fr' : '1fr 1fr';
-  learnGrid.innerHTML = _renderSubjectCards(learnSubjects);
+  learnGrid.style.gridTemplateColumns = ''; // 由子 grid 自行控制
+  var groups = [
+    { key: 'chinese', label: '📖 國語' },
+    { key: 'math',    label: '🔢 數學' }
+  ];
+  learnGrid.innerHTML = groups.map(function(g) {
+    var subs = learnSubjects.filter(function(s) { return s.category === g.key; });
+    if (!subs.length) return '';
+    return '<div class="hub-subject-group">' +
+      '<div class="hub-group-title">' + g.label + '</div>' +
+      '<div class="subjects-grid" style="grid-template-columns:repeat(2,1fr)">' +
+      _renderSubjectCards(subs) + '</div></div>';
+  }).join('');
 
   var quizGrid = document.getElementById('quiz-grid');
   quizGrid.style.gridTemplateColumns = quizSubjects.length === 1 ? '1fr' : '1fr 1fr';
@@ -213,6 +255,7 @@ function returnToHub() {
 function loadActivity() {
   if (!db || !currentStudent) return;
   var list = document.getElementById('activity-list');
+  if (!list) return;
   list.innerHTML = '<div class="activity-empty">載入中…</div>';
   Promise.all(SUBJECTS.map(function(s) {
     return s.activity(currentStudent.id)
@@ -399,8 +442,8 @@ function saveProfile() {
 
 window.addEventListener('message', function(e) {
   if (!e.data) return;
-  if (e.data.type === 'hanzi-back-to-hub' || e.data.type === 'multiply-back-to-hub' || e.data.type === 'chinese-quiz-back-to-hub' || e.data.type === 'exam-reader-back-to-hub') returnToHub();
-  else if (e.data.type === 'hanzi-logout' || e.data.type === 'multiply-logout') doLogout();
+  if (e.data.type === 'hanzi-back-to-hub' || e.data.type === 'multiply-back-to-hub' || e.data.type === 'chinese-quiz-back-to-hub' || e.data.type === 'exam-reader-back-to-hub' || e.data.type === 'recognize-back-to-hub') returnToHub();
+  else if (e.data.type === 'hanzi-logout' || e.data.type === 'multiply-logout' || e.data.type === 'recognize-logout') doLogout();
 });
 
 // ── 管理者隱藏入口：連點學校名稱 5 次 ──

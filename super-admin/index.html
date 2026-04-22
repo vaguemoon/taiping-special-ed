@@ -250,6 +250,13 @@
             oninput="updateManualPreview()">
           <div id="manual-chars-preview" style="margin-top:8px;min-height:24px"></div>
         </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:.78rem;font-weight:800;color:var(--muted);display:block;margin-bottom:5px">
+            詞語 <span style="font-weight:600;color:var(--blue)">（選填，認字趣題庫用，以空格或逗號分隔）</span>
+          </label>
+          <input id="manual-words" type="text" placeholder="例如：山水 水火 土木 火山"
+            style="width:100%;border:2px solid var(--border);border-radius:8px;padding:9px 12px;font-size:1rem;font-family:inherit;outline:none">
+        </div>
         <div style="display:flex;gap:10px;align-items:center">
           <button class="btn-save-lesson" onclick="saveManualLesson()">
             <span>💾</span><span>新增課程</span>

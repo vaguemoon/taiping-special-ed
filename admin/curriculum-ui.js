@@ -170,11 +170,14 @@ function loadVersionContent(vId, vName, container) {
           '<div class="book-grade-body" id="' + gId + '" style="display:none">';
 
         grades[grade].forEach(function(lesson) {
+          var wordsHtml = (lesson.words && lesson.words.length)
+            ? '<div class="lesson-words" style="font-size:.78rem;color:var(--muted);margin-top:3px">詞：' + lesson.words.join('・') + '</div>'
+            : '';
           html +=
             '<div class="lesson-item">' +
               '<div class="lesson-num">第 ' + lesson.lessonNum + ' 課</div>' +
               '<div class="lesson-name">' + lesson.name + '</div>' +
-              '<div class="lesson-chars">' + lesson.chars.join('') + '</div>' +
+              '<div class="lesson-chars">' + lesson.chars.join('') + wordsHtml + '</div>' +
               '<div class="lesson-actions">' +
                 '<button class="btn-tiny" ' +
                   'onclick="deleteLesson(\'' + _escQ(vId) + '\',\'' + _escQ(lesson.id) + '\')">🗑</button>' +
