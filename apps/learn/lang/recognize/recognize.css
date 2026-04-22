@@ -96,14 +96,16 @@
 .progress-seg.new       { background: var(--border); }
 .progress-counts { font-size: .75rem; font-weight: 700; color: var(--muted); margin-top: 5px; }
 
+/* 字詞列表內容 */
 .menu-body { padding: 14px; }
 .menu-section { margin-bottom: 22px; }
 .menu-section-title {
   font-size: .82rem; font-weight: 900; color: var(--muted);
   margin-bottom: 12px; letter-spacing: .5px;
 }
+/* 字詞卡片列表：使用 grid 或 flex，確保響應式和間距 */
 .menu-item-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 2fr));
   gap: 12px;
 }
 .menu-word-grid { display: flex; flex-wrap: wrap; gap: 12px; }
@@ -111,7 +113,7 @@
 /* 生字卡片 — 放大且可點擊 */
 .menu-item-btn {
   padding: 22px 8px; border-radius: 16px; border: 2.5px solid var(--border);
-  background: var(--white); font-size: 2.4rem; font-weight: 900;
+  background: var(--white); font-size: 4rem; font-weight: 900;
   cursor: pointer; font-family: 'Noto Serif TC', 'LXGW WenKai TC', serif;
   text-align: center; transition: all .12s; position: relative;
   box-shadow: 0 2px 8px rgba(44,100,160,.07);
@@ -182,18 +184,19 @@
            background: var(--orange); padding: 3px 10px; border-radius: 20px; }
 
 .play-btn-wrap { text-align: center; }
+/* 開始練習/測驗的大按鈕，放在題目面板頂部或空白時顯示 */
 .play-btn {
   display: inline-flex; align-items: center; gap: 10px;
   padding: 18px 40px; border: none; border-radius: 50px;
   background: linear-gradient(135deg, var(--blue), var(--blue-dk));
-  color: white; font-size: 1.1rem; font-weight: 900;
+  color: white; font-size: 1.5rem; font-weight: 900;
   cursor: pointer; font-family: inherit;
   box-shadow: 0 6px 20px rgba(74,144,217,.4);
   transition: transform .12s, box-shadow .12s; width: 100%;
   justify-content: center;
 }
 .play-btn:active { transform: scale(.96); box-shadow: 0 3px 10px rgba(74,144,217,.3); }
-.play-btn-icon { font-size: 1.5rem; }
+.play-btn-icon { font-size: 2rem; }
 
 /* ── 選項格（全畫面 2×2，大按鈕） ── */
 .option-grid {
@@ -203,7 +206,7 @@
 .option-btn {
   width: 100%; min-height: 80px; border: 3px solid var(--border);
   border-radius: 20px; background: var(--white);
-  font-size: 2.6rem; font-weight: 900; font-family: 'Noto Serif TC', 'LXGW WenKai TC', serif;
+  font-size: 8rem; font-weight: 900; font-family: 'Noto Serif TC', 'LXGW WenKai TC', serif;
   cursor: pointer; transition: all .12s; letter-spacing: 2px;
   text-align: center; display: flex; align-items: center; justify-content: center;
   box-shadow: 0 3px 10px rgba(44,100,160,.07);
@@ -230,25 +233,30 @@
 #page-exam-round-result, #page-practice-result, #page-exam-result {
   padding: 60px 14px 24px;
 }
+/* 結算面板：包含圖示、標題、副標題、詳細資訊等，置中排列 */
 .round-panel, .result-panel {
   max-width: 100%; display: flex; flex-direction: column; align-items: center;
   gap: 18px; padding: 8px 0;
 }
 .round-icon, .result-icon { font-size: 3.5rem; animation: popIn .4s ease; }
-.round-title, .result-title { font-size: 1.4rem; font-weight: 900; color: var(--text); }
-.round-sub, .result-sub { font-size: 1rem; font-weight: 800; color: var(--muted); text-align: center; }
+.round-title, .result-title { font-size: 3rem; font-weight: 900; color: var(--text); }
+.round-sub, .result-sub { font-size: 2rem; font-weight: 800; color: var(--muted); text-align: center; }
+/* 顯示每輪的詳細資訊，如「本輪答對 3/5 題」，或「平均答對率 80%」等 */
 .result-detail { font-size: .85rem; font-weight: 700; color: var(--muted); text-align: center; }
-
+/* 每輪結算的詳細資訊區塊，包含標題和多個資訊項目，使用 flex 或 grid 排列 */
 .round-sections { width: 100%; display: flex; flex-direction: column; gap: 14px; }
 .round-section { background: var(--white); border-radius: 16px; padding: 14px 16px; width: 100%; }
-.round-section-title { font-size: .82rem; font-weight: 900; margin-bottom: 10px; }
+.round-section-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 10px; }
 .round-pass-title { color: #1e8449; }
 .round-fail-title { color: var(--red); }
 .round-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+/* 圓形標籤，用於顯示每個字詞的狀態，如「已掌握」「需加強」等，根據狀態使用不同顏色 */
 .round-chip {
-  padding: 8px 14px; border-radius: 12px; font-size: 1.2rem;
+  padding: 8px 14px; border-radius: 12px; font-size: 2rem;
   font-weight: 900; font-family: 'Noto Serif TC', 'LXGW WenKai TC', serif;
+  cursor: pointer; transition: transform .1s;
 }
+.round-chip:active { transform: scale(.92); }
 .round-pass { background: #f0fbf5; color: #1e8449; border: 2px solid var(--green); }
 .round-fail { background: #fff0f0; color: var(--red);  border: 2px solid var(--red); }
 

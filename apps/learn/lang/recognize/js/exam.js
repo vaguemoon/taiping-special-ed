@@ -120,13 +120,13 @@ function renderRoundResult() {
   if (passGrid && passSec) {
     passSec.style.display = passItems.length ? '' : 'none';
     passGrid.innerHTML = passItems.map(function(q) {
-      return '<span class="round-chip round-pass">' + q.answer + '</span>';
+      return '<span class="round-chip round-pass" onclick="speakText(\'' + q.answer + '\')">' + q.answer + '</span>';
     }).join('');
   }
   if (failGrid && failSec) {
     failSec.style.display = failed.length ? '' : 'none';
     failGrid.innerHTML = failed.map(function(q) {
-      return '<span class="round-chip round-fail">' + q.answer + '</span>';
+      return '<span class="round-chip round-fail" onclick="speakText(\'' + q.answer + '\')">' + q.answer + '</span>';
     }).join('');
   }
 

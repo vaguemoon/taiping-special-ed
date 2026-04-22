@@ -82,12 +82,12 @@ function buildAllQuestions() {
   var chars = lesson.chars || [];
   var words = lesson.words || [];
 
-  var charQs = chars.map(function(c) {
+  var charQs = shuffle(chars.map(function(c) {
     return { type: 'char', answer: c, options: buildOptions(c, chars, gradePool.chars) };
-  });
-  var wordQs = words.map(function(w) {
+  }));
+  var wordQs = shuffle(words.map(function(w) {
     return { type: 'word', answer: w, options: buildOptions(w, words, gradePool.words) };
-  });
+  }));
 
   // 交叉排列：1字、1詞、1字、1詞…
   var questions = [];

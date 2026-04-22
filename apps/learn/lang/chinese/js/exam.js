@@ -125,7 +125,7 @@ function playExamVoice() {
   sfxTap();
   var btn = document.getElementById('btn-exam-voice');
   if (btn) btn.classList.add('playing');
-  speakChar(char);
+  speakChar(char, true);
   setTimeout(function() {
     var b = document.getElementById('btn-exam-voice');
     if (b) b.classList.remove('playing');
