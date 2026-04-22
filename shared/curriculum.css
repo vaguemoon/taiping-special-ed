@@ -8,7 +8,7 @@
   padding: 60px 14px 24px;
   display: flex; flex-direction: column; justify-content: center; min-height: 100%;
 }
-.curr-step { width: 100%; }
+.curr-step { width: 100%; max-width: 720px; margin-left: auto; margin-right: auto; }
 .curr-step-title {
   font-size: 2rem; font-weight: 900; color: var(--blue-dk);
   margin: 8px 0 16px; padding: 0 4px; text-align: center;
