@@ -68,10 +68,15 @@ window.addEventListener('load', function() {
           masteredFill       = pData.masteredFill       || [];
           masteredReverse    = pData.masteredReverse    || [];
           masteredMixed      = pData.masteredMixed      || [];
+          masteredBest       = pData.masteredBest       || {};
           totalCorrect       = pData.totalCorrect       || 0;
           totalAttempts      = pData.totalAttempts      || 0;
           maxStreak          = pData.maxStreak          || 0;
           examCompletedCount = pData.examCompletedCount || 0;
+          // 向後相容：舊 masteredMixed 資料視為 8 秒通過
+          masteredMixed.forEach(function(t) {
+            if (!masteredBest.hasOwnProperty(t)) masteredBest[t] = 8;
+          });
 
           showToast('👋 歡迎 ' + (currentStudent.nickname || currentStudent.name) + '！');
 

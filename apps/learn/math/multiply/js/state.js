@@ -39,6 +39,7 @@ var fillInputStr = '';
 var masteredFill    = [];  // 已完成填空測驗的乘數（保留供舊資料相容）
 var masteredReverse = [];  // 已完成拆解測驗的乘數（保留供舊資料相容）
 var masteredMixed   = [];  // 已完成混合測驗的乘數 ['0','3','5'...]
+var masteredBest    = {};  // 各乘法表最快通過秒數 { '3': 5, '7': 3, ... }
 var totalCorrect    = 0;
 var totalAttempts   = 0;
 var maxStreak       = 0;   // 練習模式歷史最高連勝
@@ -56,6 +57,7 @@ function saveProgress() {
       masteredFill:        masteredFill,
       masteredReverse:     masteredReverse,
       masteredMixed:       masteredMixed,
+      masteredBest:        masteredBest,
       totalCorrect:        totalCorrect,
       totalAttempts:       totalAttempts,
       maxStreak:           maxStreak,

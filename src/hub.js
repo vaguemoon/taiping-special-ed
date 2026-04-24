@@ -459,43 +459,25 @@ window.addEventListener('message', function(e) {
   });
 })();
 
-// ── 系統設定（維護模式 / 公告） ──
-
-function checkSiteSettings() {
-  if (!db) { setTimeout(checkSiteSettings, 400); return; }
-  db.collection('siteSettings').doc('main').get()
-    .then(function(doc) {
-      if (!doc.exists) return;
-      var data = doc.data();
-      if (data.maintenanceMode) {
-        var overlay = document.getElementById('maintenance-overlay');
-        if (overlay) overlay.style.display = 'flex';
-      }
-      if (data.announcement && data.announcement.trim()) {
-        var banner = document.getElementById('announcement-banner');
-        var text   = document.getElementById('announcement-text');
-        if (banner && text) {
-          text.textContent = data.announcement.trim();
-          banner.style.display = 'flex';
-        }
-      }
-    })
-    .catch(function() {});
-}
-
 // ── 啟動 ──
 
 window.addEventListener('load', function() {
-  initFirebase(); applyTheme(currentTheme);
-  checkSiteSettings();
+  var saved = sessionStorage.getItem('hub_student');
+  if (!saved) { window.location.href = 'login.html'; return; }
   try {
-    var saved = sessionStorage.getItem('hub_student');
-    if (saved) {
-      var student = JSON.parse(saved);
-      currentStudent = student; selectedAvatar = student.avatar || '🐣';
-      currentPanel = 'login';
-      renderHub(); showPanel('hub');
-      (function waitDb() { if (!db) { setTimeout(waitDb, 200); return; } loadActivity(); })();
-    }
-  } catch (e) {}
+    var student = JSON.parse(saved);
+    currentStudent = student;
+    selectedAvatar = student.avatar || '🐣';
+  } catch(e) { window.location.href = 'login.html'; return; }
+
+  currentPanel = 'hub';
+  renderHub();
+
+  var welcome = sessionStorage.getItem('hub_welcome');
+  if (welcome) {
+    sessionStorage.removeItem('hub_welcome');
+    setTimeout(function() { showToast(welcome); }, 200);
+  }
+
+  (function waitDb() { if (!db) { setTimeout(waitDb, 200); return; } loadActivity(); })();
 });

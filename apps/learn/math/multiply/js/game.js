@@ -139,13 +139,21 @@ function initPracticeSelect() {
   updatePracticePairCount();
 }
 
+function getMasteredClass(tableNum) {
+  var level = masteredBest[String(tableNum)];
+  if (level === 3) return ' mastered-3';
+  if (level === 5) return ' mastered-5';
+  if (level === 8) return ' mastered-8';
+  return '';
+}
+
 function renderFactorChips(containerId, selectedArr) {
   var el = document.getElementById(containerId);
   if (!el) return;
   var html = '';
   for (var i = 0; i <= 10; i++) {
     var active = selectedArr.indexOf(i) !== -1;
-    html += '<button class="factor-chip' + (active ? ' active' : '') +
+    html += '<button class="factor-chip' + (active ? ' active' : '') + getMasteredClass(i) +
       '" onclick="toggleFactor(\'' + containerId + '\',' + i + ')">' + i + '</button>';
   }
   el.innerHTML = html;
@@ -374,7 +382,7 @@ function renderExamTableChips() {
   var html = '';
   for (var i = 0; i <= 10; i++) {
     var active = examSelectedTables_temp.indexOf(i) !== -1;
-    html += '<button class="factor-chip' + (active ? ' active' : '') +
+    html += '<button class="factor-chip' + (active ? ' active' : '') + getMasteredClass(i) +
       '" onclick="toggleExamTable(' + i + ')">' + i + '</button>';
   }
   el.innerHTML = html;
@@ -413,7 +421,7 @@ function updateToggleExamBtn() {
 
 function setExamTimer(sec) {
   examTimerSec = sec;
-  [5, 8, 10].forEach(function(s) {
+  [3, 5, 8].forEach(function(s) {
     var btn = document.getElementById('etimer-' + s);
     if (btn) btn.classList.toggle('active', s === sec);
   });
@@ -702,6 +710,10 @@ function onExamComplete() {
     if (allDone) {
       var tStr = String(t);
       if (masteredMixed.indexOf(tStr) === -1) masteredMixed.push(tStr);
+      // 只保留最快紀錄（數字越小越好）
+      if (!masteredBest.hasOwnProperty(tStr) || examTimerSec < masteredBest[tStr]) {
+        masteredBest[tStr] = examTimerSec;
+      }
     }
   });
   examCompletedCount++;

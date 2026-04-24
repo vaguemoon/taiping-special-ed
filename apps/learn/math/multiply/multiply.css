@@ -122,16 +122,17 @@
 .toggle-all-btn.toggle-all-on {
   background: var(--muted); border-color: var(--muted); color: white;
 }
-
+/* 因為 factor-chip 是固定寬高的，所以 chips-wrap 可以直接用 grid 排列，這樣每行就會自動放 5 個，且間距固定 */
 .chips-wrap {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 8px;
 }
+/* 因為 factor-chip 內部是純數字，且字體又很大，所以可以直接用 text-align: center 來置中，而不需要額外的 flex 或 grid */
 .factor-chip {
   width: 100%; min-height: 48px;
   padding: 10px 4px; border: 2px solid var(--border); border-radius: 12px;
-  background: white; color: var(--muted); font-size: 1.15rem; font-weight: 900;
+  background: white; color: var(--muted); font-size: 2.5rem; font-weight: 900;
   cursor: pointer; font-family: inherit; transition: all .15s; line-height: 1;
   text-align: center;
 }
@@ -139,6 +140,47 @@
   background: var(--blue); border-color: var(--blue-dk); color: white;
   box-shadow: 0 3px 10px rgba(74,144,217,.35);
 }
+/* 8 秒通過 — 精熟（綠色外框） */
+.factor-chip.mastered-8 {
+  outline: 3px solid var(--green);
+  outline-offset: 2px;
+}
+
+/* 5 秒通過 — 快速（金色外框 + 光暈） */
+.factor-chip.mastered-5 {
+  outline: 3px solid #e6b800;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(230,184,0,.15), 0 3px 12px rgba(230,184,0,.35);
+}
+
+/* 3 秒通過 — 閃電（彩虹動態外框 + ⚡角標） */
+@keyframes rainbow-border {
+  0%   { outline-color: #e74c3c; }
+  17%  { outline-color: #e67e22; }
+  33%  { outline-color: #f1c40f; }
+  50%  { outline-color: #27ae60; }
+  67%  { outline-color: #3498db; }
+  83%  { outline-color: #9b59b6; }
+  100% { outline-color: #e74c3c; }
+}
+/* 注意：mastered-3 的樣式需要放在 mastered-5 和 mastered-8 的後面，這樣才能覆蓋前者的外框樣式，確保閃電效果優先顯示 */
+.factor-chip.mastered-3 {
+  position: relative;
+  outline: 3.5px solid #e74c3c;
+  outline-offset: 2px;
+  animation: rainbow-border 1.8s linear infinite;
+  box-shadow: 0 0 10px rgba(231,76,60,.3);
+}
+.factor-chip.mastered-3::after {
+  content: '⚡';
+  position: absolute;
+  top: -9px;
+  right: -7px;
+  font-size: .6rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
 .factor-chip:active { transform: scale(.93); }
 
 .type-btn-group { display: flex; gap: 8px; flex-wrap: wrap; }

@@ -1,8 +1,7 @@
 /**
  * auth.js — 學生 / 教師認證流程
- * 負責：登入、註冊、教師登入 / 註冊、Google 登入、登出
+ * 負責：登入、註冊、教師登入 / 註冊、Google 登入、登出、系統設定檢查
  * 依賴：shared.js（db、auth、initFirebase、applyTheme、showToast）
- *        hub.js（renderHub、showPanel、loadActivity、PANELS）
  */
 'use strict';
 
@@ -10,9 +9,9 @@ var currentStudent = null;
 var loginPin = '';
 var regPin   = '';
 
-// ── 畫面切換 ──
+// ── 畫面切換（index.html: role↔teacher-login；hub.html: hub↔subject） ──
 
-var PANELS = ['role','teacher-login','login','hub','subject','profile'];
+var PANELS = ['role', 'teacher-login', 'hub', 'subject'];
 var currentPanel = 'role';
 
 function showPanel(name) {
@@ -78,7 +77,6 @@ function doLogin() {
       loginPin = ''; updatePinDisplay('pd', ''); return;
     }
     var d = doc.data();
-    // 舊資料只有 classId 字串，自動遷移為 classIds 陣列寫回 Firestore
     if (d.classId && !d.classIds) {
       db.collection('students').doc(name + '_' + loginPin)
         .update({ classIds: [d.classId] })
@@ -92,14 +90,16 @@ function doLogin() {
     document.getElementById('btn-login-ok').disabled = false;
   });
 }
-function onLoginSuccess(student) {
+function onLoginSuccess(student, isNew) {
   currentStudent = student;
   sessionStorage.setItem('hub_student', JSON.stringify(student));
+  sessionStorage.setItem('hub_welcome',
+    (isNew ? '🎉 帳號建立成功！歡迎，' : '👋 歡迎，') +
+    (student.nickname || student.name) + '！');
   db.collection('students').doc(student.id)
     .update({ lastSeen: firebase.firestore.FieldValue.serverTimestamp() })
     .catch(function() {});
-  renderHub(); showPanel('hub'); loadActivity();
-  showToast('👋 歡迎，' + (student.nickname || student.name) + '！');
+  window.location.href = 'hub.html';
 }
 
 // ── 學生註冊 ──
@@ -132,8 +132,7 @@ function doRegister() {
     return db.collection('students').doc(id)
       .set({ name: name, pin: regPin, nickname: '', avatar: '🐣', createdAt: new Date() })
       .then(function() {
-        onLoginSuccess({ id: id, name: name, pin: regPin, nickname: '', avatar: '🐣' });
-        showToast('🎉 帳號建立成功！');
+        onLoginSuccess({ id: id, name: name, pin: regPin, nickname: '', avatar: '🐣' }, true);
       });
   }).catch(function() {
     showToast('建立失敗，請重試');
@@ -225,10 +224,42 @@ function hideLogoutConfirm() { document.getElementById('logout-overlay').classLi
 function doLogout() {
   currentStudent = null; loginPin = ''; regPin = '';
   sessionStorage.removeItem('hub_student');
-  updatePinDisplay('pd', ''); updatePinDisplay('rpd', '');
-  document.getElementById('login-name').value = '';
-  document.getElementById('btn-login-ok').disabled = true;
-  document.getElementById('subject-frame').src = 'about:blank';
-  hideLogoutConfirm(); showPanel('login');
+  sessionStorage.removeItem('hub_welcome');
+  var frame = document.getElementById('subject-frame');
+  if (frame) frame.src = 'about:blank';
+  hideLogoutConfirm();
   showToast('已登出，掰掰！👋');
+  setTimeout(function() { window.location.href = 'login.html'; }, 500);
 }
+
+// ── 系統設定（維護模式 / 公告） ──
+
+function checkSiteSettings() {
+  if (!db) { setTimeout(checkSiteSettings, 400); return; }
+  db.collection('siteSettings').doc('main').get()
+    .then(function(doc) {
+      if (!doc.exists) return;
+      var data = doc.data();
+      if (data.maintenanceMode) {
+        var overlay = document.getElementById('maintenance-overlay');
+        if (overlay) overlay.style.display = 'flex';
+      }
+      if (data.announcement && data.announcement.trim()) {
+        var banner = document.getElementById('announcement-banner');
+        var text   = document.getElementById('announcement-text');
+        if (banner && text) {
+          text.textContent = data.announcement.trim();
+          banner.style.display = 'flex';
+        }
+      }
+    })
+    .catch(function() {});
+}
+
+// ── 啟動 ──
+
+window.addEventListener('load', function() {
+  initFirebase();
+  applyTheme(currentTheme);
+  checkSiteSettings();
+});

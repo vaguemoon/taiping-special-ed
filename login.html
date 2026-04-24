@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#4a90d9">
+<title>上學趣 — 學生登入</title>
+<link rel="manifest" href="/QuEDU/manifest.json">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<link rel="stylesheet" href="shared/shared.css">
+<script>
+(function(){var M={blue:'#eef5fc,#4a90d9,#2d6fa8,#e8f4fd',green:'#edfbf4,#27ae60,#1e8449,#d5f5e3',
+  purple:'#f3f0fc,#8e44ad,#6c3483,#e8daef',orange:'#fff8f0,#e67e22,#ca6f1e,#fdebd0',
+  teal:'#f0fafa,#16a085,#0e6655,#d1f2eb',pink:'#fff0f8,#d63384,#a0255e,#fce4ec'};
+  try{var v=(M[localStorage.getItem('theme')]||M.blue).split(','),r=document.documentElement.style;
+  ['--bg','--blue','--blue-dk','--blue-lt'].forEach(function(k,i){r.setProperty(k,v[i]);});}catch(e){}})();
+</script>
+<link rel="stylesheet" href="src/index.css">
+</head>
+<body>
+<div class="app">
+  <div id="main-content">
+
+    <!-- 學生登入 -->
+    <div class="panel active" id="panel-login">
+      <div class="slogin-wrap">
+        <div class="login-card">
+          <button class="btn-back-role" onclick="window.location.href='index.html'">← 返回</button>
+          <div class="login-school">學生登入</div>
+          <div class="login-title">歡迎<span>回來</span></div>
+
+          <div id="login-form">
+            <label class="login-label">你的名字</label>
+            <input class="login-input" id="login-name" type="text" placeholder="輸入姓名"
+              autocomplete="off" oninput="updateLoginBtn()">
+            <label class="login-label">PIN 碼（4位數字）</label>
+            <div class="pin-display" id="pin-display">
+              <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+              <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+            </div>
+            <div class="pin-pad">
+              <button class="pin-btn" onclick="pinInput('1')">1</button>
+              <button class="pin-btn" onclick="pinInput('2')">2</button>
+              <button class="pin-btn" onclick="pinInput('3')">3</button>
+              <button class="pin-btn" onclick="pinInput('4')">4</button>
+              <button class="pin-btn" onclick="pinInput('5')">5</button>
+              <button class="pin-btn" onclick="pinInput('6')">6</button>
+              <button class="pin-btn" onclick="pinInput('7')">7</button>
+              <button class="pin-btn" onclick="pinInput('8')">8</button>
+              <button class="pin-btn" onclick="pinInput('9')">9</button>
+              <button class="pin-btn pin-btn-del" onclick="pinDelete()">⌫</button>
+              <button class="pin-btn" onclick="pinInput('0')">0</button>
+              <button class="pin-btn pin-btn-ok" id="btn-login-ok" onclick="doLogin()" disabled>✓</button>
+            </div>
+            <div class="login-error" id="login-error">名字或 PIN 碼不正確，請再試一次</div>
+            <div class="login-switch">還沒有帳號？<a onclick="showRegister()">點這裡註冊</a></div>
+          </div>
+
+          <div id="register-form" style="display:none">
+            <label class="login-label">你的名字</label>
+            <input class="login-input" id="reg-name" type="text" placeholder="輸入姓名"
+              autocomplete="off" oninput="updateRegBtn()">
+            <label class="login-label">設定 PIN 碼（4位數字）</label>
+            <div class="pin-display" id="reg-pin-display">
+              <div class="pin-dot" id="rpd0"></div><div class="pin-dot" id="rpd1"></div>
+              <div class="pin-dot" id="rpd2"></div><div class="pin-dot" id="rpd3"></div>
+            </div>
+            <div class="pin-pad">
+              <button class="pin-btn" onclick="regPinInput('1')">1</button>
+              <button class="pin-btn" onclick="regPinInput('2')">2</button>
+              <button class="pin-btn" onclick="regPinInput('3')">3</button>
+              <button class="pin-btn" onclick="regPinInput('4')">4</button>
+              <button class="pin-btn" onclick="regPinInput('5')">5</button>
+              <button class="pin-btn" onclick="regPinInput('6')">6</button>
+              <button class="pin-btn" onclick="regPinInput('7')">7</button>
+              <button class="pin-btn" onclick="regPinInput('8')">8</button>
+              <button class="pin-btn" onclick="regPinInput('9')">9</button>
+              <button class="pin-btn pin-btn-del" onclick="regPinDelete()">⌫</button>
+              <button class="pin-btn" onclick="regPinInput('0')">0</button>
+              <button class="pin-btn pin-btn-ok" id="btn-reg-ok" onclick="doRegister()" disabled>✓</button>
+            </div>
+            <div class="login-error" id="reg-error"></div>
+            <div class="login-switch">已有帳號？<a onclick="showLogin()">點這裡登入</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="shared/shared.js"></script>
+<script src="src/auth.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/QuEDU/sw.js')
+      .catch(function(err) { console.warn('SW 註冊失敗:', err); });
+  });
+}
+</script>
+</body>
+</html>
