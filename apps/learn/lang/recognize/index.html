@@ -86,30 +86,23 @@
   <div class="q-progress-bar-wrap"><div class="q-progress-fill" id="prac-progress-fill"></div></div>
   <div class="q-panel">
     <div class="q-header">
-      <span class="q-num" id="prac-q-num">第 1 題 / 共 ? 題</span>
+      <span class="q-num" id="prac-q-num">已答 0 題</span>
       <span class="q-type" id="prac-q-type">聽音選字</span>
     </div>
-    <div class="play-btn-wrap">
-      <button class="play-btn" onclick="replayPracticeAudio()">
-        <span class="play-btn-icon">🔊</span><span>再聽一次</span>
-      </button>
+    <div id="prac-bar">
+      <div id="prac-bar-left">
+        <span id="prac-bar-stars">
+          <span class="prac-star" id="prac-star-1">★</span>
+          <span class="prac-star" id="prac-star-2">★</span>
+          <span class="prac-star" id="prac-star-3">★</span>
+        </span>
+        <span id="prac-bar-info">再多練習幾題吧！</span>
+      </div>
+      <button id="prac-audio-btn" onclick="replayPracticeAudio()">🔊</button>
     </div>
     <div class="option-grid" id="prac-option-grid"></div>
     <button class="btn-result btn-result-secondary" style="margin-top:4px"
       onclick="showPage('menu')">📋 離開練習</button>
-  </div>
-</div>
-
-<!-- ── 練習結果 ── -->
-<div id="page-practice-result" class="page">
-  <div class="result-panel">
-    <div class="result-icon" id="prac-result-icon">🎉</div>
-    <div class="result-title" id="prac-result-title">練習完成！</div>
-    <div class="result-sub"   id="prac-result-sub"></div>
-    <div class="result-btns">
-      <button class="btn-result btn-result-primary" onclick="startPractice()">🔄 再練一次</button>
-      <button class="btn-result btn-result-secondary" onclick="showPage('menu')">📋 回到字詞列表</button>
-    </div>
   </div>
 </div>
 

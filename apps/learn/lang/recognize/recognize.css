@@ -280,6 +280,46 @@
   color: white; box-shadow: 0 4px 16px rgba(82,201,122,.35);
 }
 
+/* ── 練習精熟度橫條 ── */
+#prac-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--blue-lt); border: 2px solid var(--border);
+  border-radius: 16px; padding: 10px 12px; gap: 8px;
+}
+#prac-bar-left {
+  display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+}
+#prac-bar-stars { display: flex; gap: 1px; flex-shrink: 0; }
+.prac-star {
+  font-size: 1.9rem; color: #c8d4e0; line-height: 1;
+  transition: color .35s, text-shadow .35s, transform .3s;
+  display: inline-block;
+}
+.prac-star.filled {
+  color: #f5c518;
+  text-shadow: 0 0 14px rgba(245,197,24,.65);
+  transform: scale(1.15);
+}
+.prac-star.pop { animation: starPop .4s ease; }
+@keyframes starPop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.55); }
+  100% { transform: scale(1.15); }
+}
+#prac-bar-info {
+  font-size: .8rem; font-weight: 800; color: var(--blue-dk);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#prac-audio-btn {
+  flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%;
+  border: 2px solid var(--border); background: var(--white);
+  font-size: 1.35rem; cursor: pointer; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, transform .12s;
+  box-shadow: 0 2px 6px rgba(44,100,160,.1);
+}
+#prac-audio-btn:active { background: var(--blue-lt); transform: scale(.9); }
+
 /* ── 設定頁 ── */
 #page-settings { padding: 68px 16px 24px; }
 .settings-body { max-width: 100%; }

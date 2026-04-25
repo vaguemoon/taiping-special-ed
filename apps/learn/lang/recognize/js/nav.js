@@ -7,10 +7,9 @@ var PAGE_STACK = [];
 var PAGE_CONFIG = {
   'curriculum':        { title: '🔊 <span>認字趣</span>',    back: false },
   'menu':              { title: '📋 <span>字詞列表</span>',   back: true  },
-  'practice':          { title: '🎯 <span>練習模式</span>',   back: false },
-  'practice-result':   { title: '✅ <span>練習完成</span>',   back: true  },
-  'exam':              { title: '📝 <span>測驗模式</span>',   back: false },
-  'exam-round-result': { title: '📊 <span>本輪結算</span>',   back: false },
+  'practice':          { title: '🎯 <span>練習模式</span>',   back: true  },
+  'exam':              { title: '📝 <span>測驗模式</span>',   back: true  },
+  'exam-round-result': { title: '📊 <span>本輪結算</span>',   back: true  },
   'exam-result':       { title: '🏆 <span>測驗結果</span>',   back: true  },
   'settings':          { title: '⚙️ <span>設定</span>',       back: true  }
 };

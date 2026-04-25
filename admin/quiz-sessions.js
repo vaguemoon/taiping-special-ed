@@ -7,6 +7,10 @@
 var _qsGradeOptions  = [];
 var _qsLessonOptions = {};
 
+/* ── 測驗列表快取（供篩選使用）── */
+var _qsAllSessions = [];
+var _qsAllScoreMap = {};
+
 /* ── 自選測驗狀態 ── */
 var _qsCustomStep       = 1;
 var _qsCustomName       = '';
@@ -87,6 +91,9 @@ function loadQuizSessions() {
     });
 
     if (snap.size === 0) {
+      _qsAllSessions = [];
+      _qsAllScoreMap = {};
+      _qsShowFilterBar(false);
       wrap.innerHTML = '<p style="color:var(--muted);font-size:.88rem;padding:16px 0">尚未建立任何測驗。點擊「＋ 新增測驗」開始出題。</p>';
       return;
     }
@@ -98,107 +105,205 @@ function loadQuizSessions() {
       return (b.data.createdAt || '').localeCompare(a.data.createdAt || '');
     });
 
-    var html = '<div style="display:flex;flex-direction:column;gap:10px">';
-    sessions.forEach(function(s) {
-      var d      = s.data;
-      var active = d.active !== false;
-      var date   = d.createdAt ? d.createdAt.slice(0, 10) : '—';
-      var counts = d.counts || {};
-      var total  = (counts.explain || 0) + (counts.fillIn || 0) + (counts.mc || 0);
-      var borderCol = active ? 'var(--blue)' : 'var(--border)';
-      var bgCol     = active ? 'var(--blue-lt,#eef5fc)' : 'var(--gray-lt)';
-      var nameCol   = active ? 'var(--blue-dk,#2d6fa8)' : 'var(--muted)';
-      var stats     = scoreMap[s.id];
-
-      var typeBadge = d.type === 'custom'
-        ? '<span style="font-size:.65rem;font-weight:800;background:#dbeafe;color:#1d4ed8;' +
-          'border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle">自選</span>'
-        : '<span style="font-size:.65rem;font-weight:800;background:var(--gray-lt);color:var(--muted);' +
-          'border:1px solid var(--border);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle">隨機</span>';
-
-      html += '<div style="border:2px solid ' + borderCol + ';border-radius:12px;padding:14px 16px;background:' + bgCol + '">';
-      html += '<div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">';
-
-      /* Info */
-      html += '<div style="flex:1;min-width:160px">';
-      html += '<div style="font-size:1rem;font-weight:900;color:' + nameCol + '">' + _qsEsc(d.name || '未命名') + typeBadge + '</div>';
-      html += '<div style="font-size:.78rem;font-weight:700;color:var(--muted);margin-top:2px">' +
-        _qsEsc(d.grade || '') + '　第 ' + _qsEsc(d.lesson || '') + ' 課　' + _qsEsc(d.lessonName || '') + '</div>';
-      html += '<div style="font-size:.75rem;color:var(--muted);margin-top:2px">建立：' + date +
-        '　解釋 ' + (counts.explain || 0) + '／填空 ' + (counts.fillIn || 0) + '／選擇 ' + (counts.mc || 0) + '　共 ' + total + ' 題</div>';
-
-      /* 最高成績 + 折疊式學生名單 */
-      if (stats && stats.count > 0) {
-        /* 學生清單，依最高分排序 */
-        var stuList = Object.keys(stats.students).map(function(id) {
-          return stats.students[id];
-        }).sort(function(a, b) { return b.max - a.max; });
-
-        var stuRows = '';
-        stuList.forEach(function(st) {
-          stuRows +=
-            '<div style="display:flex;justify-content:space-between;align-items:center;' +
-            'padding:4px 0;border-bottom:1px solid var(--border)">' +
-              '<span style="font-weight:700;color:var(--text)">' + _qsEsc(st.name) + '</span>' +
-              '<span style="font-weight:900;color:var(--green,#2aab5a);font-size:.88rem">' + st.max + ' 分</span>' +
-            '</div>';
-        });
-
-        html +=
-          '<details style="margin-top:8px;font-size:.75rem"' +
-          ' ontoggle="var t=this.querySelector(\'.qs-toggle-hint\');if(t)t.textContent=this.open?\'▾ 收合\':\'▾ 學生測驗結果\'">' +
-            '<summary style="cursor:pointer;list-style:none;user-select:none;outline:none;' +
-            'display:inline-flex;align-items:center;gap:6px;' +
-            'background:var(--blue-lt,#eef5fc);color:var(--blue-dk,#2d6fa8);' +
-            'border:1.5px solid var(--blue,#5b9dd9);border-radius:7px;' +
-            'padding:5px 12px;font-weight:800;font-size:.78rem;' +
-            'transition:background .15s,color .15s">' +
-              '<span class="qs-toggle-hint">▾ 學生測驗結果</span>' +
-              '<span style="font-size:.72rem;font-weight:600;opacity:.8">（' + stuList.length + ' 人 · 最高 ' + stats.max + ' 分）</span>' +
-            '</summary>' +
-            '<div style="margin-top:8px;background:white;border:1px solid var(--border);border-radius:8px;' +
-            'padding:6px 10px;max-height:200px;overflow-y:auto">' +
-              stuRows +
-            '</div>' +
-          '</details>';
-      } else {
-        html += '<div style="font-size:.75rem;color:var(--muted);margin-top:5px;font-weight:600">尚無作答紀錄</div>';
-      }
-      html += '</div>';
-
-      /* Status badge */
-      if (active) {
-        html += '<span style="font-size:.68rem;font-weight:800;background:var(--green);color:white;border-radius:4px;padding:2px 7px;align-self:flex-start">進行中</span>';
-      } else {
-        html += '<span style="font-size:.68rem;font-weight:800;background:var(--muted);color:white;border-radius:4px;padding:2px 7px;align-self:flex-start">已關閉</span>';
-      }
-      html += '</div>';/* end flex row */
-
-      /* Actions */
-      html += '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">';
-      if (active) {
-        html += '<button onclick="showQuizShareModal(\'' + _qsEscJs(s.id) + '\',\'' + _qsEscJs(d.name || '') + '\')" ' +
-          'style="padding:5px 14px;border:1.5px solid var(--blue);border-radius:7px;background:var(--blue-lt,#eef5fc);' +
-          'font-size:.78rem;font-weight:800;cursor:pointer;font-family:inherit;color:var(--blue-dk,#2d6fa8)">📤 分享給班級</button>';
-        html += '<button onclick="closeQuizSession(\'' + _qsEscJs(s.id) + '\')" ' +
-          'style="padding:5px 14px;border:1.5px solid var(--muted);border-radius:7px;background:white;' +
-          'font-size:.78rem;font-weight:800;cursor:pointer;font-family:inherit;color:var(--muted)">關閉測驗</button>';
-      }
-      html += '<button onclick="deleteQuizSession(\'' + _qsEscJs(s.id) + '\')" ' +
-        'style="padding:5px 14px;border:1.5px solid var(--red);border-radius:7px;background:white;' +
-        'font-size:.78rem;font-weight:800;cursor:pointer;font-family:inherit;color:var(--red)">刪除</button>';
-      html += '</div>';
-      /* 分享狀態徽章（非同步填入） */
-      html += '<div class="qs-share-status" data-session-id="' + s.id + '" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px"></div>';
-
-      html += '</div>';
-    });
-    html += '</div>';
-    wrap.innerHTML = html;
-    _refreshAllShareStatus();
+    _qsAllSessions = sessions;
+    _qsAllScoreMap = scoreMap;
+    _qsShowFilterBar(true);
+    _qsPopulateGradeFilter();
+    _qsRenderList();
   }).catch(function(e) {
     wrap.innerHTML = '<p style="color:var(--red);font-size:.88rem">讀取失敗：' + _qsEsc(e.message) + '</p>';
   });
+}
+
+/* ── 顯示／隱藏篩選列 ── */
+function _qsShowFilterBar(show) {
+  var bar = document.getElementById('qs-filter-bar');
+  if (!bar) return;
+  bar.style.display = show ? 'flex' : 'none';
+}
+
+/* ── 填充年級下拉選單 ── */
+function _qsPopulateGradeFilter() {
+  var sel = document.getElementById('qs-filter-grade');
+  if (!sel) return;
+  var grades = {};
+  _qsAllSessions.forEach(function(s) { if (s.data.grade) grades[s.data.grade] = true; });
+  var currentVal = sel.value;
+  var opts = '<option value="">全部年級</option>';
+  Object.keys(grades).sort().forEach(function(g) {
+    opts += '<option value="' + _qsEsc(g) + '"' + (g === currentVal ? ' selected' : '') + '>' + _qsEsc(g) + '</option>';
+  });
+  sel.innerHTML = opts;
+  _qsPopulateLessonFilter();
+}
+
+/* ── 填充課次下拉選單（依選定年級過濾）── */
+function _qsPopulateLessonFilter() {
+  var sel = document.getElementById('qs-filter-lesson');
+  if (!sel) return;
+  var grade = (document.getElementById('qs-filter-grade') || {}).value || '';
+  var lessons = {};
+  _qsAllSessions.forEach(function(s) {
+    if (s.data.lesson && (!grade || s.data.grade === grade)) {
+      lessons[s.data.lesson] = s.data.lessonName || '';
+    }
+  });
+  var currentVal = sel.value;
+  var keys = Object.keys(lessons).sort(function(a, b) {
+    var na = _qsCnToInt(a), nb = _qsCnToInt(b);
+    if (na !== null && nb !== null) return na - nb;
+    return a.localeCompare(b, 'zh-TW');
+  });
+  var opts = '<option value="">全部課次</option>';
+  keys.forEach(function(l) {
+    var label = '第 ' + l + ' 課' + (lessons[l] ? '　' + lessons[l] : '');
+    opts += '<option value="' + _qsEsc(l) + '"' + (l === currentVal ? ' selected' : '') + '>' + _qsEsc(label) + '</option>';
+  });
+  sel.innerHTML = opts;
+}
+
+/* ── 年級變更：重建課次選單再渲染 ── */
+function _qsFilterGradeChanged() {
+  var lessonSel = document.getElementById('qs-filter-lesson');
+  if (lessonSel) lessonSel.value = '';
+  _qsPopulateLessonFilter();
+  _qsRenderList();
+}
+
+/* ── 篩選變更時呼叫 ── */
+function _qsFilterChanged() {
+  _qsRenderList();
+}
+
+/* ── 依篩選條件渲染列表 ── */
+function _qsRenderList() {
+  var wrap = document.getElementById('qs-list-wrap');
+  if (!wrap) return;
+
+  var filterStatus = (document.getElementById('qs-filter-status') || {}).value || '';
+  var filterGrade  = (document.getElementById('qs-filter-grade')  || {}).value || '';
+  var filterLesson = (document.getElementById('qs-filter-lesson') || {}).value || '';
+  var filterSearch = ((document.getElementById('qs-filter-search') || {}).value || '').trim().toLowerCase();
+
+  var filtered = _qsAllSessions.filter(function(s) {
+    var d      = s.data;
+    var active = d.active !== false;
+    if (filterStatus === 'active' && !active)  return false;
+    if (filterStatus === 'closed' &&  active)  return false;
+    if (filterGrade  && d.grade  !== filterGrade)  return false;
+    if (filterLesson && d.lesson !== filterLesson) return false;
+    if (filterSearch && (d.name || '').toLowerCase().indexOf(filterSearch) === -1) return false;
+    return true;
+  });
+
+  var countEl = document.getElementById('qs-filter-count');
+  if (countEl) {
+    countEl.textContent = filterStatus || filterGrade || filterLesson || filterSearch
+      ? '共 ' + filtered.length + '／' + _qsAllSessions.length + ' 筆'
+      : '共 ' + _qsAllSessions.length + ' 筆';
+  }
+
+  if (!filtered.length) {
+    wrap.innerHTML = '<p style="color:var(--muted);font-size:.88rem;padding:16px 0">沒有符合條件的測驗。</p>';
+    return;
+  }
+
+  var html = '<div style="display:flex;flex-direction:column;gap:10px">';
+  filtered.forEach(function(s) {
+    var d      = s.data;
+    var active = d.active !== false;
+    var date   = d.createdAt ? d.createdAt.slice(0, 10) : '—';
+    var counts = d.counts || {};
+    var total  = (counts.explain || 0) + (counts.fillIn || 0) + (counts.mc || 0);
+    var borderCol = active ? 'var(--blue)' : 'var(--border)';
+    var bgCol     = active ? 'var(--blue-lt,#eef5fc)' : 'var(--gray-lt)';
+    var nameCol   = active ? 'var(--blue-dk,#2d6fa8)' : 'var(--muted)';
+    var stats     = _qsAllScoreMap[s.id];
+
+    var typeBadge = d.type === 'custom'
+      ? '<span style="font-size:.65rem;font-weight:800;background:#dbeafe;color:#1d4ed8;' +
+        'border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle">自選</span>'
+      : '<span style="font-size:.65rem;font-weight:800;background:var(--gray-lt);color:var(--muted);' +
+        'border:1px solid var(--border);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle">隨機</span>';
+
+    html += '<div style="border:2px solid ' + borderCol + ';border-radius:12px;padding:14px 16px;background:' + bgCol + '">';
+    html += '<div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">';
+
+    /* Info */
+    html += '<div style="flex:1;min-width:160px">';
+    html += '<div style="font-size:1rem;font-weight:900;color:' + nameCol + '">' + _qsEsc(d.name || '未命名') + typeBadge + '</div>';
+    html += '<div style="font-size:.78rem;font-weight:700;color:var(--muted);margin-top:2px">' +
+      _qsEsc(d.grade || '') + '　第 ' + _qsEsc(d.lesson || '') + ' 課　' + _qsEsc(d.lessonName || '') + '</div>';
+    html += '<div style="font-size:.75rem;color:var(--muted);margin-top:2px">建立：' + date +
+      '　解釋 ' + (counts.explain || 0) + '／填空 ' + (counts.fillIn || 0) + '／選擇 ' + (counts.mc || 0) + '　共 ' + total + ' 題</div>';
+
+    /* 最高成績 + 折疊式學生名單 */
+    if (stats && stats.count > 0) {
+      var stuList = Object.keys(stats.students).map(function(id) {
+        return stats.students[id];
+      }).sort(function(a, b) { return b.max - a.max; });
+
+      var stuRows = '';
+      stuList.forEach(function(st) {
+        stuRows +=
+          '<div style="display:flex;justify-content:space-between;align-items:center;' +
+          'padding:4px 0;border-bottom:1px solid var(--border)">' +
+            '<span style="font-weight:700;color:var(--text)">' + _qsEsc(st.name) + '</span>' +
+            '<span style="font-weight:900;color:var(--green,#2aab5a);font-size:.88rem">' + st.max + ' 分</span>' +
+          '</div>';
+      });
+
+      html +=
+        '<details style="margin-top:8px;font-size:.75rem"' +
+        ' ontoggle="var t=this.querySelector(\'.qs-toggle-hint\');if(t)t.textContent=this.open?\'▾ 收合\':\'▾ 學生測驗結果\'">' +
+          '<summary style="cursor:pointer;list-style:none;user-select:none;outline:none;' +
+          'display:inline-flex;align-items:center;gap:6px;' +
+          'background:var(--blue-lt,#eef5fc);color:var(--blue-dk,#2d6fa8);' +
+          'border:1.5px solid var(--blue,#5b9dd9);border-radius:7px;' +
+          'padding:5px 12px;font-weight:800;font-size:.78rem;' +
+          'transition:background .15s,color .15s">' +
+            '<span class="qs-toggle-hint">▾ 學生測驗結果</span>' +
+            '<span style="font-size:.72rem;font-weight:600;opacity:.8">（' + stuList.length + ' 人 · 最高 ' + stats.max + ' 分）</span>' +
+          '</summary>' +
+          '<div style="margin-top:8px;background:white;border:1px solid var(--border);border-radius:8px;' +
+          'padding:6px 10px;max-height:200px;overflow-y:auto">' +
+            stuRows +
+          '</div>' +
+        '</details>';
+    } else {
+      html += '<div style="font-size:.75rem;color:var(--muted);margin-top:5px;font-weight:600">尚無作答紀錄</div>';
+    }
+    html += '</div>';
+
+    /* Status badge */
+    if (active) {
+      html += '<span style="font-size:.68rem;font-weight:800;background:var(--green);color:white;border-radius:4px;padding:2px 7px;align-self:flex-start">進行中</span>';
+    } else {
+      html += '<span style="font-size:.68rem;font-weight:800;background:var(--muted);color:white;border-radius:4px;padding:2px 7px;align-self:flex-start">已關閉</span>';
+    }
+    html += '</div>';
+
+    /* Actions */
+    html += '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">';
+    if (active) {
+      html += '<button onclick="showQuizShareModal(\'' + _qsEscJs(s.id) + '\',\'' + _qsEscJs(d.name || '') + '\')" ' +
+        'style="padding:5px 14px;border:1.5px solid var(--blue);border-radius:7px;background:var(--blue-lt,#eef5fc);' +
+        'font-size:.78rem;font-weight:800;cursor:pointer;font-family:inherit;color:var(--blue-dk,#2d6fa8)">📤 分享給班級</button>';
+      html += '<button onclick="closeQuizSession(\'' + _qsEscJs(s.id) + '\')" ' +
+        'style="padding:5px 14px;border:1.5px solid var(--muted);border-radius:7px;background:white;' +
+        'font-size:.78rem;font-weight:800;cursor:pointer;font-family:inherit;color:var(--muted)">關閉測驗</button>';
+    }
+    html += '<button onclick="deleteQuizSession(\'' + _qsEscJs(s.id) + '\')" ' +
+      'style="padding:5px 14px;border:1.5px solid var(--red);border-radius:7px;background:white;' +
+      'font-size:.78rem;font-weight:800;cursor:pointer;font-family:inherit;color:var(--red)">刪除</button>';
+    html += '</div>';
+    html += '<div class="qs-share-status" data-session-id="' + s.id + '" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px"></div>';
+
+    html += '</div>';
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
+  _refreshAllShareStatus();
 }
 
 /* ════════════════════════════════════════

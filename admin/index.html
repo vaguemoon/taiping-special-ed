@@ -214,6 +214,29 @@
             <button class="btn-save-lesson" style="margin-left:auto;padding:8px 16px;font-size:.82rem" onclick="showModeSelectModal()">＋ 新增測驗</button>
             <button class="btn btn-secondary" style="padding:6px 14px;font-size:.78rem" onclick="loadQuizSessions()">重新整理</button>
           </div>
+          <!-- 篩選列 -->
+          <div id="qs-filter-bar" style="display:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0 14px;border-bottom:1.5px solid var(--border);margin-bottom:14px">
+            <select id="qs-filter-status" onchange="_qsFilterChanged()"
+              style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;font-weight:700;font-family:inherit;background:white;cursor:pointer">
+              <option value="">全部狀態</option>
+              <option value="active">進行中</option>
+              <option value="closed">已關閉</option>
+            </select>
+            <select id="qs-filter-grade" onchange="_qsFilterGradeChanged()"
+              style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;font-weight:700;font-family:inherit;background:white;cursor:pointer">
+              <option value="">全部年級</option>
+            </select>
+            <select id="qs-filter-lesson" onchange="_qsFilterChanged()"
+              style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;font-weight:700;font-family:inherit;background:white;cursor:pointer">
+              <option value="">全部課次</option>
+            </select>
+            <div style="flex:1;min-width:160px;position:relative">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.88rem;color:var(--muted);pointer-events:none">🔍</span>
+              <input id="qs-filter-search" type="text" placeholder="搜尋測驗名稱…" oninput="_qsFilterChanged()"
+                style="width:100%;padding:7px 10px 7px 30px;border:1.5px solid var(--border);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;box-sizing:border-box">
+            </div>
+            <span id="qs-filter-count" style="font-size:.78rem;font-weight:700;color:var(--muted);white-space:nowrap"></span>
+          </div>
           <div id="qs-list-wrap">
             <div class="loading-wrap"><div class="spinner"></div></div>
           </div>
