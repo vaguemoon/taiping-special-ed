@@ -36,6 +36,26 @@ var SUBJECTS = [
     }
   },
   {
+    id: 'convert', file: 'apps/learn/math/convert/index.html',
+    icon: '↔', name: '換算趣', desc: '各種單位換算',
+    type: 'learn', category: 'math',
+    theme: 'theme-green', badge: '換算LV1', badgeClass: 'green',
+    getLevel: function(sid) {
+      return db.collection('students').doc(sid).collection('stats').doc('convertProfile').get()
+        .then(function(doc) {
+          return (doc.exists && doc.data().title) ? doc.data().title : '換算LV1';
+        }).catch(function() { return '換算LV1'; });
+    },
+    activity: function(sid) {
+      return db.collection('students').doc(sid).collection('progress').doc('convert').get()
+        .then(function(doc) {
+          if (!doc.exists) return null;
+          var c = doc.data().totalCorrect || 0;
+          return c ? { sub: '累計答對 ' + c + ' 題', score: c + ' 題' } : null;
+        });
+    }
+  },
+  {
     id: 'multiply', file: 'apps/learn/math/multiply/index.html',
     icon: '✖️', name: '乘法趣', desc: '0 到 10 的乘法練習',
     type: 'learn', category: 'math',
@@ -442,7 +462,7 @@ function saveProfile() {
 
 window.addEventListener('message', function(e) {
   if (!e.data) return;
-  if (e.data.type === 'hanzi-back-to-hub' || e.data.type === 'multiply-back-to-hub' || e.data.type === 'chinese-quiz-back-to-hub' || e.data.type === 'exam-reader-back-to-hub' || e.data.type === 'recognize-back-to-hub') returnToHub();
+  if (e.data.type === 'hanzi-back-to-hub' || e.data.type === 'multiply-back-to-hub' || e.data.type === 'chinese-quiz-back-to-hub' || e.data.type === 'exam-reader-back-to-hub' || e.data.type === 'recognize-back-to-hub' || e.data.type === 'convert-back-to-hub') returnToHub();
   else if (e.data.type === 'hanzi-logout' || e.data.type === 'multiply-logout' || e.data.type === 'recognize-logout') doLogout();
 });
 
