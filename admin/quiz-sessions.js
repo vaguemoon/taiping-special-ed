@@ -1021,11 +1021,12 @@ async function showQuizShareModal(sessionId, sessionName) {
   var confirmBtn = document.getElementById('qs-share-confirm-btn');
   if (!modal) return;
 
-  nameEl.textContent   = '《' + sessionName + '》';
-  listEl.innerHTML     = '';
-  loadEl.style.display = 'block';
-  confirmBtn.disabled  = true;
-  modal.style.display  = 'flex';
+  nameEl.textContent    = '《' + sessionName + '》';
+  listEl.innerHTML      = '';
+  loadEl.style.display  = 'block';
+  confirmBtn.disabled   = true;
+  confirmBtn.onclick    = saveQuizShareSettings;
+  modal.style.display   = 'flex';
 
   try {
     var classes   = await _loadClassesForShare();
@@ -1047,6 +1048,7 @@ async function showQuizShareModal(sessionId, sessionName) {
     }).join('');
   } catch(e) {
     loadEl.style.display = 'none';
+    confirmBtn.disabled  = false;
     listEl.innerHTML = '<div style="color:var(--red);font-size:.85rem;padding:8px">載入失敗：' + _qsEsc(e.message) + '</div>';
   }
 }

@@ -1,42 +1,34 @@
 /**
- * exam.js — 測驗模式（兩輪制 + 每輪結算畫面）
- * Round 1 全部題目 → Round 1 結算 → Round 2（答錯的）→ Round 2 結算 → 最終結果
+ * exam.js — 測驗模式（無限輪次，直到全部答對）
  */
 'use strict';
 
-var examRound1   = [];
-var examRound2   = [];
-var examRound    = 1;
-var examIdx      = 0;
-var examCorrect  = 0;
-var examR2Correct= 0;
-var examFailedR1 = [];
-var examFailedR2 = [];
+var examRound1           = [];
+var examCurrentRound     = 1;
+var examCurrentQuestions = [];
+var examCurrentCorrect   = 0;
+var examCurrentFailed    = [];
+var examRoundHistory     = [];
+var examIdx              = 0;
 
 function startExam() {
-  examRound1    = buildAllQuestions();
+  examRound1 = buildAllQuestions();
   if (!examRound1.length) { showToast('這一課沒有題目'); return; }
-  examRound2    = [];
-  examRound     = 1;
-  examIdx       = 0;
-  examCorrect   = 0;
-  examR2Correct = 0;
-  examFailedR1  = [];
-  examFailedR2  = [];
+  examCurrentRound     = 1;
+  examCurrentQuestions = examRound1.slice();
+  examCurrentCorrect   = 0;
+  examCurrentFailed    = [];
+  examRoundHistory     = [];
+  examIdx              = 0;
   showPage('exam');
   renderExamQuestion();
 }
 
-function currentRoundQuestions() {
-  return examRound === 1 ? examRound1 : examRound2;
-}
-
 function renderExamQuestion() {
-  var questions = currentRoundQuestions();
-  var q         = questions[examIdx];
+  var q = examCurrentQuestions[examIdx];
   if (!q) { endExamRound(); return; }
 
-  var total   = questions.length;
+  var total   = examCurrentQuestions.length;
   var numEl   = document.getElementById('exam-q-num');
   var progEl  = document.getElementById('exam-progress-fill');
   var roundEl = document.getElementById('exam-round-label');
@@ -45,7 +37,7 @@ function renderExamQuestion() {
 
   if (numEl)   numEl.textContent   = '第 ' + (examIdx + 1) + ' 題 / 共 ' + total + ' 題';
   if (progEl)  progEl.style.width  = Math.round((examIdx / total) * 100) + '%';
-  if (roundEl) roundEl.textContent = 'Round ' + examRound;
+  if (roundEl) roundEl.textContent = 'Round ' + examCurrentRound;
   if (typeEl)  typeEl.textContent  = q.type === 'char' ? '聽音選字' : '聽音選詞';
 
   if (gridEl) {
@@ -58,47 +50,50 @@ function renderExamQuestion() {
 }
 
 function onExamOption(btn) {
-  var questions = currentRoundQuestions();
-  var q         = questions[examIdx];
-  var chosen    = btn.dataset.value;
-  var allBtns   = document.querySelectorAll('#exam-option-grid .option-btn');
+  var q       = examCurrentQuestions[examIdx];
+  var chosen  = btn.dataset.value;
+  var allBtns = document.querySelectorAll('#exam-option-grid .option-btn');
 
   allBtns.forEach(function(b) { b.disabled = true; });
 
   if (chosen === q.answer) {
     btn.classList.add('correct');
     sfxCorrect();
-    if (examRound === 1) examCorrect++;
-    else examR2Correct++;
+    examCurrentCorrect++;
   } else {
     allBtns.forEach(function(b) {
       if (b.dataset.value === q.answer) b.classList.add('correct');
     });
     btn.classList.add('wrong');
     sfxWrong();
-    if (examRound === 1) examFailedR1.push(q);
-    else examFailedR2.push(q);
+    examCurrentFailed.push(q);
   }
 
   setTimeout(function() { examIdx++; renderExamQuestion(); }, 750);
 }
 
 function replayExamAudio() {
-  var questions = currentRoundQuestions();
-  var q = questions[examIdx];
+  var q = examCurrentQuestions[examIdx];
   if (q) speakText(q.answer);
 }
 
 function endExamRound() {
-  // 顯示本輪結算畫面
+  examRoundHistory.push({
+    round:     examCurrentRound,
+    correct:   examCurrentCorrect,
+    total:     examCurrentQuestions.length,
+    questions: examCurrentQuestions.slice(),
+    failed:    examCurrentFailed.slice()
+  });
   renderRoundResult();
 }
 
 function renderRoundResult() {
-  var questions = currentRoundQuestions();
-  var failed    = examRound === 1 ? examFailedR1 : examFailedR2;
-  var correct   = examRound === 1 ? examCorrect  : examR2Correct;
-  var total     = questions.length;
+  var h        = examRoundHistory[examRoundHistory.length - 1];
+  var failed   = h.failed;
+  var correct  = h.correct;
+  var total    = h.total;
+  var questions = examCurrentQuestions;
 
   var iconEl   = document.getElementById('round-icon');
   var titleEl  = document.getElementById('round-title');
@@ -110,12 +105,10 @@ function renderRoundResult() {
   var nextBtn  = document.getElementById('btn-next-round');
 
   if (iconEl)  iconEl.textContent  = failed.length === 0 ? '🎉' : '📊';
-  if (titleEl) titleEl.textContent = 'Round ' + examRound + ' 結算';
+  if (titleEl) titleEl.textContent = 'Round ' + examCurrentRound + ' 結算';
   if (subEl)   subEl.textContent   = '答對 ' + correct + ' / ' + total + ' 題';
 
-  var passItems = questions.filter(function(q) {
-    return failed.indexOf(q) === -1;
-  });
+  var passItems = questions.filter(function(q) { return failed.indexOf(q) === -1; });
 
   if (passGrid && passSec) {
     passSec.style.display = passItems.length ? '' : 'none';
@@ -130,20 +123,16 @@ function renderRoundResult() {
     }).join('');
   }
 
-  // 按鈕文字
   if (nextBtn) {
-    if (examRound === 1 && failed.length > 0) {
-      nextBtn.textContent = '開始 Round 2 →';
-      nextBtn.style.display = '';
+    if (failed.length > 0) {
+      nextBtn.textContent = '開始 Round ' + (examCurrentRound + 1) + ' →';
     } else {
       nextBtn.textContent = '查看最終結果 →';
-      nextBtn.style.display = '';
     }
   }
 
-  // 全對時慶祝音效
   if (failed.length === 0) {
-    if (examRound === 1) sfxGrandCelebrate();
+    if (examCurrentRound === 1) sfxGrandCelebrate();
     else sfxCelebrate();
   }
 
@@ -151,10 +140,13 @@ function renderRoundResult() {
 }
 
 function startNextRound() {
-  if (examRound === 1 && examFailedR1.length > 0) {
-    examRound2 = examFailedR1.slice();
-    examRound  = 2;
-    examIdx    = 0;
+  if (examCurrentFailed.length > 0) {
+    var nextQuestions    = examCurrentFailed.slice();
+    examCurrentRound++;
+    examCurrentQuestions = nextQuestions;
+    examCurrentCorrect   = 0;
+    examCurrentFailed    = [];
+    examIdx              = 0;
     showPage('exam');
     renderExamQuestion();
   } else {
@@ -163,44 +155,47 @@ function startNextRound() {
 }
 
 function finishExam() {
-  // 更新進度狀態
+  // 建立每題首次答對的輪次對照表
+  var firstPassRound = {};
+  examRoundHistory.forEach(function(h) {
+    h.questions.forEach(function(q) {
+      if (h.failed.indexOf(q) === -1 && !firstPassRound[q.answer]) {
+        firstPassRound[q.answer] = h.round;
+      }
+    });
+  });
+
   examRound1.forEach(function(q) {
-    var passedR1 = examFailedR1.indexOf(q) === -1;
-    var inR2     = examRound2.indexOf(q) !== -1;
-    var passedR2 = inR2 && examFailedR2.indexOf(q) === -1;
-    var statusMap = q.type === 'char' ? charStatus : wordStatus;
-    if (passedR1) {
+    var statusMap  = q.type === 'char' ? charStatus : wordStatus;
+    var roundPassed = firstPassRound[q.answer];
+    if (roundPassed === 1) {
       statusMap[q.answer] = 'mastered';
-    } else if (passedR2) {
+    } else if (roundPassed) {
       if (statusMap[q.answer] !== 'mastered') statusMap[q.answer] = 'practiced';
     }
   });
   saveProgress();
 
-  var r2Total  = examRound2.length;
-  var r2Passed = r2Total - examFailedR2.length;
-  var passed   = examCorrect + r2Passed;
-  var total    = examRound1.length;
-  var pct      = total ? Math.round(passed / total * 100) : 0;
+  var total  = examRound1.length;
+  var rounds = examRoundHistory.length;
 
-  var iconEl  = document.getElementById('exam-result-icon');
-  var titleEl = document.getElementById('exam-result-title');
-  var subEl   = document.getElementById('exam-result-sub');
-  var r1El    = document.getElementById('exam-result-r1');
-  var r2El    = document.getElementById('exam-result-r2');
+  var iconEl   = document.getElementById('exam-result-icon');
+  var titleEl  = document.getElementById('exam-result-title');
+  var subEl    = document.getElementById('exam-result-sub');
+  var roundsEl = document.getElementById('exam-result-rounds');
 
-  if (iconEl)  iconEl.textContent  = pct >= 80 ? '🎉' : pct >= 60 ? '👏' : '💪';
-  if (titleEl) titleEl.textContent = '測驗完成！';
-  if (subEl)   subEl.textContent   = '最終得分 ' + pct + ' 分（' + passed + ' / ' + total + ' 題答對）';
-  if (r1El)    r1El.textContent    = 'Round 1：' + examCorrect + ' / ' + examRound1.length + ' 答對';
-  if (r2El) {
-    r2El.textContent = r2Total ? 'Round 2：' + r2Passed + ' / ' + r2Total + ' 答對' : '';
+  if (iconEl)  iconEl.textContent  = rounds === 1 ? '🏆' : '🎉';
+  if (titleEl) titleEl.textContent = '全部答對！';
+  if (subEl)   subEl.textContent   = '共 ' + total + ' 題，經過 ' + rounds + ' 輪完成';
+  if (roundsEl) {
+    roundsEl.innerHTML = examRoundHistory.map(function(h) {
+      return '<div class="result-detail">Round ' + h.round + '：' + h.correct + ' / ' + h.total + ' 答對</div>';
+    }).join('');
   }
 
   showPage('exam-result');
-  if (pct === 100) sfxGrandCelebrate();
-  else if (pct >= 80) sfxCelebrate();
-  else sfxPass();
+  if (rounds === 1) sfxGrandCelebrate();
+  else sfxCelebrate();
 
   renderMenu();
 }
