@@ -58,6 +58,7 @@
       <button class="admin-tab" id="tab-quiz" onclick="switchTab('quiz')">📝 語文測驗</button>
       <button class="admin-tab" id="tab-math" onclick="switchTab('math')">🔢 數學測驗</button>
       <button class="admin-tab" id="tab-tools" onclick="switchTab('tools')">🎧 教學工具</button>
+      <button class="admin-tab" id="tab-word-image" onclick="switchTab('word-image')">🖼️ 詞語圖庫</button>
     </nav>
     <div class="sidebar-footer">
       <button id="dark-mode-btn" class="btn-dark-toggle" onclick="toggleDarkMode()">🌙 暗色模式</button>
@@ -278,6 +279,13 @@
           <div class="tool-card-arrow">→</div>
         </button>
 
+      </div>
+    </div>
+
+    <!-- ══ 詞語圖庫 ══ -->
+    <div id="panel-word-image" style="display:none">
+      <div id="wi-main">
+        <div class="loading-wrap"><div class="spinner"></div></div>
       </div>
     </div>
 
@@ -518,6 +526,116 @@
   </div>
 </div>
 
+<!-- ══ 詞語圖庫：上傳圖片 Modal ══ -->
+<div id="wi-upload-modal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px">
+  <div style="background:white;border-radius:20px;padding:28px 24px;max-width:520px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,.22)">
+    <div style="font-size:1.05rem;font-weight:900;margin-bottom:18px" id="wi-modal-title">上傳圖片</div>
+
+    <!-- 貼上 / 拖放 / 點擊區域 -->
+    <div id="wi-paste-area" tabindex="0"
+      style="border:3px dashed var(--border);border-radius:14px;min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:border-color .15s;outline:none;margin-bottom:16px;overflow:hidden;position:relative"
+      onpaste="_wiHandlePaste(event)"
+      ondragover="event.preventDefault();this.style.borderColor='var(--blue)'"
+      ondragleave="this.style.borderColor=''"
+      ondrop="_wiHandleDrop(event)"
+      onclick="document.getElementById('wi-file-input').click()">
+      <img id="wi-preview-img" src="" alt=""
+        style="display:none;max-width:100%;max-height:240px;border-radius:8px;object-fit:contain;pointer-events:none">
+      <div id="wi-paste-hint" style="text-align:center;padding:20px;pointer-events:none">
+        <div style="font-size:2.6rem;margin-bottom:10px">📋</div>
+        <div style="font-size:.9rem;font-weight:800;color:var(--muted)">Ctrl+V 貼上截圖或圖片</div>
+        <div style="font-size:.78rem;color:var(--muted);margin-top:5px">也可拖放圖片，或點擊選擇檔案</div>
+      </div>
+    </div>
+    <input type="file" id="wi-file-input" accept="image/*" style="display:none" onchange="_wiFileSelected(this)">
+
+    <div id="wi-size-warn" style="display:none;font-size:.78rem;font-weight:700;color:var(--red,#e53e3e);margin-bottom:10px;line-height:1.5"></div>
+
+    <div style="display:flex;gap:10px">
+      <button onclick="_wiCloseUpload()"
+        style="flex:1;padding:11px;border:2px solid var(--border);border-radius:10px;background:var(--gray-lt);font-family:inherit;font-size:.9rem;font-weight:800;cursor:pointer;color:var(--gray)">
+        取消
+      </button>
+      <button id="wi-confirm-btn" onclick="_wiConfirmUpload()" disabled
+        style="flex:2;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--blue-dk));color:white;font-family:inherit;font-size:.9rem;font-weight:900;cursor:pointer;opacity:.5;transition:opacity .15s">
+        確認上傳
+      </button>
+    </div>
+  </div>
+</div>
+<style>
+#wi-confirm-btn:not(:disabled) { opacity: 1; }
+#wi-confirm-btn:disabled { opacity: .5; cursor: not-allowed; }
+/* ── 詞語圖庫 admin 專屬樣式 ── */
+.wi-btn-grid { display:flex; flex-wrap:wrap; gap:10px; }
+.wi-grade-btn {
+  padding:10px 20px;
+  background:white; border:2px solid var(--border);
+  border-radius:10px; font-family:inherit;
+  font-size:.95rem; font-weight:800; cursor:pointer;
+  transition:all .15s; color:var(--text);
+}
+.wi-grade-btn:hover { border-color:var(--blue); background:var(--blue-lt,#eef5fc); }
+.wi-back-btn {
+  display:inline-flex; align-items:center;
+  padding:7px 14px; margin-bottom:12px;
+  border:1.5px solid var(--border); border-radius:8px;
+  background:white; font-family:inherit;
+  font-size:.82rem; font-weight:800; cursor:pointer;
+  color:var(--muted); transition:all .15s;
+}
+.wi-back-btn:hover { border-color:var(--blue); color:var(--blue); background:var(--blue-lt,#eef5fc); }
+.wi-word-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(160px,1fr));
+  gap:14px;
+}
+.wi-word-card {
+  background:white; border:2px solid var(--border);
+  border-radius:14px; overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.wi-img-wrap {
+  width:100%; aspect-ratio:1; cursor:pointer;
+  position:relative; overflow:hidden;
+}
+.wi-img-wrap img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .2s; }
+.wi-img-wrap:hover img { transform:scale(1.06); }
+.wi-img-overlay {
+  position:absolute; inset:0;
+  background:rgba(0,0,0,.5);
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity .2s; color:white;
+  font-size:.82rem; font-weight:800;
+}
+.wi-img-wrap:hover .wi-img-overlay { opacity:1; }
+.wi-img-empty {
+  width:100%; aspect-ratio:1; cursor:pointer;
+  background:var(--gray-lt,#f5f5f5); border-bottom:2px solid var(--border);
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:8px; transition:background .15s;
+}
+.wi-img-empty:hover { background:var(--blue-lt,#eef5fc); }
+.wi-img-empty-icon { font-size:2rem; }
+.wi-word-label {
+  padding:8px 10px 4px;
+  font-size:.95rem; font-weight:900; color:var(--text);
+}
+.wi-def-label {
+  padding:0 10px 8px;
+  font-size:.72rem; font-weight:600; color:var(--muted);
+  line-height:1.5; flex:1;
+}
+.wi-del-btn {
+  margin:4px 10px 10px; padding:4px 10px;
+  border:1.5px solid var(--red,#e53e3e); border-radius:6px;
+  background:white; color:var(--red,#e53e3e);
+  font-size:.72rem; font-weight:800; cursor:pointer; font-family:inherit;
+  align-self:flex-start; transition:background .15s;
+}
+.wi-del-btn:hover { background:var(--red-lt,#fde8e6); }
+</style>
+
 <div id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -530,6 +648,7 @@
 <script src="quiz-bank.js"></script>
 <script src="quiz-sessions.js"></script>
 <script src="math-quiz.js"></script>
+<script src="word-image.js"></script>
 <script>
 var TOOL_CONFIG = {
   reader: { title: '🎧 報讀工具', src: '../apps/quiz/word-to-reader/index.html' }

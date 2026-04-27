@@ -1,0 +1,327 @@
+/* word-image.css — 詞語趣 app */
+
+:root {
+  --correct:    #27ae60;
+  --correct-lt: #d5f5e3;
+  --wrong:      #e74c3c;
+  --wrong-lt:   #fde8e6;
+}
+
+/* ════════════════════════════
+   頁面骨架
+   ════════════════════════════ */
+.wi-page {
+  position: fixed; inset: 52px 0 0 0;
+  display: none; overflow-y: auto;
+  background: var(--bg);
+}
+.wi-page.active { display: block; }
+
+.wi-page-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+}
+
+.wi-page-title {
+  font-size: 1.05rem; font-weight: 900;
+  color: var(--blue-dk); margin-bottom: 16px;
+}
+
+/* ════════════════════════════
+   年級 / 課次選擇按鈕格
+   ════════════════════════════ */
+.wi-btn-grid {
+  display: flex; flex-wrap: wrap; gap: 12px;
+}
+
+.wi-select-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 14px 22px; min-width: 110px;
+  background: white; border: 2px solid var(--border);
+  border-radius: 16px;
+  font-family: inherit; font-size: 1rem; font-weight: 800; color: var(--text);
+  cursor: pointer; transition: all .15s;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+}
+.wi-select-btn:hover {
+  border-color: var(--blue); background: var(--blue-lt);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 14px rgba(37,99,235,.12);
+}
+.wi-btn-count {
+  font-size: .72rem; font-weight: 700; color: var(--muted);
+}
+
+/* ════════════════════════════
+   模式選擇卡片
+   ════════════════════════════ */
+#mode-lesson-label {
+  font-size: .88rem; font-weight: 700; color: var(--muted); margin-bottom: 18px;
+}
+
+.wi-mode-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px; margin-bottom: 14px;
+}
+@media (max-width: 600px) {
+  .wi-mode-cards { grid-template-columns: 1fr; }
+}
+
+.wi-mode-card {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 30px 16px;
+  background: white; border: 2px solid var(--border);
+  border-radius: 20px;
+  font-family: inherit; cursor: pointer;
+  transition: all .15s;
+  box-shadow: 0 3px 10px rgba(0,0,0,.06);
+}
+.wi-mode-card:hover {
+  border-color: var(--blue); background: var(--blue-lt);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 22px rgba(37,99,235,.15);
+}
+.wi-mode-icon { font-size: 2.4rem; line-height: 1; }
+.wi-mode-name { font-size: 1.05rem; font-weight: 900; color: var(--blue-dk); }
+.wi-mode-desc { font-size: .78rem; font-weight: 600; color: var(--muted); text-align: center; line-height: 1.5; }
+.wi-mode-card.disabled {
+  opacity: .4; cursor: not-allowed; pointer-events: none;
+}
+
+/* ════════════════════════════
+   圖卡瀏覽（Browse）
+   ════════════════════════════ */
+.wi-browse-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+  padding-top: 8px;
+}
+
+.wi-browse-counter {
+  font-size: .85rem; font-weight: 700; color: var(--muted);
+}
+
+/* 翻轉卡片 */
+.wi-flip-card {
+  width: 100%; max-width: 440px; aspect-ratio: 4 / 3;
+  perspective: 1000px; cursor: pointer;
+}
+.wi-flip-inner {
+  width: 100%; height: 100%;
+  position: relative; transform-style: preserve-3d;
+  transition: transform .45s ease;
+}
+.wi-flip-card.flipped .wi-flip-inner { transform: rotateY(180deg); }
+
+.wi-flip-front, .wi-flip-back {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  border-radius: 22px; overflow: hidden;
+  box-shadow: 0 8px 28px rgba(0,0,0,.13);
+}
+
+.wi-flip-front {
+  display: flex; flex-direction: column; background: white;
+}
+.wi-flip-front img {
+  flex: 1; width: 100%; object-fit: cover; display: block;
+}
+.wi-flip-front-label {
+  padding: 12px 16px;
+  font-size: 1.5rem; font-weight: 900; color: var(--blue-dk);
+  text-align: center; background: white;
+  border-top: 1.5px solid var(--border);
+}
+.wi-flip-hint {
+  font-size: .65rem; color: var(--muted); font-weight: 600; margin-top: 2px;
+}
+
+.wi-flip-back {
+  background: linear-gradient(135deg, var(--blue), var(--blue-dk));
+  transform: rotateY(180deg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px; padding: 28px 24px;
+}
+.wi-flip-back-word {
+  font-size: 2.2rem; font-weight: 900; color: white;
+}
+.wi-flip-back-def {
+  font-size: 1rem; font-weight: 700; color: rgba(255,255,255,.92);
+  text-align: center; line-height: 1.7;
+}
+
+/* 翻頁導航 */
+.wi-browse-nav {
+  display: flex; align-items: center; gap: 16px;
+}
+.wi-nav-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid var(--border); background: white;
+  font-size: 1.1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; flex-shrink: 0;
+}
+.wi-nav-btn:hover:not(:disabled) {
+  border-color: var(--blue); background: var(--blue-lt);
+}
+.wi-nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+/* 進度圓點 */
+.wi-prog-dots {
+  display: flex; gap: 7px; flex-wrap: wrap;
+  justify-content: center; max-width: 240px;
+}
+.wi-prog-dot {
+  width: 11px; height: 11px; border-radius: 50%;
+  cursor: pointer; transition: transform .15s;
+}
+.wi-prog-dot:hover    { transform: scale(1.35); }
+.wi-prog-dot.current  { transform: scale(1.5); outline: 2.5px solid var(--blue); outline-offset: 2px; }
+.wi-prog-dot.gray     { background: #d0d7e2; }
+.wi-prog-dot.green    { background: var(--correct); }
+.wi-prog-dot.red      { background: var(--wrong); }
+
+.wi-browse-actions {
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+}
+
+/* ════════════════════════════
+   看圖猜詞（Quiz）
+   ════════════════════════════ */
+.wi-quiz-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+}
+.wi-quiz-progress-bar {
+  width: 100%; max-width: 440px;
+  background: var(--border); border-radius: 4px; height: 6px;
+}
+.wi-quiz-progress-fill {
+  height: 100%; background: var(--blue); border-radius: 4px; transition: width .3s;
+}
+.wi-quiz-img-wrap {
+  width: 100%; max-width: 360px; aspect-ratio: 1;
+  border-radius: 20px; overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0,0,0,.13);
+  background: var(--gray-lt);
+}
+.wi-quiz-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wi-quiz-question {
+  font-size: .95rem; font-weight: 800; color: var(--muted);
+}
+.wi-quiz-opts {
+  width: 100%; max-width: 440px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.wi-quiz-opt {
+  padding: 16px 12px; min-height: 56px;
+  background: white; border: 2.5px solid var(--border);
+  border-radius: 14px;
+  font-family: inherit; font-size: 1.05rem; font-weight: 800; color: var(--text);
+  cursor: pointer; transition: all .15s;
+}
+.wi-quiz-opt:hover:not(:disabled) {
+  border-color: var(--blue); background: var(--blue-lt);
+}
+.wi-quiz-opt.correct {
+  background: var(--correct-lt); border-color: var(--correct); color: var(--correct);
+}
+.wi-quiz-opt.wrong {
+  background: var(--wrong-lt); border-color: var(--wrong); color: var(--wrong);
+}
+.wi-quiz-opt:disabled { cursor: default; }
+
+/* ════════════════════════════
+   配對遊戲（Match）
+   ════════════════════════════ */
+.wi-match-wrap { display: flex; flex-direction: column; gap: 14px; }
+
+.wi-match-header {
+  display: flex; align-items: center; gap: 10px;
+  font-size: .88rem; font-weight: 700; color: var(--muted);
+}
+.wi-match-wrong-count { color: var(--wrong); font-weight: 900; font-size: 1rem; }
+
+.wi-match-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.wi-match-col { display: flex; flex-direction: column; gap: 8px; }
+.wi-match-col-label {
+  font-size: .7rem; font-weight: 800; color: var(--muted);
+  text-align: center; letter-spacing: .06em;
+  padding: 4px 0; border-bottom: 1.5px solid var(--border); margin-bottom: 2px;
+}
+
+.wi-match-img-btn {
+  width: 100%; aspect-ratio: 1;
+  border: 3px solid var(--border); border-radius: 14px;
+  overflow: hidden; background: var(--gray-lt);
+  cursor: pointer; padding: 0; transition: all .15s;
+}
+.wi-match-img-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wi-match-img-btn.selected {
+  border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-lt);
+}
+.wi-match-img-btn.matched { border-color: var(--correct); opacity: .6; cursor: default; }
+.wi-match-img-btn.wrong-flash {
+  border-color: var(--wrong); background: var(--wrong-lt);
+}
+
+.wi-match-word-btn {
+  width: 100%; padding: 14px 10px; min-height: 54px;
+  border: 3px solid var(--border); border-radius: 14px;
+  background: white; cursor: pointer;
+  font-family: inherit; font-size: 1rem; font-weight: 800; color: var(--text);
+  transition: all .15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.wi-match-word-btn:hover:not(:disabled) { border-color: var(--blue); background: var(--blue-lt); }
+.wi-match-word-btn.selected {
+  border-color: var(--blue); background: var(--blue-lt); color: var(--blue-dk);
+}
+.wi-match-word-btn.matched {
+  border-color: var(--correct); background: var(--correct-lt); color: var(--correct);
+  cursor: default; opacity: .7;
+}
+.wi-match-word-btn.wrong-flash {
+  border-color: var(--wrong); background: var(--wrong-lt); color: var(--wrong);
+}
+
+/* ════════════════════════════
+   成績頁（Result）
+   ════════════════════════════ */
+.wi-result-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 18px; padding: 40px 0 24px; text-align: center;
+}
+.wi-result-emoji { font-size: 4rem; }
+.wi-result-score { font-size: 2rem; font-weight: 900; color: var(--blue-dk); }
+.wi-result-pct   { font-size: 1rem;  font-weight: 700; color: var(--muted); }
+.wi-result-btns  { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* ════════════════════════════
+   共用按鈕
+   ════════════════════════════ */
+.wi-btn-primary, .wi-btn-secondary {
+  padding: 12px 22px; border-radius: 12px;
+  font-family: inherit; font-size: .9rem; font-weight: 800;
+  cursor: pointer; border: 2px solid; transition: all .15s;
+}
+.wi-btn-primary {
+  background: var(--blue); color: white; border-color: var(--blue);
+}
+.wi-btn-primary:hover { background: var(--blue-dk); border-color: var(--blue-dk); }
+.wi-btn-secondary {
+  background: white; color: var(--text); border-color: var(--border);
+}
+.wi-btn-secondary:hover { border-color: var(--blue); background: var(--blue-lt); }
+
+/* ════════════════════════════
+   空資料 / 載入狀態
+   ════════════════════════════ */
+.wi-empty {
+  text-align: center; padding: 60px 20px; color: var(--muted);
+}
+.wi-empty-icon { font-size: 3rem; margin-bottom: 12px; }
+.wi-empty-text { font-size: .9rem; font-weight: 700; line-height: 1.7; }

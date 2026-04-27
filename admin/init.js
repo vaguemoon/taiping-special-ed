@@ -94,14 +94,15 @@ function doLogout() {
 
 function switchTab(tab) {
   if (document.getElementById('tool-modal').style.display === 'flex') closeToolModal();
-  ['classes', 'quiz', 'math', 'tools'].forEach(function(t) {
+  ['classes', 'quiz', 'math', 'tools', 'word-image'].forEach(function(t) {
     document.getElementById('panel-'+t).style.display = t===tab ? '' : 'none';
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
   });
   document.getElementById('panel-student').style.display = 'none';
-  if (tab === 'classes') { backToClasses(); loadClasses(); }
-  if (tab === 'quiz')    { loadQuizBankStats(); loadQuizSessions(); }
-  if (tab === 'math')    { loadMathQuizSessions(); }
+  if (tab === 'classes')    { backToClasses(); loadClasses(); }
+  if (tab === 'quiz')       { loadQuizBankStats(); loadQuizSessions(); }
+  if (tab === 'math')       { loadMathQuizSessions(); }
+  if (tab === 'word-image') { loadWordImageTab(); }
 }
 
 /* ── 題庫年級組合 ── */

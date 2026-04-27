@@ -94,6 +94,38 @@ var SUBJECTS = [
     }
   },
   {
+    id: 'word-image', file: 'apps/learn/lang/word-image/index.html',
+    icon: '🖼️', name: '詞語趣', desc: '圖像化學習詞語',
+    type: 'learn', category: 'chinese',
+    theme: 'theme-purple', badge: '詞語趣', badgeClass: 'blue',
+    getLevel: function(sid) {
+      return db.collection('students').doc(sid).collection('progress').doc('wordImage').get()
+        .then(function(doc) {
+          if (!doc.exists) return '詞語趣';
+          var words = doc.data().words || {};
+          var mastered = Object.keys(words).filter(function(k) {
+            var w = words[k];
+            return w.correct > 0 && w.correct >= w.wrong;
+          }).length;
+          if (mastered >= 50) return '詞語LV4';
+          if (mastered >= 20) return '詞語LV3';
+          if (mastered >= 5)  return '詞語LV2';
+          return '詞語LV1';
+        }).catch(function() { return '詞語趣'; });
+    },
+    activity: function(sid) {
+      return db.collection('students').doc(sid).collection('progress').doc('wordImage').get()
+        .then(function(doc) {
+          if (!doc.exists) return null;
+          var words = doc.data().words || {};
+          var total = Object.keys(words).filter(function(k) {
+            return (words[k].correct || 0) + (words[k].wrong || 0) > 0;
+          }).length;
+          return total ? { sub: '已練習 ' + total + ' 個詞語', score: total + ' 詞' } : null;
+        }).catch(function() { return null; });
+    }
+  },
+  {
     id: 'recognize', file: 'apps/learn/lang/recognize/index.html',
     icon: '🔊', name: '認字趣', desc: '聽音辨字・選字選詞',
     type: 'learn', category: 'chinese',
@@ -490,8 +522,8 @@ function saveProfile() {
 
 window.addEventListener('message', function(e) {
   if (!e.data) return;
-  if (e.data.type === 'hanzi-back-to-hub' || e.data.type === 'multiply-back-to-hub' || e.data.type === 'chinese-quiz-back-to-hub' || e.data.type === 'math-quiz-back-to-hub' || e.data.type === 'exam-reader-back-to-hub' || e.data.type === 'recognize-back-to-hub' || e.data.type === 'convert-back-to-hub') returnToHub();
-  else if (e.data.type === 'hanzi-logout' || e.data.type === 'multiply-logout' || e.data.type === 'recognize-logout') doLogout();
+  if (e.data.type === 'hanzi-back-to-hub' || e.data.type === 'multiply-back-to-hub' || e.data.type === 'chinese-quiz-back-to-hub' || e.data.type === 'math-quiz-back-to-hub' || e.data.type === 'exam-reader-back-to-hub' || e.data.type === 'recognize-back-to-hub' || e.data.type === 'convert-back-to-hub' || e.data.type === 'word-image-back') returnToHub();
+  else if (e.data.type === 'hanzi-logout' || e.data.type === 'multiply-logout' || e.data.type === 'recognize-logout' || e.data.type === 'word-image-logout') doLogout();
 });
 
 // ── 管理者隱藏入口：連點學校名稱 5 次 ──
