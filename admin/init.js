@@ -135,26 +135,13 @@ function switchDbView(viewId, btn) {
 
 /* ── 測驗區：初始化 ── */
 function _initQuizZoneTab() {
-  var activeBtn = document.querySelector('#panel-quiz-zone > .app-tabs-mini .app-tab-mini.active');
-  switchQzTab('sessions', activeBtn);
-}
-
-/* ── 測驗區：主頁籤（線上測驗 / 試卷編製）── */
-function switchQzTab(tabId, btn) {
-  ['sessions', 'compose'].forEach(function(id) {
-    var el = document.getElementById('qz-panel-' + id);
-    if (el) el.style.display = id === tabId ? '' : 'none';
-  });
-  document.querySelectorAll('#panel-quiz-zone > .app-tabs-mini .app-tab-mini').forEach(function(b) {
-    b.classList.remove('active');
-  });
-  if (btn) btn.classList.add('active');
-  if (tabId === 'sessions') {
-    var activeTypeBtn = document.querySelector('#qz-panel-sessions > .app-tabs-mini .app-tab-mini.active');
-    var type = activeTypeBtn && activeTypeBtn.getAttribute('data-type') || 'quiz';
-    switchQzSessionType(type, activeTypeBtn);
-  }
-  if (tabId === 'compose') loadExamComposeTab();
+  var sv = document.getElementById('qz-sessions-view');
+  var wv = document.getElementById('ec-wizard-view');
+  if (sv) sv.style.display = '';
+  if (wv) wv.style.display = 'none';
+  var activeBtn = document.querySelector('#qz-sessions-view > .app-tabs-mini .app-tab-mini.active');
+  var type = activeBtn ? (activeBtn.getAttribute('data-type') || 'quiz') : 'quiz';
+  switchQzSessionType(type, activeBtn);
 }
 
 /* ── 測驗區：科目切換（語文 / 數學）── */
@@ -163,7 +150,7 @@ function switchQzSessionType(type, btn) {
     var el = document.getElementById('qz-sessions-' + t);
     if (el) el.style.display = t === type ? '' : 'none';
   });
-  document.querySelectorAll('#qz-panel-sessions > .app-tabs-mini .app-tab-mini').forEach(function(b) {
+  document.querySelectorAll('#qz-sessions-view > .app-tabs-mini .app-tab-mini').forEach(function(b) {
     b.classList.remove('active');
   });
   if (btn) btn.classList.add('active');

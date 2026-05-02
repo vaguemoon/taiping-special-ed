@@ -6,14 +6,19 @@
 'use strict';
 
 /* ─── 狀態 ─── */
-var _ecDraftId  = null;
-var _ecStep     = 1;
-var _ecName     = '';
-var _ecSubject  = 'chinese';
-var _ecGrade    = '';
-var _ecSections = [];  // [{ title, key, collapsed, questions:[{id,label}] }]
-var _ecAllQ     = [];  // 從 Firestore 讀入（含 id）
-var _ecSelected = {};  // { docId: true }
+var _ecDraftId    = null;      // 草稿 id（保留相容性，不再使用）
+var _ecSessionId  = null;      // 編輯中的 quizSession id（null = 新建）
+var _ecStep       = 1;
+var _ecName       = '';
+var _ecSubject    = 'chinese';
+var _ecGrade      = '';        // 版本+冊次，e.g. "康軒三上"
+var _ecVersion    = '';        // 版本，e.g. "康軒"
+var _ecVolume     = '';        // 冊次，e.g. "三上"
+var _ecLesson     = '';        // 課次號碼，e.g. "七"；空字串=全冊/跨課次
+var _ecLessonName = '';        // 課次名稱，e.g. "走進博物館"
+var _ecSections   = [];        // [{ title, key, collapsed, questions:[{id,label}] }]
+var _ecAllQ       = [];        // 從 Firestore 讀入（含 id）
+var _ecSelected   = {};        // { docId: true }
 
 /* 中文數字排序表 */
 var _CN_MAP = {
@@ -27,129 +32,120 @@ var _EC_TYPE_ORDER = ['詞語填空', '詞語解釋', '選擇題'];
 var _EC_CN = ['一','二','三','四','五','六','七','八','九','十'];
 
 /* ════════════════════════════════
-   進入點
+   View 切換
    ════════════════════════════════ */
-function loadExamComposeTab() {
-  if (!db || !currentTeacher) { setTimeout(loadExamComposeTab, 300); return; }
-  _ecShowList();
-}
-
-/* ════════════════════════════════
-   列表 View
-   ════════════════════════════════ */
-function _ecShowList() {
-  _ecToggleView('list');
-  _ecLoadDrafts();
-}
-
 function _ecToggleView(view) {
-  var lv = document.getElementById('ec-list-view');
+  var sv = document.getElementById('qz-sessions-view');
   var wv = document.getElementById('ec-wizard-view');
-  if (lv) lv.style.display = view === 'list'   ? '' : 'none';
+  if (sv) sv.style.display = view === 'list'   ? '' : 'none';
   if (wv) wv.style.display = view === 'wizard' ? '' : 'none';
 }
 
-function _ecLoadDrafts() {
-  var wrap = document.getElementById('ec-drafts-wrap');
-  if (!wrap) return;
-  wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div></div>';
-
-  db.collection('examDrafts')
-    .where('teacherUid', '==', currentTeacher.uid)
-    .get()
-    .then(function(snap) {
-      var drafts = [];
-      snap.forEach(function(doc) { drafts.push({ id: doc.id, d: doc.data() }); });
-      drafts.sort(function(a, b) {
-        var ta = a.d.updatedAt || a.d.createdAt || '';
-        var tb = b.d.updatedAt || b.d.createdAt || '';
-        return tb > ta ? 1 : -1;
-      });
-
-      if (!drafts.length) {
-        wrap.innerHTML = '<p style="color:var(--muted);font-size:.88rem;padding:8px 0">尚未建立任何試卷。點擊「＋ 新增試卷」開始。</p>';
-        return;
-      }
-
-      wrap.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px">' +
-        drafts.map(function(x) {
-          var d   = x.d;
-          var cnt = 0;
-          (d.sections || []).forEach(function(s) { cnt += (s.questions || []).length; });
-          if (!cnt && d.items) cnt = (d.items || []).filter(function(it) { return it.type === 'question'; }).length;
-          var sub = d.subject === 'math' ? '數學' : '語文';
-          var dt  = (d.updatedAt || d.createdAt || '').slice(0, 10);
-          return '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;' +
-                 'border:1.5px solid var(--border);border-radius:12px;background:white">' +
-            '<div style="flex:1;min-width:0">' +
-              '<div style="font-weight:900;font-size:.95rem;color:var(--text);' +
-              'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _ecEsc(d.name || '未命名試卷') + '</div>' +
-              '<div style="font-size:.75rem;color:var(--muted);margin-top:3px">' +
-                sub + (d.grade ? ' · ' + _ecEsc(d.grade) : '') + ' · ' + cnt + ' 題' + (dt ? ' · ' + dt : '') +
-              '</div>' +
-            '</div>' +
-            '<button onclick="_ecEditDraft(\'' + x.id + '\')" style="' + _ecBtn('blue') + '">編輯</button>' +
-            '<button onclick="_ecPrintDraft(\'' + x.id + '\')" style="' + _ecBtn('') + '">列印</button>' +
-            '<button onclick="_ecDeleteDraft(\'' + x.id + '\')" style="' + _ecBtn('red') + '">刪除</button>' +
-          '</div>';
-        }).join('') +
-      '</div>';
-    })
-    .catch(function(e) {
-      wrap.innerHTML = '<p style="color:var(--red);font-size:.88rem">載入失敗：' + e.message + '</p>';
-    });
-}
-
-function _ecDeleteDraft(id) {
-  if (!confirm('確定要刪除這份試卷草稿嗎？')) return;
-  db.collection('examDrafts').doc(id).delete()
-    .then(function() { showToast('已刪除試卷草稿'); _ecLoadDrafts(); })
-    .catch(function(e) { showToast('刪除失敗：' + e.message); });
-}
-
-function _ecEditDraft(id) {
-  db.collection('examDrafts').doc(id).get().then(function(doc) {
-    if (!doc.exists) { showToast('找不到此試卷'); return; }
-    var d      = doc.data();
-    _ecDraftId = id;
-    _ecName    = d.name    || '';
-    _ecSubject = d.subject || 'chinese';
-    _ecGrade   = d.grade   || '';
-
-    /* 載入大題結構（相容舊格式 items） */
-    if (d.sections && d.sections.length) {
-      _ecSections = d.sections.map(function(s) {
-        return { title: s.title || s.key || '', key: s.key || '', collapsed: false,
-                 questions: (s.questions || []).slice() };
-      });
-    } else if (d.items) {
-      var qs = (d.items || []).filter(function(it) { return it.type === 'question'; });
-      _ecSections = qs.length ? [{ title: '題目', key: '', collapsed: false, questions: qs }] : [];
-    } else {
-      _ecSections = [];
-    }
-
-    _ecSelected = {};
-    _ecSections.forEach(function(sec) {
-      (sec.questions || []).forEach(function(q) { _ecSelected[q.id] = true; });
-    });
-    _ecAllQ = [];
-    _ecOpenWizard(1);
-  }).catch(function(e) { showToast('載入失敗：' + e.message); });
+function _ecShowList() {
+  _ecToggleView('list');
+  if (typeof loadQuizSessions === 'function') loadQuizSessions();
 }
 
 /* ════════════════════════════════
    精靈 Wizard
    ════════════════════════════════ */
 function _ecNewDraft() {
-  _ecDraftId  = null;
-  _ecName     = '';
-  _ecSubject  = 'chinese';
-  _ecGrade    = '';
-  _ecSections = [];
-  _ecSelected = {};
-  _ecAllQ     = [];
+  _ecDraftId    = null;
+  _ecSessionId  = null;
+  _ecName       = '';
+  _ecSubject    = 'chinese';
+  _ecGrade      = '';
+  _ecVersion    = '';
+  _ecVolume     = '';
+  _ecLesson     = '';
+  _ecLessonName = '';
+  _ecSections   = [];
+  _ecSelected   = {};
+  _ecAllQ       = [];
   _ecOpenWizard(1);
+}
+
+/* ── 從測驗列表編輯已發布的試卷 ── */
+function _ecEditSession(sessionId) {
+  if (!db || !currentTeacher) { showToast('Firebase 未就緒'); return; }
+  db.collection('quizSessions').doc(sessionId).get().then(function(doc) {
+    if (!doc.exists) { showToast('找不到此測驗'); return; }
+    var d        = doc.data();
+    _ecSessionId  = sessionId;
+    _ecDraftId    = null;
+    _ecName       = d.name       || '';
+    _ecSubject    = d.subject    || 'chinese';
+    _ecGrade      = d.grade      || '';
+    _ecVersion    = d.version    || '';
+    _ecVolume     = d.volume     || '';
+    _ecLesson     = d.lesson     || '';
+    _ecLessonName = d.lessonName || '';
+    _ecSelected   = {};
+    _ecSections   = [];
+    _ecAllQ       = [];
+
+    var questionIds = d.questionIds || [];
+    questionIds.forEach(function(id) { _ecSelected[id] = true; });
+
+    if (!questionIds.length) { _ecOpenWizard(1); return; }
+
+    /* 暫時載入選中的題目以建立大題結構，之後清空讓步驟二重新載入完整題庫 */
+    var coll = _ecSubject === 'math' ? 'mathQuestions' : 'questions';
+    Promise.all(questionIds.map(function(qId) {
+      return db.collection(coll).doc(qId).get();
+    })).then(function(qdocs) {
+      _ecAllQ = [];
+      qdocs.forEach(function(qd) {
+        if (qd.exists) _ecAllQ.push(Object.assign({ id: qd.id }, qd.data()));
+      });
+      _ecBuildSections();
+      _ecAllQ = [];  /* 清空，讓步驟二重新載入完整題庫供追加選題 */
+      _ecOpenWizard(1);
+    }).catch(function(e) { showToast('載入題目失敗：' + e.message); });
+  }).catch(function(e) { showToast('載入失敗：' + e.message); });
+}
+
+/* ── 從測驗列表列印已發布的試卷 ── */
+function _ecPrintSession(sessionId) {
+  if (!db || !currentTeacher) return;
+  db.collection('quizSessions').doc(sessionId).get().then(function(doc) {
+    if (!doc.exists) { showToast('找不到此測驗'); return; }
+    var d           = doc.data();
+    var questionIds = d.questionIds || [];
+    if (!questionIds.length) { showToast('試卷中無題目'); return; }
+
+    var coll = d.subject === 'math' ? 'mathQuestions' : 'questions';
+    Promise.all(questionIds.map(function(qId) {
+      return db.collection(coll).doc(qId).get();
+    })).then(function(qdocs) {
+      var TYPE_ORDER = ['詞語填空', '詞語解釋', '選擇題'];
+      var grouped    = {};
+      qdocs.forEach(function(qd) {
+        if (!qd.exists) return;
+        var qdata = qd.data();
+        var type  = qdata.type || '其他';
+        var label = qdata.question || qdata.word || '';
+        if (!grouped[type]) grouped[type] = [];
+        grouped[type].push({ id: qd.id, label: label });
+      });
+
+      var sections = [];
+      var CN       = ['一','二','三','四','五','六','七','八','九','十'];
+      var idx      = 0;
+      TYPE_ORDER.forEach(function(type) {
+        if (grouped[type] && grouped[type].length) {
+          sections.push({ title: CN[idx++] + '、' + type, questions: grouped[type] });
+        }
+      });
+      Object.keys(grouped).forEach(function(type) {
+        if (TYPE_ORDER.indexOf(type) === -1 && grouped[type].length) {
+          sections.push({ title: CN[idx++] + '、' + type, questions: grouped[type] });
+        }
+      });
+
+      _ecDoPrint(d.name || '試卷', sections, d.subject || 'chinese');
+    }).catch(function(e) { showToast('載入失敗：' + e.message); });
+  }).catch(function(e) { showToast('載入失敗：' + e.message); });
 }
 
 function _ecOpenWizard(step) {
@@ -182,12 +178,17 @@ function _ecUpdateStepBar() {
 }
 
 function _ecSyncStep1Form() {
-  var n = document.getElementById('ec-name');
-  var s = document.getElementById('ec-subject');
-  var g = document.getElementById('ec-grade');
-  if (n) n.value = _ecName;
-  if (s) s.value = _ecSubject;
-  if (g) g.value = _ecGrade;
+  var n   = document.getElementById('ec-name');
+  var s   = document.getElementById('ec-subject');
+  var ver = document.getElementById('ec-version');
+  var vol = document.getElementById('ec-volume');
+  if (n)   n.value   = _ecName;
+  if (s)   s.value   = _ecSubject;
+  if (ver) ver.value = _ecVersion;
+  if (vol) {
+    vol.value = _ecVolume;
+    _ecUpdateLessonOptions();  /* 觸發課次選單載入 */
+  }
 }
 
 function _ecGoStep(n) {
@@ -210,11 +211,78 @@ function _ecGoStep(n) {
 function _ecValidateStep1() {
   _ecName    = ((document.getElementById('ec-name')    || {}).value || '').trim();
   _ecSubject = ((document.getElementById('ec-subject') || {}).value || 'chinese');
-  _ecGrade   = ((document.getElementById('ec-grade')   || {}).value || '').trim();
+  _ecVersion = ((document.getElementById('ec-version') || {}).value || '');
+  _ecVolume  = ((document.getElementById('ec-volume')  || {}).value || '');
+  _ecGrade   = _ecVersion ? _ecVersion + _ecVolume : _ecVolume;
+
+  var lessonEl  = document.getElementById('ec-lesson');
+  _ecLesson     = lessonEl ? lessonEl.value : '';
+  var selOpt    = lessonEl && lessonEl.selectedIndex >= 0 ? lessonEl.options[lessonEl.selectedIndex] : null;
+  _ecLessonName = selOpt ? (selOpt.getAttribute('data-name') || '') : '';
+
   var err = document.getElementById('ec-step1-err');
-  if (!_ecName) { if (err) err.textContent = '請輸入試卷名稱'; return false; }
+  if (!_ecName)   { if (err) err.textContent = '請輸入試卷名稱'; return false; }
+  if (!_ecVolume) { if (err) err.textContent = '請選擇冊次'; return false; }
   if (err) err.textContent = '';
   return true;
+}
+
+/* ── 依版本+冊次動態載入課次選單 ── */
+function _ecUpdateLessonOptions() {
+  var version  = ((document.getElementById('ec-version') || {}).value || '');
+  var volume   = ((document.getElementById('ec-volume')  || {}).value || '');
+  var lessonEl = document.getElementById('ec-lesson');
+  if (!lessonEl) return;
+
+  _ecGrade = version ? version + volume : volume;
+
+  if (!volume) {
+    lessonEl.innerHTML = '<option value="">全冊 / 跨課次</option>';
+    return;
+  }
+
+  if (!db || !currentTeacher) {
+    lessonEl.innerHTML = '<option value="">全冊 / 跨課次</option>';
+    return;
+  }
+  lessonEl.innerHTML = '<option value="">載入中…</option>';
+
+  Promise.all([
+    db.collection('questions').where('teacherUid', '==', currentTeacher.uid).where('grade', '==', _ecGrade).get(),
+    db.collection('questions').where('teacherUid', '==', 'shared').where('grade', '==', _ecGrade).get()
+      .catch(function() { return { forEach: function(){} }; })
+  ]).then(function(snaps) {
+    var lessonMap = {};
+    snaps.forEach(function(snap) {
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        if (d.lesson) lessonMap[d.lesson] = d.lessonName || '';
+      });
+    });
+
+    var lessons = Object.keys(lessonMap).sort(function(a, b) {
+      var na = _CN_MAP[a], nb = _CN_MAP[b];
+      if (na !== undefined && nb !== undefined) return na - nb;
+      var ia = parseInt(a, 10), ib = parseInt(b, 10);
+      if (!isNaN(ia) && !isNaN(ib)) return ia - ib;
+      return String(a).localeCompare(String(b));
+    });
+
+    var opts = '<option value="">全冊 / 跨課次</option>';
+    lessons.forEach(function(l) {
+      var name     = lessonMap[l] ? lessonMap[l] : '';
+      var selected = l === _ecLesson ? ' selected' : '';
+      opts += '<option value="' + _ecEscA(l) + '" data-name="' + _ecEscA(name) + '"' + selected + '>' +
+        '第 ' + _ecEsc(l) + ' 課' + (name ? '　' + _ecEsc(name) : '') + '</option>';
+    });
+    if (!lessons.length) {
+      opts += '<option value="" disabled style="color:var(--muted)">（此年級無題庫，可忽略）</option>';
+    }
+    lessonEl.innerHTML = opts;
+    if (_ecLesson) lessonEl.value = _ecLesson;
+  }).catch(function() {
+    lessonEl.innerHTML = '<option value="">全冊 / 跨課次</option>';
+  });
 }
 
 /* ════════════════════════════════
@@ -256,19 +324,27 @@ function _ecLoadQuestions() {
 }
 
 function _ecBuildFilters() {
-  var gradeEl = document.getElementById('ec-filter-grade');
-  var typeEl  = document.getElementById('ec-filter-type');
+  var gradeEl     = document.getElementById('ec-filter-grade');
+  var gradeLockEl = document.getElementById('ec-filter-grade-lock');
+  var typeEl      = document.getElementById('ec-filter-type');
 
-  /* 年級 */
-  var grades = {};
-  _ecAllQ.forEach(function(q) { if (q.grade) grades[q.grade] = true; });
-  if (gradeEl) {
-    gradeEl.innerHTML = '<option value="">全部年級</option>' +
-      Object.keys(grades).sort(function(a, b) {
-        return (_CN_MAP[a] || 999) - (_CN_MAP[b] || 999);
-      }).map(function(g) {
-        return '<option value="' + _ecEscA(g) + '"' + (g === _ecGrade ? ' selected' : '') + '>' + _ecEsc(g) + '</option>';
-      }).join('');
+  /* 年級：有 _ecGrade 就鎖定顯示 chip，否則顯示下拉 */
+  if (_ecGrade) {
+    if (gradeEl)     { gradeEl.style.display = 'none'; gradeEl.value = _ecGrade; }
+    if (gradeLockEl) { gradeLockEl.style.display = ''; gradeLockEl.textContent = _ecGrade; }
+  } else {
+    if (gradeLockEl) gradeLockEl.style.display = 'none';
+    var grades = {};
+    _ecAllQ.forEach(function(q) { if (q.grade) grades[q.grade] = true; });
+    if (gradeEl) {
+      gradeEl.style.display = '';
+      gradeEl.innerHTML = '<option value="">全部年級</option>' +
+        Object.keys(grades).sort(function(a, b) {
+          return (_CN_MAP[a] || 999) - (_CN_MAP[b] || 999);
+        }).map(function(g) {
+          return '<option value="' + _ecEscA(g) + '">' + _ecEsc(g) + '</option>';
+        }).join('');
+    }
   }
 
   /* 課次 / 類別（依目前年級篩選） */
@@ -304,7 +380,7 @@ function _ecOnGradeChange() {
 function _ecUpdateCatFilter() {
   var catEl  = document.getElementById('ec-filter-cat');
   if (!catEl) return;
-  var grade  = ((document.getElementById('ec-filter-grade') || {}).value || '');
+  var grade  = _ecGrade || ((document.getElementById('ec-filter-grade') || {}).value || '');
   var catKey = _ecSubject === 'math' ? 'category' : 'lesson';
   var pholder = _ecSubject === 'math' ? '全部類別' : '全部課次';
 
@@ -328,7 +404,7 @@ function _ecUpdateCatFilter() {
 }
 
 function _ecFilterAndRender() {
-  var grade  = ((document.getElementById('ec-filter-grade')  || {}).value || '');
+  var grade  = _ecGrade || ((document.getElementById('ec-filter-grade')  || {}).value || '');
   var cat    = ((document.getElementById('ec-filter-cat')    || {}).value || '');
   var type   = ((document.getElementById('ec-filter-type')   || {}).value || '');
   var search = (((document.getElementById('ec-filter-search') || {}).value || '')).trim().toLowerCase();
@@ -493,9 +569,6 @@ function _ecRenderLayout() {
   var bs = 'padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:white;' +
            'cursor:pointer;font-size:.75rem;font-family:inherit';
 
-  /* 累計題號（跨大題連續編號） */
-  var globalNum = 0;
-
   wrap.innerHTML = _ecSections.map(function(sec, si) {
     var qCount    = (sec.questions || []).length;
     var collapsed = !!sec.collapsed;
@@ -516,10 +589,9 @@ function _ecRenderLayout() {
     var body = '';
     if (!collapsed) {
       var rows = (sec.questions || []).map(function(q, qi) {
-        globalNum++;
         return '<div style="display:flex;align-items:center;gap:8px;padding:7px 6px;' +
                (qi < qCount - 1 ? 'border-bottom:1px solid var(--border)' : '') + '">' +
-          '<span style="color:var(--muted);font-size:.8rem;font-weight:700;min-width:24px">' + globalNum + '</span>' +
+          '<span style="color:var(--muted);font-size:.8rem;font-weight:700;min-width:24px">' + (qi + 1) + '</span>' +
           '<span style="font-size:.85rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
             _ecEsc(q.label || q.id) + '</span>' +
           '<button onclick="_ecMoveQ(' + si + ',' + qi + ',-1)" style="' + bs + ';color:var(--muted)">▲</button>' +
@@ -580,13 +652,15 @@ function _ecRenderPreview() {
   _ecSections.forEach(function(sec) { totalQ += (sec.questions || []).length; });
   var el = document.getElementById('ec-preview-summary');
   if (!el) return;
+  var metaStr = _ecSubject === 'math' ? '數學' : '語文';
+  if (_ecGrade)     metaStr += ' · ' + _ecEsc(_ecGrade);
+  if (_ecLesson)    metaStr += ' · 第 ' + _ecEsc(_ecLesson) + ' 課' + (_ecLessonName ? '　' + _ecEsc(_ecLessonName) : '');
+  else if (_ecGrade) metaStr += ' · 全冊／跨課次';
+  metaStr += ' · 共 ' + _ecSections.length + ' 大題，' + totalQ + ' 題';
+
   el.innerHTML =
     '<div style="font-size:1.08rem;font-weight:900;color:var(--text)">' + _ecEsc(_ecName) + '</div>' +
-    '<div style="font-size:.82rem;color:var(--muted);margin-top:4px">' +
-      (_ecSubject === 'math' ? '數學' : '語文') +
-      (_ecGrade ? ' · ' + _ecEsc(_ecGrade) : '') +
-      ' · 共 ' + _ecSections.length + ' 大題，' + totalQ + ' 題' +
-    '</div>' +
+    '<div style="font-size:.82rem;color:var(--muted);margin-top:4px">' + metaStr + '</div>' +
     (_ecSections.length ? '<div style="margin-top:8px;font-size:.8rem;color:var(--muted);line-height:1.8">' +
       _ecSections.map(function(sec) {
         return '<span style="display:inline-block;margin-right:12px">▪ ' + _ecEsc(sec.title) +
@@ -594,132 +668,75 @@ function _ecRenderPreview() {
       }).join('') + '</div>' : '');
 }
 
-/* ── 儲存草稿 ── */
-function _ecSaveDraft() {
-  if (!_ecName) { showToast('請先填寫試卷名稱（步驟一）'); return; }
-  var btn = document.getElementById('ec-btn-save');
-  if (btn) { btn.disabled = true; btn.textContent = '儲存中…'; }
-
-  var now     = new Date().toISOString();
-  var docData = {
-    teacherUid: currentTeacher.uid,
-    name:       _ecName,
-    subject:    _ecSubject,
-    grade:      _ecGrade,
-    sections:   _ecSections.map(function(sec) {
-      return {
-        title:     sec.title,
-        key:       sec.key,
-        questions: (sec.questions || []).map(function(q) { return { id: q.id, label: q.label || '' }; })
-      };
-    }),
-    updatedAt: now
-  };
-
-  var p = _ecDraftId
-    ? db.collection('examDrafts').doc(_ecDraftId).set(docData, { merge: true })
-    : db.collection('examDrafts')
-        .add(Object.assign({ createdAt: now }, docData))
-        .then(function(ref) { _ecDraftId = ref.id; });
-
-  p.then(function() {
-    showToast('✅ 草稿已儲存');
-    if (btn) { btn.disabled = false; btn.textContent = '💾 儲存草稿'; }
-  }).catch(function(e) {
-    showToast('儲存失敗：' + e.message);
-    if (btn) { btn.disabled = false; btn.textContent = '💾 儲存草稿'; }
-  });
-}
-
-/* ── 發布為線上測驗 ── */
+/* ── 發布／更新線上測驗 ── */
 function _ecPublishOnline() {
-  var totalQ = 0;
+  var totalQ      = 0;
   var questionIds = [];
   _ecSections.forEach(function(sec) {
     (sec.questions || []).forEach(function(q) { questionIds.push(q.id); totalQ++; });
   });
   if (!totalQ) { showToast('試卷中尚無題目'); return; }
-  if (!confirm('確定要將「' + _ecName + '」發布為線上測驗？\n發布後可從「線上測驗」頁籤管理、派發班級。')) return;
+
+  var isUpdate = !!_ecSessionId;
+  var confirmMsg = isUpdate
+    ? '確定要儲存對「' + _ecName + '」的修改？'
+    : '確定要將「' + _ecName + '」發布為線上測驗？';
+  if (!confirm(confirmMsg)) return;
 
   var btn = document.getElementById('ec-btn-publish');
-  if (btn) { btn.disabled = true; btn.textContent = '建立中…'; }
+  if (btn) { btn.disabled = true; btn.textContent = isUpdate ? '儲存中…' : '建立中…'; }
 
-  var code = _ecGenCode();
   var coll = _ecSubject === 'math' ? 'mathQuizSessions' : 'quizSessions';
-  var docData = _ecSubject === 'math'
-    ? { teacherUid: currentTeacher.uid, quizType: 'exam', name: _ecName, code: code,
-        grade: _ecGrade, questionIds: questionIds, totalQuestions: totalQ,
-        active: true, createdAt: new Date().toISOString() }
-    : { type: 'exam', name: _ecName, code: code, teacherUid: currentTeacher.uid,
-        grade: _ecGrade, questionIds: questionIds,
-        counts: { total: totalQ }, active: true, createdAt: new Date().toISOString() };
 
-  db.collection(coll).add(docData)
-    .then(function(ref) {
-      showToast('✅ 線上測驗已建立！代碼：' + code);
-      if (btn) { btn.disabled = false; btn.textContent = '📤 發布為線上測驗'; }
-      /* 發布後立即開啟分享至班級視窗 */
+  var p;
+  var lessonFields = { version: _ecVersion, volume: _ecVolume, lesson: _ecLesson, lessonName: _ecLessonName };
+
+  if (isUpdate) {
+    /* 更新既有測驗，保留 code / active / createdAt */
+    var updateData = Object.assign(
+      { name: _ecName, grade: _ecGrade, questionIds: questionIds, updatedAt: new Date().toISOString() },
+      lessonFields
+    );
+    if (_ecSubject === 'math') updateData.totalQuestions = totalQ;
+    else                       updateData.counts = { total: totalQ };
+    p = db.collection(coll).doc(_ecSessionId).update(updateData)
+          .then(function() { return { id: _ecSessionId, isUpdate: true }; });
+  } else {
+    var code    = _ecGenCode();
+    var newData = _ecSubject === 'math'
+      ? Object.assign({ teacherUid: currentTeacher.uid, quizType: 'exam', name: _ecName, code: code,
+          grade: _ecGrade, questionIds: questionIds, totalQuestions: totalQ,
+          active: true, createdAt: new Date().toISOString() }, lessonFields)
+      : Object.assign({ type: 'exam', name: _ecName, code: code, teacherUid: currentTeacher.uid,
+          grade: _ecGrade, questionIds: questionIds,
+          counts: { total: totalQ }, active: true, createdAt: new Date().toISOString() }, lessonFields);
+    p = db.collection(coll).add(newData)
+          .then(function(ref) { return { id: ref.id, code: code, isUpdate: false }; });
+  }
+
+  p.then(function(result) {
+    if (btn) { btn.disabled = false; btn.textContent = '📤 發布為線上測驗'; }
+    _ecSessionId = null;
+    if (result.isUpdate) {
+      showToast('✅ 測驗已更新');
+      _ecShowList();
+    } else {
+      showToast('✅ 線上測驗已建立！代碼：' + result.code);
+      _ecShowList();
       if (typeof showQuizShareModal === 'function' && _ecSubject !== 'math') {
-        setTimeout(function() { showQuizShareModal(ref.id, _ecName); }, 400);
-      } else if (typeof _mqOpenShareModal === 'function' && _ecSubject === 'math') {
-        loadMathQuizSessions();
-      } else {
-        loadQuizSessions();
+        setTimeout(function() { showQuizShareModal(result.id, _ecName); }, 400);
       }
-    })
-    .catch(function(e) {
-      showToast('發布失敗：' + e.message);
-      if (btn) { btn.disabled = false; btn.textContent = '📤 發布為線上測驗'; }
-    });
+    }
+  }).catch(function(e) {
+    showToast('失敗：' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = '📤 發布為線上測驗'; }
+  });
 }
 
-/* ── 列印（從精靈 Step 4）── */
+/* ── 列印（從精靈 Step 4，先預覽再列印）── */
 function _ecPrint() {
   if (!_ecSections.length) { showToast('試卷內容為空'); return; }
   _ecDoPrint(_ecName, _ecSections, _ecSubject);
-}
-
-/* ── 列印草稿（從列表）── */
-function _ecPrintDraft(id) {
-  db.collection('examDrafts').doc(id).get().then(function(doc) {
-    if (!doc.exists) { showToast('找不到此試卷'); return; }
-    var d = doc.data();
-
-    var sections;
-    if (d.sections && d.sections.length) {
-      sections = d.sections;
-    } else if (d.items) {
-      var qs = (d.items || []).filter(function(it) { return it.type === 'question'; });
-      sections = qs.length ? [{ title: '題目', questions: qs }] : [];
-    } else {
-      showToast('試卷中無題目'); return;
-    }
-
-    /* 若 label 存在就直接列印 */
-    var hasLabels = sections.every(function(sec) {
-      return (sec.questions || []).every(function(q) { return !!q.label; });
-    });
-    if (hasLabels) { _ecDoPrint(d.name || '試卷', sections, d.subject || 'chinese'); return; }
-
-    /* 補抓題目文字 */
-    var coll = d.subject === 'math' ? 'mathQuestions' : 'questions';
-    var qMap  = {};
-    var qIds  = [];
-    sections.forEach(function(sec) { (sec.questions || []).forEach(function(q) { qIds.push(q.id); }); });
-    Promise.all(qIds.map(function(qId) {
-      return db.collection(coll).doc(qId).get().then(function(qdoc) { if (qdoc.exists) qMap[qId] = qdoc.data(); });
-    })).then(function() {
-      var rich = sections.map(function(sec) {
-        return Object.assign({}, sec, {
-          questions: (sec.questions || []).map(function(q) {
-            var qd = qMap[q.id] || {};
-            return Object.assign({}, q, { label: qd.question || qd.word || q.label || q.id });
-          })
-        });
-      });
-      _ecDoPrint(d.name || '試卷', rich, d.subject || 'chinese');
-    });
-  }).catch(function(e) { showToast('載入失敗：' + e.message); });
 }
 
 function _ecDoPrint(name, sections, subject) {
