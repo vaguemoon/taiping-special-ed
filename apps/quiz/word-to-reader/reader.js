@@ -369,21 +369,19 @@ function renderStudentDocList(docs) {
       '<div><div class="student-doc-title">' + escapeHtml(doc.title) + '</div></div>' +
       '<div class="student-doc-arrow">›</div>';
     card.addEventListener('click', function() {
-      openSharedDoc(doc.html, doc.title);
+      openDocInViewer(doc.html, doc.title);
     });
     studentDocList.appendChild(card);
   });
 }
 
-function openSharedDoc(html, title) {
+function openDocInViewer(html, title) {
   try {
     var blob  = new Blob([html], { type: 'text/html; charset=utf-8' });
     var url   = URL.createObjectURL(blob);
-    var frame = document.getElementById('viewer-frame');
-    frame.src = url;
+    document.getElementById('viewer-frame').src = url;
     showPage('viewer');
     document.getElementById('topbar-title').textContent = '🎧 ' + title;
-    topbarBack.classList.add('visible');
     setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
   } catch(e) {
     showToast('⚠️ 無法開啟：' + e.message);
@@ -1199,7 +1197,7 @@ async function loadLibrary() {
 
       card.addEventListener('click', function (e) {
         if (e.target === delBtn || e.target === editBtn || e.target === dlBtn || e.target === editContentBtn || e.target === shareBtn) return;
-        openLibraryItem(entry.html, entry.title);
+        openDocInViewer(entry.html, entry.title);
       });
       editContentBtn.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -1239,19 +1237,6 @@ async function loadLibrary() {
   });
 }
 
-function openLibraryItem(html, title) {
-  try {
-    var blob  = new Blob([html], { type: 'text/html; charset=utf-8' });
-    var url   = URL.createObjectURL(blob);
-    var frame = document.getElementById('viewer-frame');
-    frame.src = url;
-    showPage('viewer');
-    document.getElementById('topbar-title').textContent = '🎧 ' + title;
-    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
-  } catch (e) {
-    showToast('⚠️ 無法開啟：' + e.message);
-  }
-}
 
 function downloadLibraryItem(name, html) {
   var blob = new Blob([html], { type: 'text/html; charset=utf-8' });

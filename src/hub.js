@@ -218,6 +218,11 @@ var SUBJECTS = [
 var selectedAvatar = '🐣';
 var AVATARS = ['🐣','🐱','🐶','🐻','🐼','🦊','🐸','🐧','🦁','🐯','🐨','🐮','🐷','🐙','🦋','🌟','🌈','🎈','🚀','🎯'];
 
+var _HUB_BACK_TYPES   = ['hanzi-back-to-hub','multiply-back-to-hub','chinese-quiz-back-to-hub',
+  'math-quiz-back-to-hub','exam-reader-back-to-hub','recognize-back-to-hub',
+  'convert-back-to-hub','word-image-back'];
+var _HUB_LOGOUT_TYPES = ['hanzi-logout','multiply-logout','recognize-logout','word-image-logout'];
+
 // ── Hub 渲染 ──
 
 function _renderSubjectCards(subjects) {
@@ -371,10 +376,6 @@ function showProfile() {
 
 // ── 班級加入（支援複數班級） ──
 
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 function loadStudentClass() {
   if (!db || !currentStudent) return;
   var wrap = document.getElementById('class-join-wrap');
@@ -522,8 +523,8 @@ function saveProfile() {
 
 window.addEventListener('message', function(e) {
   if (!e.data) return;
-  if (e.data.type === 'hanzi-back-to-hub' || e.data.type === 'multiply-back-to-hub' || e.data.type === 'chinese-quiz-back-to-hub' || e.data.type === 'math-quiz-back-to-hub' || e.data.type === 'exam-reader-back-to-hub' || e.data.type === 'recognize-back-to-hub' || e.data.type === 'convert-back-to-hub' || e.data.type === 'word-image-back') returnToHub();
-  else if (e.data.type === 'hanzi-logout' || e.data.type === 'multiply-logout' || e.data.type === 'recognize-logout' || e.data.type === 'word-image-logout') doLogout();
+  if (_HUB_BACK_TYPES.indexOf(e.data.type) !== -1) returnToHub();
+  else if (_HUB_LOGOUT_TYPES.indexOf(e.data.type) !== -1) doLogout();
 });
 
 // ── 管理者隱藏入口：連點學校名稱 5 次 ──
