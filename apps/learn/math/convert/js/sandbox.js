@@ -187,8 +187,13 @@ function sbAddToScene(denom, x, y, silent) {
   });
   el.addEventListener('touchstart', function(e) {
     e.preventDefault();
-    sbClearSelection();
-    sbStartDrag(id, e.touches[0].clientX, e.touches[0].clientY);
+    var t = e.touches[0];
+    if (sbSelected.indexOf(id) >= 0) {
+      sbStartGroupDrag(t.clientX, t.clientY);
+    } else {
+      sbClearSelection();
+      sbStartDrag(id, t.clientX, t.clientY);
+    }
   }, { passive: false });
 
   scene.appendChild(el);
@@ -216,9 +221,12 @@ function sbStartDrag(id, cx, cy) {
 document.addEventListener('mousemove', function(e) { sbMoveDrag(e.clientX, e.clientY); });
 document.addEventListener('mouseup',   function(e) { sbEndDrag(e.clientX, e.clientY); });
 document.addEventListener('touchmove', function(e) {
-  if (sbDrag) { e.preventDefault(); sbMoveDrag(e.touches[0].clientX, e.touches[0].clientY); }
+  if (sbDrag || sbGroupDrag) { e.preventDefault(); }
+  if (sbGroupDrag) { sbMoveGroupDrag(e.touches[0].clientX, e.touches[0].clientY); return; }
+  if (sbDrag) { sbMoveDrag(e.touches[0].clientX, e.touches[0].clientY); }
 }, { passive: false });
 document.addEventListener('touchend', function(e) {
+  if (sbGroupDrag) { sbEndGroupDrag(e.changedTouches[0].clientX, e.changedTouches[0].clientY); return; }
   if (sbDrag) sbEndDrag(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
 });
 
@@ -456,18 +464,19 @@ function sbShowSplitPopup(id) {
   var opts = SB_SPLIT[coin.denom];
   if (!opts || opts.length === 0) return;
 
-  var popup     = document.getElementById('sb-popup');
-  var optsEl    = document.getElementById('sb-popup-opts');
-  var titleEl   = document.getElementById('sb-popup-title');
-  if (!popup || !optsEl) return;
+  var popup = document.getElementById('sb-popup');
+  if (!popup) return;
 
-  if (titleEl) titleEl.textContent = '換成';
-  optsEl.innerHTML = opts.map(function(opt) {
-    return '<button class="sb-popup-opt" onclick="sbDoSplit(' + id + ',' + opt.to + ',' + opt.n + ')">' +
-           sbDenomHtml(opt.to, 'mini') +
-           '<span class="sb-popup-count">×' + opt.n + '</span>' +
-           '</button>';
-  }).join('');
+  popup.innerHTML =
+    '<div class="sb-popup-title">換成</div>' +
+    '<div class="sb-popup-opts">' +
+    opts.map(function(opt) {
+      return '<button class="sb-popup-opt" onclick="sbDoSplit(' + id + ',' + opt.to + ',' + opt.n + ')">' +
+             sbDenomHtml(opt.to, 'mini') +
+             '<span class="sb-popup-count">×' + opt.n + '</span>' +
+             '</button>';
+    }).join('') +
+    '</div>';
 
   _sbPopupPosition(popup, coin.el);
 }
@@ -476,9 +485,22 @@ function sbShowSplitPopup(id) {
 //  群組合併彈窗
 // ════════════════════════════════════════
 
+function sbGetGroupSplitOpts(denom, count) {
+  var allOpts = SB_SPLIT[denom];
+  if (!allOpts || allOpts.length === 0) return [];
+  var chainIdx = SB_CHAIN.indexOf(denom);
+  if (chainIdx < 0 || chainIdx >= SB_CHAIN.length - 1) return [];
+  var nextDenom = SB_CHAIN[chainIdx + 1];
+  for (var i = 0; i < allOpts.length; i++) {
+    if (allOpts[i].to === nextDenom) {
+      return [{ to: nextDenom, n: allOpts[i].n * count }];
+    }
+  }
+  return [];
+}
+
 function sbShowMergePopup(cx, cy) {
   if (sbSelected.length < 2) {
-    // 只選了一枚 → 退回拆分彈窗
     if (sbSelected.length === 1) sbShowSplitPopup(sbSelected[0]);
     return;
   }
@@ -488,30 +510,40 @@ function sbShowMergePopup(cx, cy) {
   var denom = firstCoin.denom;
   var total = sbSelected.length * denom;
 
-  // 尋找 total 是否恰好為單一更大面額
   var mergeDenom = -1;
   SB_CHAIN.forEach(function(d) {
     if (d === total && d > denom) mergeDenom = d;
   });
 
-  var popup   = document.getElementById('sb-popup');
-  var optsEl  = document.getElementById('sb-popup-opts');
-  var titleEl = document.getElementById('sb-popup-title');
-  if (!popup || !optsEl) return;
+  var popup = document.getElementById('sb-popup');
+  if (!popup) return;
 
-  if (titleEl) titleEl.textContent = '合併成';
-
+  var html = '<div class="sb-popup-title">合併成</div><div class="sb-popup-opts">';
   if (mergeDenom > 0) {
-    optsEl.innerHTML =
-      '<button class="sb-popup-opt" onclick="sbDoGroupMerge(' + mergeDenom + ')">' +
-      sbDenomHtml(mergeDenom, 'mini') +
-      '<span class="sb-popup-count">×1</span>' +
-      '</button>';
+    html += '<button class="sb-popup-opt" onclick="sbDoGroupMerge(' + mergeDenom + ')">' +
+            sbDenomHtml(mergeDenom, 'mini') +
+            '<span class="sb-popup-count">×1</span>' +
+            '</button>';
   } else {
-    optsEl.innerHTML = '<span class="sb-no-merge-msg">此組合無法合成單一面額</span>';
+    html += '<span class="sb-no-merge-msg">此組合無法合成單一面額</span>';
+  }
+  html += '</div>';
+
+  var splitOpts = sbGetGroupSplitOpts(denom, sbSelected.length);
+  if (splitOpts.length > 0) {
+    html += '<div class="sb-popup-divider"></div>';
+    html += '<div class="sb-popup-title">拆分成</div><div class="sb-popup-opts">';
+    splitOpts.forEach(function(opt) {
+      html += '<button class="sb-popup-opt" onclick="sbDoGroupSplit(' + opt.to + ',' + opt.n + ')">' +
+              sbDenomHtml(opt.to, 'mini') +
+              '<span class="sb-popup-count">×' + opt.n + '</span>' +
+              '</button>';
+    });
+    html += '</div>';
   }
 
-  // 定位在最靠近點擊的那枚幣
+  popup.innerHTML = html;
+
   var scene = document.getElementById('sb-scene');
   var sr    = scene ? scene.getBoundingClientRect() : { left: 0, top: 0 };
   var sx = cx - sr.left, sy = cy - sr.top;
@@ -519,10 +551,10 @@ function sbShowMergePopup(cx, cy) {
   sbSelected.forEach(function(sid) {
     var c = sbFindCoin(sid);
     if (!c) return;
-    var bill = sbIsBill(c.denom);
-    var d1   = Math.abs(c.x + (bill ? 60 : 32) - sx) + Math.abs(c.y + (bill ? 30 : 32) - sy);
+    var bill  = sbIsBill(c.denom);
     var bill2 = sbIsBill(nearest.denom);
-    var d2   = Math.abs(nearest.x + (bill2 ? 60 : 32) - sx) + Math.abs(nearest.y + (bill2 ? 30 : 32) - sy);
+    var d1 = Math.abs(c.x + (bill ? 60 : 32) - sx) + Math.abs(c.y + (bill ? 30 : 32) - sy);
+    var d2 = Math.abs(nearest.x + (bill2 ? 60 : 32) - sx) + Math.abs(nearest.y + (bill2 ? 30 : 32) - sy);
     if (d1 < d2) nearest = c;
   });
   _sbPopupPosition(popup, nearest.el);
@@ -541,6 +573,28 @@ function sbDoSplit(id, toDenom, count) {
   sbClosePopup();
   if (typeof sfxTap === 'function') sfxTap();
   _sbPlaceGrid(toDenom, count, ox, oy);
+}
+
+function sbDoGroupSplit(toDenom, totalCount) {
+  sbClosePopup();
+  if (typeof sfxTap === 'function') sfxTap();
+
+  var sumX = 0, sumY = 0, n = 0;
+  sbSelected.forEach(function(sid) {
+    var c = sbFindCoin(sid);
+    if (!c) return;
+    var bill = sbIsBill(c.denom);
+    sumX += c.x + (bill ? 60 : 32);
+    sumY += c.y + (bill ? 30 : 32);
+    n++;
+  });
+  var cx = n > 0 ? sumX / n : 200;
+  var cy = n > 0 ? sumY / n : 150;
+
+  var toRemove = sbSelected.slice();
+  sbClearSelection();
+  toRemove.forEach(function(sid) { sbRemoveCoin(sid); });
+  _sbPlaceGrid(toDenom, totalCount, cx, cy);
 }
 
 function sbDoGroupMerge(mergeDenom) {

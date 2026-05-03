@@ -129,29 +129,50 @@
       <button class="btn-end-practice" onclick="goBack()">結束練習</button>
     </div>
 
-    <!-- ── 右 60%：換算沙盒（貨幣題專用）── -->
+    <!-- ── 右 60%：換算沙盒 ── -->
     <div class="game-right hidden" id="game-right">
-      <div class="sb-layout">
-        <aside class="sb-bank" id="sb-bank">
-          <div class="sb-bank-title">錢 庫</div>
-          <div class="sb-bank-hint">點擊放入場景</div>
-          <div id="sb-bank-items" class="sb-bank-items"></div>
-        </aside>
-        <div class="sb-right">
-          <div class="sb-scene" id="sb-scene">
-            <div class="sb-scene-hint" id="sb-scene-hint" style="display:none">← 點擊錢庫取幣</div>
+
+      <!-- 貨幣沙盒 -->
+      <div id="sb-container">
+        <div class="sb-layout">
+          <aside class="sb-bank" id="sb-bank">
+            <div class="sb-bank-title">錢 庫</div>
+            <div class="sb-bank-hint">點擊放入場景</div>
+            <div id="sb-bank-items" class="sb-bank-items"></div>
+          </aside>
+          <div class="sb-right">
+            <div class="sb-scene" id="sb-scene">
+              <div class="sb-scene-hint" id="sb-scene-hint" style="display:none">← 點擊錢庫取幣</div>
+            </div>
           </div>
         </div>
+        <div class="sb-statusbar">
+          <span id="sb-scene-total" class="sb-scene-total">場景：0 元</span>
+          <div id="sb-breakdown" class="sb-breakdown"></div>
+          <button class="sb-clear-btn" onclick="clearScene()">🗑 清空</button>
+        </div>
       </div>
-      <div class="sb-statusbar">
-        <span id="sb-scene-total" class="sb-scene-total">場景：0 元</span>
-        <div id="sb-breakdown" class="sb-breakdown"></div>
-        <button class="sb-clear-btn" onclick="clearScene()">🗑 清空</button>
+
+      <!-- 時間沙盒 -->
+      <div id="ts-container" class="hidden">
+        <div class="ts-scene">
+          <div class="ts-hint" id="ts-hint"></div>
+          <div class="ts-track-wrap">
+            <div class="ts-track" id="ts-track"></div>
+          </div>
+          <div class="ts-legend">
+            <span class="ts-leg ts-leg-hour">■ 小時</span>
+            <span class="ts-leg ts-leg-min">■ 分鐘</span>
+          </div>
+        </div>
+        <div class="ts-statusbar">
+          <span id="ts-status" class="ts-status">場景：0 分</span>
+          <button class="sb-clear-btn" onclick="tsResetScene()">↺ 重置</button>
+        </div>
       </div>
-      <div id="sb-popup" class="sb-popup hidden">
-        <div id="sb-popup-title" class="sb-popup-title">換成</div>
-        <div id="sb-popup-opts" class="sb-popup-opts"></div>
-      </div>
+
+      <!-- 彈窗（貨幣與時間沙盒共用） -->
+      <div id="sb-popup" class="sb-popup hidden"></div>
     </div>
 
   </div>
@@ -203,6 +224,7 @@
 <script src="js/game.js"></script>
 <script src="js/achievement.js"></script>
 <script src="js/sandbox.js"></script>
+<script src="js/timesandbox.js"></script>
 <script src="js/init.js"></script>
 </body>
 </html>

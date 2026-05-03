@@ -108,7 +108,8 @@ function _makeTimeQuestions(subtype, difficulty) {
         prompt:      h + ' 小時 ' + min + ' 分 = ？ 分',
         answerCount: 1,
         answer:      [m],
-        correctText: m + ' 分'
+        correctText: m + ' 分',
+        tsVisual:    { mode: 'merge', totalMinutes: m, hours: h, remainMinutes: min }
       });
     });
   }
@@ -120,7 +121,8 @@ function _makeTimeQuestions(subtype, difficulty) {
         prompt:      m + ' 分 = ？ 小時 ？ 分',
         answerCount: 2,
         answer:      [h, min],
-        correctText: h + ' 小時 ' + min + ' 分'
+        correctText: h + ' 小時 ' + min + ' 分',
+        tsVisual:    { mode: 'split', totalMinutes: m }
       });
     });
   }

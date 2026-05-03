@@ -139,6 +139,9 @@ function loadQuestion() {
   if (currentCategory === 'money' && typeof sbInitForQuestion === 'function') {
     setTimeout(function() { sbInitForQuestion(gameQ); }, 60);
   }
+  if (currentCategory === 'time' && typeof tsInitForQuestion === 'function') {
+    setTimeout(function() { tsInitForQuestion(gameQ); }, 60);
+  }
 }
 
 function renderQuestion() {
@@ -171,12 +174,18 @@ function renderQuestion() {
     updateSingleDisplay();
   }
 
-  // 右側沙盒：貨幣題顯示，其他隱藏
-  var isMoney    = currentCategory === 'money';
-  var gameRight  = document.getElementById('game-right');
-  var gameLayout = document.getElementById('game-layout');
-  if (gameRight)  gameRight.classList.toggle('hidden', !isMoney);
-  if (gameLayout) gameLayout.classList.toggle('game-layout-single', !isMoney);
+  // 右側沙盒：貨幣題 / 時間題顯示，長度題隱藏
+  var isMoney      = currentCategory === 'money';
+  var isTime       = currentCategory === 'time';
+  var isRightPanel = isMoney || isTime;
+  var gameRight    = document.getElementById('game-right');
+  var gameLayout   = document.getElementById('game-layout');
+  if (gameRight)  gameRight.classList.toggle('hidden', !isRightPanel);
+  if (gameLayout) gameLayout.classList.toggle('game-layout-single', !isRightPanel);
+  var sbContainer = document.getElementById('sb-container');
+  var tsContainer = document.getElementById('ts-container');
+  if (sbContainer) sbContainer.classList.toggle('hidden', !isMoney);
+  if (tsContainer) tsContainer.classList.toggle('hidden', !isTime);
 }
 
 function updateSingleDisplay() {
