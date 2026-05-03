@@ -618,6 +618,27 @@
 }
 
 /* ══════════════════════════════════════
+   時間換算項目選擇
+   ══════════════════════════════════════ */
+.time-items-group {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.time-item-label {
+  flex: 1; min-width: 72px; min-height: 44px; padding: 10px 14px;
+  border: 2px solid var(--border); border-radius: 12px;
+  background: white; color: var(--muted); font-size: .9rem; font-weight: 800;
+  cursor: pointer; font-family: inherit; transition: all .15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  user-select: none;
+}
+.time-item-label:active { transform: scale(.96); }
+.time-item-label.active {
+  background: var(--blue); border-color: var(--blue-dk); color: white;
+  box-shadow: 0 3px 10px rgba(74,144,217,.3);
+}
+.time-item-input { display: none; }
+
+/* ══════════════════════════════════════
    時間沙盒
    ══════════════════════════════════════ */
 #sb-container,
@@ -669,9 +690,7 @@
 .ts-legend {
   display: flex; justify-content: center; gap: 24px;
 }
-.ts-leg       { font-size: .8rem; font-weight: 800; }
-.ts-leg-hour  { color: #2d6fa8; }
-.ts-leg-min   { color: #c0621c; }
+.ts-leg { font-size: .8rem; font-weight: 800; }
 
 .ts-statusbar {
   height: 48px; background: white; border-top: 2px solid var(--border);

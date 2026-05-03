@@ -90,44 +90,170 @@ function _makeLengthQuestions(subtype, difficulty) {
 //  時間換算
 // ════════════════════════════════════════
 
-// 分鐘數（都 > 60，確保含「小時」轉換）
-var _TIME_MINS_EASY = [75, 90, 105, 120, 135, 150, 180, 240];
-var _TIME_MINS_HARD = [65, 70, 80, 85, 95, 100, 110, 115, 125, 130, 145, 160, 200, 210, 270, 300];
+var _TS_UNIT_ORDER   = ['day', 'hour', 'minute', 'second'];
+var _TS_UNIT_LABEL   = { day: '日', hour: '時', minute: '分', second: '秒' };
+var _TS_UNIT_FACTOR  = { day: 24, hour: 60, minute: 60, second: 1 }; // factor to next smaller unit
+var _TS_PAIR_LARGE   = { 'day-hour': 'day',    'hour-min': 'hour',   'min-sec': 'minute' };
+var _TS_PAIR_SMALL   = { 'day-hour': 'hour',   'hour-min': 'minute', 'min-sec': 'second' };
+var _TS_PAIR_FACTOR  = { 'day-hour': 24,       'hour-min': 60,       'min-sec': 60       };
 
-function _makeTimeQuestions(subtype, difficulty) {
-  var doToMin = subtype === 'to-min' || subtype === 'mixed';
-  var doToHM  = subtype === 'to-hm'  || subtype === 'mixed';
-  var vals    = difficulty === 'easy' ? _TIME_MINS_EASY : _TIME_MINS_HARD;
+// ── 易模式：各配對的固定值 ──
+var _TIME_EASY = {
+  'day-hour': {
+    lts: [ // 大到小：{d, h} → 答 d*24+h
+      {d:1,h:0},{d:1,h:6},{d:1,h:12},{d:2,h:0},
+      {d:2,h:6},{d:3,h:0},{d:1,h:3},{d:2,h:3}
+    ],
+    stl: [25, 26, 30, 36, 48, 50, 27, 33] // 小到大：總時數 → 答 [d, h]
+  },
+  'hour-min': {
+    lts: [75, 90, 105, 120, 135, 150, 180, 240], // 分鐘數，顯示為 X時Y分 → 答總分
+    stl: [75, 90, 105, 120, 135, 150, 180, 240]  // 總分 → 答 [h, min]
+  },
+  'min-sec': {
+    lts: [ // 大到小：{m, s} → 答 m*60+s
+      {m:1,s:0},{m:1,s:30},{m:2,s:0},{m:2,s:15},
+      {m:3,s:0},{m:1,s:15},{m:1,s:45},{m:2,s:30}
+    ],
+    stl: [75, 90, 100, 105, 120, 130, 150, 180] // 總秒 → 答 [m, s]
+  }
+};
+
+// ── 難模式：跨配對，依鏈長度設計值（最小單位總量） ──
+var _TIME_HARD_VALS = {
+  'day-hour-minute':        [1530, 1650, 2000, 2400, 2880, 1445, 1500, 2160, 3000, 4320],
+  'hour-minute-second':     [3700, 3661, 4200, 5400, 7200, 3750, 5000, 3601, 7320, 4500],
+  'day-hour-minute-second': [86500, 90000, 100000, 90061, 172861, 100260, 95400, 88261]
+};
+
+function _getChainFactors(chainUnits) {
+  var factors = [];
+  for (var i = 0; i < chainUnits.length; i++) {
+    var f = 1;
+    for (var j = i; j < chainUnits.length - 1; j++) {
+      f *= _TS_UNIT_FACTOR[chainUnits[j]];
+    }
+    factors.push(f);
+  }
+  return factors; // factors[i] = num of chainUnits[last] per chainUnits[i]
+}
+
+function _decomposeTotal(total, chainUnits) {
+  var factors = _getChainFactors(chainUnits);
+  var amounts = [];
+  var remaining = total;
+  for (var i = 0; i < chainUnits.length; i++) {
+    var a = Math.floor(remaining / factors[i]);
+    amounts.push(a);
+    remaining -= a * factors[i];
+  }
+  return amounts;
+}
+
+function _makeEasyTimePair(pair, subtype) {
+  var questions = [];
+  var factor = _TS_PAIR_FACTOR[pair];
+  var largeType = _TS_PAIR_LARGE[pair];
+  var smallType = _TS_PAIR_SMALL[pair];
+  var lLabel = _TS_UNIT_LABEL[largeType];
+  var sLabel = _TS_UNIT_LABEL[smallType];
+
+  if (subtype === 'large-to-small') {
+    var vals = _TIME_EASY[pair].lts;
+    vals.forEach(function(v) {
+      var total, promptLarge;
+      if (pair === 'hour-min') {
+        total = v;
+        var h = Math.floor(v / 60), m = v % 60;
+        promptLarge = h + lLabel + (m > 0 ? m + sLabel : '');
+        questions.push({
+          prompt: promptLarge + ' = ？' + sLabel,
+          answerCount: 1, answer: [total], correctText: total + sLabel,
+          tsVisual: { pair: pair, mode: 'merge', largeCount: h, remainSmall: m }
+        });
+      } else {
+        var lv = v.d !== undefined ? v.d : v.m;
+        var sv = v.d !== undefined ? v.h : v.s;
+        total = lv * factor + sv;
+        promptLarge = lv + lLabel + (sv > 0 ? sv + sLabel : '');
+        questions.push({
+          prompt: promptLarge + ' = ？' + sLabel,
+          answerCount: 1, answer: [total], correctText: total + sLabel,
+          tsVisual: { pair: pair, mode: 'merge', largeCount: lv, remainSmall: sv }
+        });
+      }
+    });
+  } else {
+    var vals = _TIME_EASY[pair].stl;
+    vals.forEach(function(total) {
+      var lv = Math.floor(total / factor), sv = total % factor;
+      questions.push({
+        prompt: total + sLabel + ' = ？' + lLabel + '？' + sLabel,
+        answerCount: 2, answer: [lv, sv], correctText: lv + lLabel + sv + sLabel,
+        tsVisual: { pair: pair, mode: 'split', totalSmall: total }
+      });
+    });
+  }
+  return questions;
+}
+
+function _makeHardTimeQuestions(selectedPairs, subtype) {
+  var pairOrder = ['day-hour', 'hour-min', 'min-sec'];
+  var active = pairOrder.filter(function(p) { return selectedPairs.indexOf(p) >= 0; });
+  if (active.length === 0) return [];
+
+  var largestUnit  = _TS_PAIR_LARGE[active[0]];
+  var smallestUnit = _TS_PAIR_SMALL[active[active.length - 1]];
+  var li = _TS_UNIT_ORDER.indexOf(largestUnit);
+  var si = _TS_UNIT_ORDER.indexOf(smallestUnit);
+  var chainUnits = _TS_UNIT_ORDER.slice(li, si + 1);
+
+  var chainKey = chainUnits.join('-');
+  var rawVals  = _TIME_HARD_VALS[chainKey];
+  if (!rawVals || rawVals.length === 0) return [];
 
   var questions = [];
+  rawVals.forEach(function(total) {
+    var amounts = _decomposeTotal(total, chainUnits);
+    var labels  = chainUnits.map(function(u) { return _TS_UNIT_LABEL[u]; });
+    var sLabel  = labels[labels.length - 1];
 
-  if (doToMin) {
-    vals.forEach(function(m) {
-      var h = Math.floor(m / 60), min = m % 60;
+    if (subtype === 'large-to-small') {
+      var promptLarge = '';
+      for (var i = 0; i < chainUnits.length - 1; i++) {
+        promptLarge += amounts[i] + labels[i];
+      }
       questions.push({
-        prompt:      h + ' 小時 ' + min + ' 分 = ？ 分',
-        answerCount: 1,
-        answer:      [m],
-        correctText: m + ' 分',
-        tsVisual:    { mode: 'merge', totalMinutes: m, hours: h, remainMinutes: min }
+        prompt: promptLarge + ' = ？' + sLabel,
+        answerCount: 1, answer: [total], correctText: total + sLabel
       });
-    });
-  }
-
-  if (doToHM) {
-    vals.forEach(function(m) {
-      var h = Math.floor(m / 60), min = m % 60;
+    } else {
+      var promptQ = total + sLabel + ' = ';
+      for (var i = 0; i < chainUnits.length; i++) {
+        promptQ += '？' + labels[i];
+      }
       questions.push({
-        prompt:      m + ' 分 = ？ 小時 ？ 分',
-        answerCount: 2,
-        answer:      [h, min],
-        correctText: h + ' 小時 ' + min + ' 分',
-        tsVisual:    { mode: 'split', totalMinutes: m }
+        prompt: promptQ,
+        answerCount: chainUnits.length,
+        answer: amounts,
+        correctText: amounts.map(function(a, i) { return a + labels[i]; }).join('')
       });
-    });
-  }
-
+    }
+  });
   return questions;
+}
+
+function _makeTimeQuestions(subtype, difficulty) {
+  var selected = ['day-hour', 'hour-min', 'min-sec'].filter(function(p) {
+    return currentTimeItems[p];
+  });
+  if (selected.length === 0) return [];
+
+  if (difficulty === 'easy') {
+    return _makeEasyTimePair(selected[0], subtype);
+  } else {
+    return _makeHardTimeQuestions(selected, subtype);
+  }
 }
 
 // ════════════════════════════════════════

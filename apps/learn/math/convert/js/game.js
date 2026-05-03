@@ -23,9 +23,8 @@ var CAT_CONFIG = {
   time: {
     icon: '⏰', name: '時間換算',
     subtypes: [
-      { id: 'to-min', label: '小時 → 分鐘' },
-      { id: 'to-hm',  label: '分鐘 → 小時'  },
-      { id: 'mixed',  label: '🎲 混合'          }
+      { id: 'large-to-small', label: '大到小' },
+      { id: 'small-to-large', label: '小到大' }
     ]
   },
   money: {
@@ -38,6 +37,12 @@ var CAT_CONFIG = {
   }
 };
 
+var _TIME_ITEM_DEFS = [
+  { id: 'day-hour', ltsLabel: '日→時', stlLabel: '時→日' },
+  { id: 'hour-min', ltsLabel: '時→分', stlLabel: '分→時' },
+  { id: 'min-sec',  ltsLabel: '分→秒', stlLabel: '秒→分' }
+];
+
 // ════════════════════════════════════════
 //  選擇頁
 // ════════════════════════════════════════
@@ -47,6 +52,7 @@ function openCategory(cat) {
   currentCategory  = cat;
   selectSubtype    = CAT_CONFIG[cat].subtypes[0].id;
   selectDifficulty = 'easy';
+  selectTimeItems  = { 'day-hour': false, 'hour-min': false, 'min-sec': false };
   renderSelectPage();
   showPage('select');
 }
@@ -79,6 +85,31 @@ function renderSelectPage() {
   });
   html += '</div></div>';
 
+  if (currentCategory === 'time') {
+    var isHard = selectDifficulty === 'hard';
+    html += '<div class="select-section">';
+    html += '<div class="select-label">換算項目' + (isHard ? '（可多選）' : '（單選）') + '</div>';
+    html += '<div class="time-items-group">';
+    _TIME_ITEM_DEFS.forEach(function(item) {
+      var label   = selectSubtype === 'large-to-small' ? item.ltsLabel : item.stlLabel;
+      var checked = selectTimeItems[item.id];
+      if (isHard) {
+        html += '<label class="time-item-label' + (checked ? ' active' : '') + '">' +
+          '<input type="checkbox" class="time-item-input" value="' + item.id + '"' +
+          (checked ? ' checked' : '') +
+          ' onchange="toggleTimeItem(\'' + item.id + '\')">' +
+          label + '</label>';
+      } else {
+        html += '<label class="time-item-label' + (checked ? ' active' : '') + '">' +
+          '<input type="radio" class="time-item-input" name="time-item" value="' + item.id + '"' +
+          (checked ? ' checked' : '') +
+          ' onchange="selectSingleTimeItem(\'' + item.id + '\')">' +
+          label + '</label>';
+      }
+    });
+    html += '</div></div>';
+  }
+
   html += '<button class="btn-start-big" onclick="startGame()">開始練習 →</button>';
 
   el.innerHTML = html;
@@ -96,6 +127,25 @@ function setSubtype(st) {
 function setDifficulty(d) {
   sfxTap();
   selectDifficulty = d;
+  if (d === 'easy') {
+    var kept = false;
+    _TIME_ITEM_DEFS.forEach(function(item) {
+      if (kept) { selectTimeItems[item.id] = false; }
+      else if (selectTimeItems[item.id]) { kept = true; }
+    });
+  }
+  renderSelectPage();
+}
+
+function toggleTimeItem(id) {
+  selectTimeItems[id] = !selectTimeItems[id];
+  renderSelectPage();
+}
+
+function selectSingleTimeItem(id) {
+  _TIME_ITEM_DEFS.forEach(function(item) {
+    selectTimeItems[item.id] = (item.id === id);
+  });
   renderSelectPage();
 }
 
@@ -104,8 +154,13 @@ function setDifficulty(d) {
 // ════════════════════════════════════════
 
 function startGame() {
+  if (currentCategory === 'time') {
+    var hasItem = _TIME_ITEM_DEFS.some(function(item) { return selectTimeItems[item.id]; });
+    if (!hasItem) { showToast('請至少選一個換算項目！'); return; }
+  }
   currentSubtype    = selectSubtype;
   currentDifficulty = selectDifficulty;
+  currentTimeItems  = { 'day-hour': selectTimeItems['day-hour'], 'hour-min': selectTimeItems['hour-min'], 'min-sec': selectTimeItems['min-sec'] };
   gamePool    = generateQuestionPool(currentCategory, currentSubtype, currentDifficulty);
   if (gamePool.length === 0) { showToast('沒有可用題目，請換一種設定！'); return; }
   gamePoolIdx  = 0;
@@ -113,8 +168,9 @@ function startGame() {
   gameTotal    = 0;
   gameStreak   = 0;
   fillInputStr = '';
-  fillInputArr = ['', ''];
+  fillInputArr = [];
   activeFillIdx = 0;
+  answerCount   = 1;
   if (currentCategory === 'money' && typeof sbRenderBank === 'function') sbRenderBank();
   showPage('game');
   loadQuestion();
@@ -129,7 +185,8 @@ function loadQuestion() {
   gameQ         = gamePool[gamePoolIdx];
   answerCount   = gameQ.answerCount;
   fillInputStr  = '';
-  fillInputArr  = ['', ''];
+  fillInputArr  = [];
+  for (var _i = 0; _i < answerCount; _i++) fillInputArr.push('');
   activeFillIdx = 0;
 
   renderQuestion();
@@ -149,7 +206,6 @@ function renderQuestion() {
   var qaEl = document.getElementById('game-question-area');
   if (!qaEl) return;
 
-  // 題目句中內嵌答案格：以「？」切割後插入 fill-box
   var parts = q.prompt.split('？');
   var html  = '';
 
@@ -158,23 +214,23 @@ function renderQuestion() {
            '<div class="fill-box" id="game-fill-box">＿</div>' +
            (parts[1] ? '<span class="q-segment">' + parts[1] + '</span>' : '');
   } else {
-    // 雙答（時間題）："X 分 = ？ 小時 ？ 分"
-    html = '<span class="q-segment">' + parts[0] + '</span>' +
-           '<div class="fill-box fill-box-active" id="game-fill-box-0" onclick="setActiveFillBox(0)">＿</div>' +
-           (parts[1] ? '<span class="q-segment">' + parts[1] + '</span>' : '') +
-           '<div class="fill-box" id="game-fill-box-1" onclick="setActiveFillBox(1)">＿</div>' +
-           (parts[2] ? '<span class="q-segment">' + parts[2] + '</span>' : '');
+    for (var i = 0; i < q.answerCount; i++) {
+      html += '<span class="q-segment">' + (parts[i] || '') + '</span>';
+      html += '<div class="fill-box' + (i === 0 ? ' fill-box-active' : '') +
+              '" id="game-fill-box-' + i + '" onclick="setActiveFillBox(' + i + ')">＿</div>';
+    }
+    if (parts[q.answerCount]) {
+      html += '<span class="q-segment">' + parts[q.answerCount] + '</span>';
+    }
   }
   qaEl.innerHTML = html;
 
-  if (q.answerCount === 2) {
-    updateDoubleDisplay();
-    highlightActiveFillBox();
+  if (q.answerCount > 1) {
+    updateMultiDisplay();
   } else {
     updateSingleDisplay();
   }
 
-  // 右側沙盒：貨幣題 / 時間題顯示，長度題隱藏
   var isMoney      = currentCategory === 'money';
   var isTime       = currentCategory === 'time';
   var isRightPanel = isMoney || isTime;
@@ -193,19 +249,19 @@ function updateSingleDisplay() {
   if (el) el.textContent = fillInputStr || '＿';
 }
 
-function updateDoubleDisplay() {
-  var el0 = document.getElementById('game-fill-box-0');
-  var el1 = document.getElementById('game-fill-box-1');
-  if (el0) el0.textContent = fillInputArr[0] || '＿';
-  if (el1) el1.textContent = fillInputArr[1] || '＿';
+function updateMultiDisplay() {
+  for (var i = 0; i < answerCount; i++) {
+    var el = document.getElementById('game-fill-box-' + i);
+    if (el) el.textContent = fillInputArr[i] || '＿';
+  }
   highlightActiveFillBox();
 }
 
 function highlightActiveFillBox() {
-  var el0 = document.getElementById('game-fill-box-0');
-  var el1 = document.getElementById('game-fill-box-1');
-  if (el0) el0.classList.toggle('fill-box-active', activeFillIdx === 0);
-  if (el1) el1.classList.toggle('fill-box-active', activeFillIdx === 1);
+  for (var i = 0; i < answerCount; i++) {
+    var el = document.getElementById('game-fill-box-' + i);
+    if (el) el.classList.toggle('fill-box-active', i === activeFillIdx);
+  }
 }
 
 function setActiveFillBox(idx) {
@@ -226,12 +282,12 @@ function updateGameStats() {
 
 function fillAppend(d) {
   sfxTap();
-  if (answerCount === 2) {
-    if (fillInputArr[activeFillIdx].length >= 3) return;
+  if (answerCount > 1) {
+    if (fillInputArr[activeFillIdx].length >= 5) return;
     fillInputArr[activeFillIdx] += String(d);
-    updateDoubleDisplay();
+    updateMultiDisplay();
   } else {
-    if (fillInputStr.length >= 5) return;
+    if (fillInputStr.length >= 6) return;
     fillInputStr += String(d);
     updateSingleDisplay();
   }
@@ -239,9 +295,9 @@ function fillAppend(d) {
 
 function fillBackspace() {
   sfxTap();
-  if (answerCount === 2) {
+  if (answerCount > 1) {
     fillInputArr[activeFillIdx] = fillInputArr[activeFillIdx].slice(0, -1);
-    updateDoubleDisplay();
+    updateMultiDisplay();
   } else {
     fillInputStr = fillInputStr.slice(0, -1);
     updateSingleDisplay();
@@ -249,21 +305,20 @@ function fillBackspace() {
 }
 
 function onGameSubmit() {
-  if (answerCount === 2) {
-    // 第一欄有值 → 跳第二欄
-    if (activeFillIdx === 0 && fillInputArr[0] !== '') {
-      setActiveFillBox(1);
+  if (answerCount > 1) {
+    if (activeFillIdx < answerCount - 1 && fillInputArr[activeFillIdx] !== '') {
+      setActiveFillBox(activeFillIdx + 1);
       return;
     }
-    // 第二欄確認 → 提交
-    if (activeFillIdx === 1) {
-      if (fillInputArr[0] === '' || fillInputArr[1] === '') {
-        showToast('請填入兩欄答案！');
-        return;
+    if (activeFillIdx === answerCount - 1) {
+      for (var i = 0; i < answerCount; i++) {
+        if (fillInputArr[i] === '') { showToast('請填入全部答案！'); return; }
       }
-      var v0 = parseInt(fillInputArr[0], 10);
-      var v1 = parseInt(fillInputArr[1], 10);
-      onGameResult(v0 === gameQ.answer[0] && v1 === gameQ.answer[1]);
+      var isCorrect = true;
+      for (var i = 0; i < answerCount; i++) {
+        if (parseInt(fillInputArr[i], 10) !== gameQ.answer[i]) { isCorrect = false; break; }
+      }
+      onGameResult(isCorrect);
     }
   } else {
     if (!fillInputStr) return;
@@ -308,11 +363,11 @@ function onGameResult(isCorrect) {
 }
 
 function _flashFillBoxes(cls) {
-  if (answerCount === 2) {
-    var el0 = document.getElementById('game-fill-box-0');
-    var el1 = document.getElementById('game-fill-box-1');
-    if (el0) { el0.textContent = gameQ.answer[0]; el0.classList.add(cls); }
-    if (el1) { el1.textContent = gameQ.answer[1]; el1.classList.add(cls); }
+  if (answerCount > 1) {
+    for (var i = 0; i < answerCount; i++) {
+      var el = document.getElementById('game-fill-box-' + i);
+      if (el) { el.textContent = gameQ.answer[i]; el.classList.add(cls); }
+    }
   } else {
     var el = document.getElementById('game-fill-box');
     if (el) { el.textContent = gameQ.answer[0]; el.classList.add(cls); }
@@ -320,11 +375,15 @@ function _flashFillBoxes(cls) {
 }
 
 function _showCorrectAnswer() {
-  if (answerCount === 2) {
-    var el0 = document.getElementById('game-fill-box-0');
-    var el1 = document.getElementById('game-fill-box-1');
-    if (el0) { el0.textContent = gameQ.answer[0]; el0.classList.remove('fill-box-active'); el0.classList.add('fill-box-correct'); }
-    if (el1) { el1.textContent = gameQ.answer[1]; el1.classList.remove('fill-box-active'); el1.classList.add('fill-box-correct'); }
+  if (answerCount > 1) {
+    for (var i = 0; i < answerCount; i++) {
+      var el = document.getElementById('game-fill-box-' + i);
+      if (el) {
+        el.textContent = gameQ.answer[i];
+        el.classList.remove('fill-box-active');
+        el.classList.add('fill-box-correct');
+      }
+    }
   } else {
     var el = document.getElementById('game-fill-box');
     if (el) { el.textContent = gameQ.answer[0]; el.classList.add('fill-box-correct'); }

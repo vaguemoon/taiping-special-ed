@@ -9,9 +9,14 @@ var currentStudent = null;
 
 // ── 遊戲設定 ──
 var currentCategory   = '';      // 'length' | 'time' | 'money'
-var currentSubtype    = '';      // 'mm-cm' | 'cm-m' | ... | 'mixed'
+var currentSubtype    = '';      // 'mm-cm' | 'cm-m' | ... | 'large-to-small' | 'small-to-large'
 var currentDifficulty = 'easy';  // 'easy' | 'hard'
 var ROUND_SIZE = 10;             // 每輪題目數
+
+// ── 時間換算項目（選擇頁用） ──
+var selectTimeItems  = { 'day-hour': false, 'hour-min': false, 'min-sec': false };
+// ── 時間換算項目（遊戲中用） ──
+var currentTimeItems = { 'day-hour': false, 'hour-min': false, 'min-sec': false };
 
 // ── 一輪遊戲狀態 ──
 var gamePool    = [];   // 本輪題目陣列（已洗牌）
