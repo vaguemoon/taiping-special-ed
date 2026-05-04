@@ -463,8 +463,14 @@
           </div>
           <div id="ec-step2-err" style="color:var(--red);font-size:.82rem;margin-top:8px;font-weight:700;min-height:18px"></div>
           <div style="display:flex;justify-content:space-between;margin-top:16px">
-            <button class="btn btn-secondary" onclick="_ecGoStep(1)">← 上一步</button>
-            <button class="btn btn-primary"   onclick="_ecGoStep(3)">下一步 →</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-secondary" onclick="_ecSelectAll()">全選</button>
+              <button class="btn btn-secondary" onclick="_ecDeselectAll()">全不選</button>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-secondary" onclick="_ecGoStep(1)">← 上一步</button>
+              <button class="btn btn-primary"   onclick="_ecGoStep(3)">下一步 →</button>
+            </div>
           </div>
         </div>
 
