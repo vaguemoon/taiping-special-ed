@@ -6,8 +6,10 @@
 'use strict';
 
 var currentStudent = null;
-var loginPin = '';
-var regPin   = '';
+var loginPin       = '';
+var regPin         = '';
+var regPinConfirm  = '';
+var regPhase       = 'set'; // 'set' | 'confirm'
 
 // ── 學校制登入狀態 ──
 var _selectedSchoolId   = '';
@@ -328,36 +330,104 @@ function onLoginSuccess(student, isNew) {
 
 // ── 學生註冊 ──
 
+function _resetRegForm() {
+  regPin = ''; regPinConfirm = ''; regPhase = 'set';
+  updatePinDisplay('rpd', ''); updatePinDisplay('cpd', '');
+  var nameEl = document.getElementById('reg-name');
+  if (nameEl) nameEl.value = '';
+  var codeEl = document.getElementById('reg-invite-code');
+  if (codeEl) codeEl.value = '';
+  var confirmSection = document.getElementById('reg-confirm-section');
+  if (confirmSection) confirmSection.style.display = 'none';
+  var errEl = document.getElementById('reg-error');
+  if (errEl) errEl.classList.remove('show');
+  updateRegBtn();
+}
 function showRegister() {
   document.getElementById('login-form').style.display    = 'none';
   document.getElementById('register-form').style.display = '';
+  _resetRegForm();
 }
 function showLogin() {
   document.getElementById('register-form').style.display = 'none';
   document.getElementById('login-form').style.display    = '';
+  _resetRegForm();
 }
 function updateRegBtn() {
-  document.getElementById('btn-reg-ok').disabled =
-    !(document.getElementById('reg-name').value.trim() && regPin.length === 4);
+  var btnEl = document.getElementById('btn-reg-ok');
+  if (btnEl) btnEl.disabled =
+    !(document.getElementById('reg-name').value.trim() &&
+      regPin.length === 4 && regPinConfirm.length === 4);
 }
-function regPinInput(d) { if (regPin.length >= 4) return; regPin += d; updatePinDisplay('rpd', regPin); updateRegBtn(); }
-function regPinDelete()  { regPin = regPin.slice(0, -1); updatePinDisplay('rpd', regPin); updateRegBtn(); }
+function regPinInput(d) {
+  if (regPhase === 'set') {
+    if (regPin.length >= 4) return;
+    regPin += d; updatePinDisplay('rpd', regPin);
+    if (regPin.length === 4) {
+      regPhase = 'confirm';
+      var cs = document.getElementById('reg-confirm-section');
+      if (cs) cs.style.display = '';
+    }
+  } else {
+    if (regPinConfirm.length >= 4) return;
+    regPinConfirm += d; updatePinDisplay('cpd', regPinConfirm);
+  }
+  updateRegBtn();
+}
+function regPinDelete() {
+  if (regPhase === 'confirm') {
+    if (regPinConfirm.length > 0) {
+      regPinConfirm = regPinConfirm.slice(0, -1); updatePinDisplay('cpd', regPinConfirm);
+    } else {
+      regPhase = 'set';
+      var cs = document.getElementById('reg-confirm-section');
+      if (cs) cs.style.display = 'none';
+      regPin = regPin.slice(0, -1); updatePinDisplay('rpd', regPin);
+    }
+  } else {
+    regPin = regPin.slice(0, -1); updatePinDisplay('rpd', regPin);
+  }
+  updateRegBtn();
+}
 function doRegister() {
   var name = document.getElementById('reg-name').value.trim();
-  if (!name || regPin.length !== 4) return;
+  if (!name || regPin.length !== 4 || regPinConfirm.length !== 4) return;
+  var errEl = document.getElementById('reg-error');
+  errEl.classList.remove('show');
+  if (regPin !== regPinConfirm) {
+    errEl.textContent = '兩次 PIN 碼不一致，請重新輸入'; errEl.classList.add('show');
+    regPinConfirm = ''; updatePinDisplay('cpd', ''); updateRegBtn(); return;
+  }
   document.getElementById('btn-reg-ok').disabled = true;
   var id = name + '_' + regPin;
+  var inviteCode = (document.getElementById('reg-invite-code').value || '').trim().toUpperCase();
+
   db.collection('students').doc(id).get().then(function(doc) {
     if (doc.exists) {
-      var err = document.getElementById('reg-error');
-      err.textContent = '這個名字和 PIN 已被使用'; err.classList.add('show');
+      errEl.textContent = '這個名字和 PIN 已被使用'; errEl.classList.add('show');
       document.getElementById('btn-reg-ok').disabled = false; return;
     }
-    return db.collection('students').doc(id)
-      .set({ name: name, pin: regPin, nickname: '', avatar: '🐣', createdAt: new Date() })
-      .then(function() {
-        onLoginSuccess({ id: id, name: name, pin: regPin, nickname: '', avatar: '🐣' }, true);
+    var lookupPromise = inviteCode
+      ? db.collection('classes')
+          .where('inviteCode', '==', inviteCode)
+          .where('active', '==', true)
+          .limit(1).get()
+          .then(function(snap) { return snap.empty ? '' : snap.docs[0].id; })
+          .catch(function() { return ''; })
+      : Promise.resolve('');
+
+    return lookupPromise.then(function(classId) {
+      var data = {
+        name: name, pin: regPin, nickname: '', avatar: '🐣',
+        type: 'trial', classIds: classId ? [classId] : [],
+        createdAt: new Date()
+      };
+      return db.collection('students').doc(id).set(data).then(function() {
+        if (inviteCode && !classId) showToast('邀請碼無效，帳號已建立，尚未加入班級。');
+        onLoginSuccess({ id: id, name: name, pin: regPin, nickname: '', avatar: '🐣',
+                         classIds: data.classIds }, true);
       });
+    });
   }).catch(function() {
     showToast('建立失敗，請重試');
     document.getElementById('btn-reg-ok').disabled = false;

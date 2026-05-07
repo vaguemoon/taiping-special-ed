@@ -62,13 +62,14 @@ function loadClassRoster(classId) {
             id:         s.id,
             name:       displayName,
             seatNumber: s.data.seatNumber || 0,
+            type:       s.data.type       || '',
             lastSeen:   s.data.lastSeen || null,
             charStatus: pDocs[0].exists ? (pDocs[0].data().charStatus || {}) : {},
             multiply:   pDocs[1].exists ? pDocs[1].data() : null
           });
         }).catch(function() {
           var displayName = s.data.name || (s.data.seatNumber ? s.data.seatNumber + '號' : s.id);
-          students.push({ id: s.id, name: displayName, seatNumber: s.data.seatNumber || 0, lastSeen: null, charStatus: {}, multiply: null });
+          students.push({ id: s.id, name: displayName, seatNumber: s.data.seatNumber || 0, type: s.data.type || '', lastSeen: null, charStatus: {}, multiply: null });
         }).then(function() {
           done++;
           if (done === studentDocs.length) {
@@ -113,12 +114,18 @@ function renderClassRoster(wrap) {
   var today    = currentRosterToday;
   var appId    = currentRosterApp;
 
-  students.sort(function(a, b) {
+  var regularStudents = students.filter(function(s) { return s.type !== 'trial'; });
+  var trialStudents   = students.filter(function(s) { return s.type === 'trial'; });
+
+  regularStudents.sort(function(a, b) {
     if (a.seatNumber && b.seatNumber) return a.seatNumber - b.seatNumber;
     if (a.seatNumber) return -1;
     if (b.seatNumber) return 1;
     return (b.lastSeen ? b.lastSeen.seconds : 0) - (a.lastSeen ? a.lastSeen.seconds : 0);
   });
+  trialStudents.sort(function(a, b) { return a.name.localeCompare(b.name, 'zh-TW'); });
+
+  students = regularStudents.concat(trialStudents);
 
   var active = students.filter(function(s) {
     return s.lastSeen && s.lastSeen.seconds * 1000 > today.getTime();
@@ -149,63 +156,70 @@ function renderClassRoster(wrap) {
   }
 
   /* ── 表格列 ── */
-  var rows;
-  if (appId === 'chinese') {
-    rows = students.map(function(s) {
-      var cs      = s.charStatus;
-      var keys    = Object.keys(cs);
-      var mastered = keys.filter(function(k) { return cs[k] === 'mastered'; }).length;
-      var pct     = Math.round(mastered / (keys.length || 1) * 100);
-      var lastStr = _rosterLastStr(s.lastSeen);
-      var badge   = _chineseBadge(mastered, keys.length);
-      return '<tr onclick="showStudentDetail(\'' + s.id + '\')">'
-        + '<td><strong>' + s.name + '</strong></td>'
-        + '<td>' + badge + '</td>'
-        + '<td><div style="display:flex;align-items:center;gap:8px">'
-        +   '<div class="progress-mini"><div class="progress-mini-fill" style="width:' + pct + '%"></div></div>'
-        +   '<span style="font-size:.8rem;color:var(--muted)">' + mastered + '/' + keys.length + ' 字</span>'
-        + '</div></td>'
-        + '<td style="color:var(--muted);font-size:.82rem">' + lastStr + '</td>'
-        + '<td style="color:var(--blue);font-size:.82rem;font-weight:700">查看詳細 →</td>'
-        + '</tr>';
-    }).join('');
-    wrap.innerHTML =
-      '<table class="student-table">'
-      + '<thead><tr><th>姓名</th><th>狀態</th><th>掌握進度</th><th>最後登入</th><th></th></tr></thead>'
-      + '<tbody>' + rows + '</tbody>'
-      + '</table>';
-  } else {
-    /* 乘法趣 */
-    rows = students.map(function(s) {
-      var m    = s.multiply;
-      var fill = m ? (m.masteredFill    || []).length : 0;
-      var rev  = m ? (m.masteredReverse || []).length : 0;
-      var pct  = Math.round((fill + rev) / 22 * 100); // 11 填空 + 11 拆解
-      var lastStr = _rosterLastStr(s.lastSeen);
-      var badge = !m
-        ? '<span class="badge badge-gray">未使用</span>'
-        : (fill + rev === 22
-          ? '<span class="badge badge-green">全部精熟</span>'
-          : (fill + rev > 0
-            ? '<span class="badge badge-yellow">練習中</span>'
-            : '<span class="badge badge-gray">未開始</span>'));
-      return '<tr onclick="showStudentDetail(\'' + s.id + '\')">'
-        + '<td><strong>' + s.name + '</strong></td>'
-        + '<td>' + badge + '</td>'
-        + '<td><div style="display:flex;align-items:center;gap:8px">'
-        +   '<div class="progress-mini"><div class="progress-mini-fill" style="width:' + pct + '%;background:var(--green)"></div></div>'
-        +   '<span style="font-size:.8rem;color:var(--muted)">填 ' + fill + '/11・拆 ' + rev + '/11</span>'
-        + '</div></td>'
-        + '<td style="color:var(--muted);font-size:.82rem">' + lastStr + '</td>'
-        + '<td style="color:var(--blue);font-size:.82rem;font-weight:700">查看詳細 →</td>'
-        + '</tr>';
-    }).join('');
-    wrap.innerHTML =
-      '<table class="student-table">'
-      + '<thead><tr><th>姓名</th><th>狀態</th><th>乘法精熟</th><th>最後登入</th><th></th></tr></thead>'
-      + '<tbody>' + rows + '</tbody>'
-      + '</table>';
+  var TRIAL_SEP = '<tr><td colspan="5" style="padding:8px 10px 4px;font-size:.75rem;font-weight:900;'
+    + 'color:var(--muted);background:#f7f7f7;border-top:2px solid var(--border);letter-spacing:.04em">'
+    + '試用學生</td></tr>';
+
+  function _chineseRow(s) {
+    var cs       = s.charStatus;
+    var keys     = Object.keys(cs);
+    var mastered = keys.filter(function(k) { return cs[k] === 'mastered'; }).length;
+    var pct      = Math.round(mastered / (keys.length || 1) * 100);
+    var lastStr  = _rosterLastStr(s.lastSeen);
+    var badge    = _chineseBadge(mastered, keys.length);
+    var trialTag = s.type === 'trial' ? '<span class="trial-badge">(試用)</span>' : '';
+    return '<tr onclick="showStudentDetail(\'' + s.id + '\')">'
+      + '<td><strong>' + s.name + '</strong>' + trialTag + '</td>'
+      + '<td>' + badge + '</td>'
+      + '<td><div style="display:flex;align-items:center;gap:8px">'
+      +   '<div class="progress-mini"><div class="progress-mini-fill" style="width:' + pct + '%"></div></div>'
+      +   '<span style="font-size:.8rem;color:var(--muted)">' + mastered + '/' + keys.length + ' 字</span>'
+      + '</div></td>'
+      + '<td style="color:var(--muted);font-size:.82rem">' + lastStr + '</td>'
+      + '<td style="color:var(--blue);font-size:.82rem;font-weight:700">查看詳細 →</td>'
+      + '</tr>';
   }
+  function _multiplyRow(s) {
+    var m    = s.multiply;
+    var fill = m ? (m.masteredFill    || []).length : 0;
+    var rev  = m ? (m.masteredReverse || []).length : 0;
+    var pct  = Math.round((fill + rev) / 22 * 100);
+    var lastStr  = _rosterLastStr(s.lastSeen);
+    var trialTag = s.type === 'trial' ? '<span class="trial-badge">(試用)</span>' : '';
+    var badge = !m
+      ? '<span class="badge badge-gray">未使用</span>'
+      : (fill + rev === 22
+        ? '<span class="badge badge-green">全部精熟</span>'
+        : (fill + rev > 0
+          ? '<span class="badge badge-yellow">練習中</span>'
+          : '<span class="badge badge-gray">未開始</span>'));
+    return '<tr onclick="showStudentDetail(\'' + s.id + '\')">'
+      + '<td><strong>' + s.name + '</strong>' + trialTag + '</td>'
+      + '<td>' + badge + '</td>'
+      + '<td><div style="display:flex;align-items:center;gap:8px">'
+      +   '<div class="progress-mini"><div class="progress-mini-fill" style="width:' + pct + '%;background:var(--green)"></div></div>'
+      +   '<span style="font-size:.8rem;color:var(--muted)">填 ' + fill + '/11・拆 ' + rev + '/11</span>'
+      + '</div></td>'
+      + '<td style="color:var(--muted);font-size:.82rem">' + lastStr + '</td>'
+      + '<td style="color:var(--blue);font-size:.82rem;font-weight:700">查看詳細 →</td>'
+      + '</tr>';
+  }
+
+  var rowFn = appId === 'chinese' ? _chineseRow : _multiplyRow;
+  var thead = appId === 'chinese'
+    ? '<thead><tr><th>姓名</th><th>狀態</th><th>掌握進度</th><th>最後登入</th><th></th></tr></thead>'
+    : '<thead><tr><th>姓名</th><th>狀態</th><th>乘法精熟</th><th>最後登入</th><th></th></tr></thead>';
+
+  var regularRows = regularStudents.map(rowFn).join('');
+  var trialRows   = trialStudents.length
+    ? TRIAL_SEP + trialStudents.map(rowFn).join('')
+    : '';
+
+  wrap.innerHTML =
+    '<table class="student-table">'
+    + thead
+    + '<tbody>' + regularRows + trialRows + '</tbody>'
+    + '</table>';
 
   var lu = document.getElementById('last-update');
   if (lu) {

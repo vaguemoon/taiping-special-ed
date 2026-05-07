@@ -77,6 +77,34 @@
   display:flex; align-items:center; gap:10px; margin-bottom:18px;
 }
 .step-sub { font-size:.82rem; font-weight:700; color:var(--muted); margin-bottom:14px; }
+
+/* 註冊提交按鈕 */
+.btn-reg-submit {
+  display:block; width:100%; padding:14px; margin-top:14px;
+  background:var(--blue); color:white; border:none; border-radius:12px;
+  font-size:1rem; font-weight:900; font-family:inherit; cursor:pointer;
+  transition:background .15s;
+}
+.btn-reg-submit:hover:not(:disabled) { background:var(--blue-dk); }
+.btn-reg-submit:disabled { opacity:.45; cursor:default; }
+
+/* 邀請碼輸入框 */
+.invite-input {
+  width:100%; padding:11px 14px; margin-bottom:6px;
+  border:2px solid var(--border); border-radius:10px;
+  font-size:1rem; font-weight:800; font-family:'Courier New',monospace;
+  letter-spacing:.15em; text-transform:uppercase;
+  background:white; color:var(--text); box-sizing:border-box;
+  outline:none; transition:border-color .15s;
+}
+.invite-input:focus { border-color:var(--blue); }
+
+/* 試用標籤 */
+.trial-badge {
+  display:inline-block; font-size:.68rem; font-weight:800;
+  color:#888; background:#f0f0f0; border:1px solid #d8d8d8;
+  border-radius:4px; padding:1px 5px; margin-left:5px; vertical-align:middle;
+}
 </style>
 </head>
 <body>
@@ -181,12 +209,13 @@
 
     <!-- ── 步驟 2：一般登入 ── -->
     <div id="step-regular" class="login-step">
-      <div class="step-header">
-        <button class="btn-back-role" style="position:static;margin:0" onclick="goBack('step-choice')">← 返回</button>
-        <div style="font-size:1rem;font-weight:900">一般登入</div>
-      </div>
 
+      <!-- 登入表單 -->
       <div id="login-form">
+        <div class="step-header">
+          <button class="btn-back-role" style="position:static;margin:0" onclick="goBack('step-choice')">← 返回</button>
+          <div style="font-size:1rem;font-weight:900">一般登入</div>
+        </div>
         <label class="login-label">你的名字</label>
         <input class="login-input" id="login-name" type="text" placeholder="輸入姓名"
           autocomplete="off" oninput="updateLoginBtn()">
@@ -210,7 +239,58 @@
           <button class="pin-btn pin-btn-ok" id="btn-login-ok" onclick="doLogin()" disabled>✓</button>
         </div>
         <div class="login-error" id="login-error">名字或 PIN 碼不正確，請再試一次</div>
+        <button class="login-choice-btn-guest" style="margin-top:10px" onclick="showRegister()">還沒有帳號？立即註冊</button>
       </div>
+
+      <!-- 註冊表單 -->
+      <div id="register-form" style="display:none">
+        <div class="step-header">
+          <button class="btn-back-role" style="position:static;margin:0" onclick="showLogin()">← 返回</button>
+          <div style="font-size:1rem;font-weight:900">建立新帳號</div>
+        </div>
+
+        <label class="login-label">你的名字</label>
+        <input class="login-input" id="reg-name" type="text" placeholder="輸入姓名"
+          autocomplete="off" oninput="updateRegBtn()">
+
+        <label class="login-label">設定 PIN 碼（4位數字）</label>
+        <div class="pin-display" id="reg-pin-display">
+          <div class="pin-dot" id="rpd0"></div><div class="pin-dot" id="rpd1"></div>
+          <div class="pin-dot" id="rpd2"></div><div class="pin-dot" id="rpd3"></div>
+        </div>
+
+        <div id="reg-confirm-section" style="display:none">
+          <label class="login-label">再次確認 PIN 碼</label>
+          <div class="pin-display" id="conf-pin-display">
+            <div class="pin-dot" id="cpd0"></div><div class="pin-dot" id="cpd1"></div>
+            <div class="pin-dot" id="cpd2"></div><div class="pin-dot" id="cpd3"></div>
+          </div>
+        </div>
+
+        <div class="pin-pad">
+          <button class="pin-btn" onclick="regPinInput('1')">1</button>
+          <button class="pin-btn" onclick="regPinInput('2')">2</button>
+          <button class="pin-btn" onclick="regPinInput('3')">3</button>
+          <button class="pin-btn" onclick="regPinInput('4')">4</button>
+          <button class="pin-btn" onclick="regPinInput('5')">5</button>
+          <button class="pin-btn" onclick="regPinInput('6')">6</button>
+          <button class="pin-btn" onclick="regPinInput('7')">7</button>
+          <button class="pin-btn" onclick="regPinInput('8')">8</button>
+          <button class="pin-btn" onclick="regPinInput('9')">9</button>
+          <button class="pin-btn pin-btn-del" onclick="regPinDelete()">⌫</button>
+          <button class="pin-btn" onclick="regPinInput('0')">0</button>
+          <button class="pin-btn" style="visibility:hidden"></button>
+        </div>
+
+        <label class="login-label" style="margin-top:4px">邀請碼（選填）</label>
+        <input class="invite-input" id="reg-invite-code" type="text"
+          placeholder="輸入 6 碼邀請碼" autocomplete="off" maxlength="6"
+          oninput="this.value=this.value.toUpperCase()">
+
+        <div class="login-error" id="reg-error">這個名字和 PIN 已被使用</div>
+        <button class="btn-reg-submit" id="btn-reg-ok" onclick="doRegister()" disabled>建立帳號</button>
+      </div>
+
     </div>
 
   </div>
