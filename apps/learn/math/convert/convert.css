@@ -541,7 +541,7 @@
 .sb-popup-opt .sb-denom-mini,
 .sb-merge-btn .sb-denom-mini {
   flex-shrink: 0; border-radius: 4px;
-  width: 44px; height: 44px;
+  width: 34px; height: 34px;
 }
 
 /* ── 拆分彈窗 ── */
@@ -553,10 +553,8 @@
   align-items: center; gap: 10px; pointer-events: auto;
 }
 .sb-popup.hidden { display: none !important; }
-.sb-popup-title  {
-  font-size: .78rem; font-weight: 900; color: var(--muted); letter-spacing: .5px;
-}
 .sb-popup-opts   { display: flex; gap: 10px; }
+.sb-popup-visual { flex-direction: column; gap: 6px; }
 .sb-popup-divider {
   width: 100%; height: 1px; background: var(--border); margin: 2px 0;
 }
@@ -567,7 +565,17 @@
 }
 .sb-popup-opt:hover  { background: var(--blue-lt); border-color: var(--blue); }
 .sb-popup-opt:active { transform: scale(.94); }
-.sb-popup-count { font-size: .85rem; font-weight: 900; color: var(--text); }
+.sb-popup-row {
+  flex-direction: row; align-items: center; gap: 8px;
+  padding: 8px 12px; width: 100%;
+}
+.sb-arrow {
+  font-size: 1.2rem; flex-shrink: 0; line-height: 1;
+}
+.sb-coins-row {
+  display: flex; flex-wrap: nowrap; gap: 2px; align-items: center;
+}
+.sb-coins-grid { display: flex; flex-direction: column; gap: 2px; }
 
 
 /* ══════════════════════════════════════

@@ -27,12 +27,13 @@ var DRAG_THRESHOLD = 6;
 //  狀態
 // ════════════════════════════════════════
 
-var sbCoins     = [];   // { id, denom, x, y, el }
-var sbSeq       = 0;
-var sbDrag      = null; // { id, startX, startY, offsetX, offsetY, moved }
-var sbSelected  = [];   // 圈選中的 coin id 陣列
-var sbLasso     = null; // { startX, startY, sceneX, sceneY, el }
-var sbGroupDrag = null; // { startX, startY, offsets:[{id,dx,dy}], moved }
+var sbCoins       = [];   // { id, denom, x, y, el }
+var sbSeq         = 0;
+var sbDrag        = null; // { id, startX, startY, offsetX, offsetY, moved }
+var sbSelected    = [];   // 圈選中的 coin id 陣列
+var sbLasso       = null; // { startX, startY, sceneX, sceneY, el }
+var sbGroupDrag   = null; // { startX, startY, offsets:[{id,dx,dy}], moved }
+var sbTouchLasso  = null; // 觸控框選暫存：{ startX, startY }（移動超過閾值才啟動）
 
 // ════════════════════════════════════════
 //  工具
@@ -148,6 +149,16 @@ function sbRenderBank() {
       e.preventDefault();
       sbStartLasso(e.clientX, e.clientY);
     });
+    scene.addEventListener('touchstart', function(e) {
+      var t = e.target;
+      while (t && t !== scene) {
+        if (t.classList && t.classList.contains('sb-item')) return;
+        t = t.parentElement;
+      }
+      e.preventDefault();
+      var touch = e.touches[0];
+      sbTouchLasso = { startX: touch.clientX, startY: touch.clientY };
+    }, { passive: false });
   }
 }
 
@@ -221,13 +232,25 @@ function sbStartDrag(id, cx, cy) {
 document.addEventListener('mousemove', function(e) { sbMoveDrag(e.clientX, e.clientY); });
 document.addEventListener('mouseup',   function(e) { sbEndDrag(e.clientX, e.clientY); });
 document.addEventListener('touchmove', function(e) {
-  if (sbDrag || sbGroupDrag) { e.preventDefault(); }
-  if (sbGroupDrag) { sbMoveGroupDrag(e.touches[0].clientX, e.touches[0].clientY); return; }
-  if (sbDrag) { sbMoveDrag(e.touches[0].clientX, e.touches[0].clientY); }
+  var tx = e.touches[0].clientX, ty = e.touches[0].clientY;
+  if (sbDrag || sbGroupDrag || sbLasso || sbTouchLasso) { e.preventDefault(); }
+  if (sbGroupDrag)   { sbMoveGroupDrag(tx, ty); return; }
+  if (sbDrag)        { sbMoveDrag(tx, ty); return; }
+  if (sbLasso)       { sbUpdateLasso(tx, ty); return; }
+  if (sbTouchLasso)  {
+    var dx = tx - sbTouchLasso.startX, dy = ty - sbTouchLasso.startY;
+    if (Math.sqrt(dx * dx + dy * dy) > 10) {
+      sbStartLasso(sbTouchLasso.startX, sbTouchLasso.startY);
+      sbTouchLasso = null;
+    }
+  }
 }, { passive: false });
 document.addEventListener('touchend', function(e) {
-  if (sbGroupDrag) { sbEndGroupDrag(e.changedTouches[0].clientX, e.changedTouches[0].clientY); return; }
-  if (sbDrag) sbEndDrag(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+  var cx = e.changedTouches[0].clientX, cy = e.changedTouches[0].clientY;
+  sbTouchLasso = null;
+  if (sbLasso)      { sbEndLasso(cx, cy); return; }
+  if (sbGroupDrag)  { sbEndGroupDrag(cx, cy); return; }
+  if (sbDrag)       { sbEndDrag(cx, cy); }
 });
 
 function sbMoveDrag(cx, cy) {
@@ -458,6 +481,27 @@ function _sbPopupPosition(popup, coinEl) {
 //  單幣拆分彈窗
 // ════════════════════════════════════════
 
+/* ── 視覺化 popup 輔助函式 ── */
+function _sbCoinsHtml(denom, count) {
+  var show = Math.min(count, 10);
+  var img  = sbDenomHtml(denom, 'mini');
+  if (show <= 5) {
+    return '<div class="sb-coins-row">' + Array(show + 1).join(img) + '</div>';
+  }
+  return '<div class="sb-coins-grid">' +
+         '<div class="sb-coins-row">' + Array(6).join(img) + '</div>' +
+         '<div class="sb-coins-row">' + Array(show - 4).join(img) + '</div>' +
+         '</div>';
+}
+
+function _sbVisualRow(fromHtml, toHtml, onclick) {
+  return '<button class="sb-popup-opt sb-popup-row" onclick="' + onclick + '">' +
+         fromHtml +
+         '<span class="sb-arrow">➡</span>' +
+         toHtml +
+         '</button>';
+}
+
 function sbShowSplitPopup(id) {
   var coin = sbFindCoin(id);
   if (!coin) return;
@@ -467,14 +511,15 @@ function sbShowSplitPopup(id) {
   var popup = document.getElementById('sb-popup');
   if (!popup) return;
 
+  var fromHtml = sbDenomHtml(coin.denom, 'mini');
   popup.innerHTML =
-    '<div class="sb-popup-title">換成</div>' +
-    '<div class="sb-popup-opts">' +
+    '<div class="sb-popup-opts sb-popup-visual">' +
     opts.map(function(opt) {
-      return '<button class="sb-popup-opt" onclick="sbDoSplit(' + id + ',' + opt.to + ',' + opt.n + ')">' +
-             sbDenomHtml(opt.to, 'mini') +
-             '<span class="sb-popup-count">×' + opt.n + '</span>' +
-             '</button>';
+      return _sbVisualRow(
+        fromHtml,
+        _sbCoinsHtml(opt.to, opt.n),
+        'sbDoSplit(' + id + ',' + opt.to + ',' + opt.n + ')'
+      );
     }).join('') +
     '</div>';
 
@@ -518,29 +563,20 @@ function sbShowMergePopup(cx, cy) {
   var popup = document.getElementById('sb-popup');
   if (!popup) return;
 
-  var html = '<div class="sb-popup-title">合併成</div><div class="sb-popup-opts">';
+  var sourceHtml = _sbCoinsHtml(denom, sbSelected.length);
+  var html = '<div class="sb-popup-opts sb-popup-visual">';
   if (mergeDenom > 0) {
-    html += '<button class="sb-popup-opt" onclick="sbDoGroupMerge(' + mergeDenom + ')">' +
-            sbDenomHtml(mergeDenom, 'mini') +
-            '<span class="sb-popup-count">×1</span>' +
-            '</button>';
-  } else {
-    html += '<span class="sb-no-merge-msg">此組合無法合成單一面額</span>';
+    html += _sbVisualRow(sourceHtml, sbDenomHtml(mergeDenom, 'mini'), 'sbDoGroupMerge(' + mergeDenom + ')');
   }
-  html += '</div>';
 
   var splitOpts = sbGetGroupSplitOpts(denom, sbSelected.length);
   if (splitOpts.length > 0) {
-    html += '<div class="sb-popup-divider"></div>';
-    html += '<div class="sb-popup-title">拆分成</div><div class="sb-popup-opts">';
+    if (mergeDenom > 0) html += '<div class="sb-popup-divider"></div>';
     splitOpts.forEach(function(opt) {
-      html += '<button class="sb-popup-opt" onclick="sbDoGroupSplit(' + opt.to + ',' + opt.n + ')">' +
-              sbDenomHtml(opt.to, 'mini') +
-              '<span class="sb-popup-count">×' + opt.n + '</span>' +
-              '</button>';
+      html += _sbVisualRow(sourceHtml, _sbCoinsHtml(opt.to, opt.n), 'sbDoGroupSplit(' + opt.to + ',' + opt.n + ')');
     });
-    html += '</div>';
   }
+  html += '</div>';
 
   popup.innerHTML = html;
 
