@@ -1,41 +1,52 @@
 'use strict';
 
-var quizQueue    = [];   // 本輪題目
-var quizCurrent  = 0;
-var quizScore    = 0;    // 首輪答對數
-var quizTotal    = 0;    // 本次唯一詞語數
-var quizWrong    = [];   // 本輪答錯（下輪重練）
-var quizSeen     = {};   // 已答錯過的詞語（不重複計分）
-var quizRound    = 1;
-var quizAnswered = false;
+var quizQueue        = [];
+var quizCurrent      = 0;
+var quizScore        = 0;
+var quizTotal        = 0;
+var quizWrong        = [];
+var quizRoundCorrect = [];
+var quizSeen         = {};
+var quizRound        = 1;
+var quizAnswered     = false;
 
 function startQuiz() {
   if (wordImages.length < 2) { showToast('需要至少 2 個詞語才能進行測驗'); return; }
-  currentMode  = 'quiz';
-  quizQueue    = shuffle(wordImages.slice());
-  quizCurrent  = 0;
-  quizScore    = 0;
-  quizTotal    = quizQueue.length;
-  quizWrong    = [];
-  quizSeen     = {};
-  quizRound    = 1;
-  quizAnswered = false;
+  currentMode      = 'quiz';
+  quizQueue        = shuffle(wordImages.slice());
+  quizCurrent      = 0;
+  quizScore        = 0;
+  quizTotal        = quizQueue.length;
+  quizWrong        = [];
+  quizRoundCorrect = [];
+  quizSeen         = {};
+  quizRound        = 1;
+  quizAnswered     = false;
   _renderQuiz();
   showPage('quiz');
 }
 
+function _speakWord(word, cb) {
+  if (!window.speechSynthesis) { setTimeout(cb, 900); return; }
+  window.speechSynthesis.cancel();
+  var utt = new SpeechSynthesisUtterance(word);
+  utt.lang = 'zh-TW';
+  var done = false;
+  function finish() { if (!done) { done = true; cb(); } }
+  utt.onend  = finish;
+  utt.onerror = finish;
+  setTimeout(finish, 3000);
+  window.speechSynthesis.speak(utt);
+}
+
 function _renderQuiz() {
   if (quizCurrent >= quizQueue.length) {
-    if (quizWrong.length > 0) {
-      quizRound++;
-      quizQueue   = shuffle(quizWrong.slice());
-      quizWrong   = [];
-      quizCurrent = 0;
-      _renderQuiz();
-    } else {
+    if (quizWrong.length === 0) {
       renderResultPage(quizScore, quizTotal, quizRound);
-      showPage('result');
+    } else {
+      _renderRoundResult();
     }
+    showPage('result');
     return;
   }
 
@@ -93,18 +104,79 @@ function answerQuiz(optIdx) {
     else if (i === optIdx && !isRight) btn.classList.add('wrong');
   });
 
-  if (isRight) sfxCorrect(); else sfxWrong();
-
   if (isRight) {
+    sfxCorrect();
     if (!quizSeen[correct]) quizScore++;
+    quizRoundCorrect.push(quizQueue[quizCurrent]);
   } else {
+    sfxWrong();
     quizSeen[correct] = true;
     quizWrong.push(quizQueue[quizCurrent]);
   }
   recordResult(correct, isRight);
 
   setTimeout(function() {
-    quizCurrent++;
-    _renderQuiz();
-  }, isRight ? 700 : 1400);
+    _speakWord(correct, function() {
+      quizCurrent++;
+      _renderQuiz();
+    });
+  }, isRight ? 300 : 200);
+}
+
+function _nextRound() {
+  quizRound++;
+  quizQueue        = shuffle(quizWrong.slice());
+  quizWrong        = [];
+  quizRoundCorrect = [];
+  quizCurrent      = 0;
+  quizAnswered     = false;
+  _renderQuiz();
+  showPage('quiz');
+}
+
+function _renderRoundResult() {
+  var inner = document.querySelector('#page-result .wi-page-inner');
+  if (!inner) return;
+
+  var n       = quizQueue.length;
+  var correct = quizRoundCorrect.length;
+  var wrong   = quizWrong.length;
+
+  var thumbHtml = function(item, isWrong) {
+    var imgPart = item.imageUrl
+      ? '<img src="' + _escAttr(item.imageUrl) + '" alt="">'
+      : '<div class="wi-settle-thumb-noimg">🖼️</div>';
+    return '<div class="wi-settle-thumb' + (isWrong ? ' wi-settle-thumb-wrong' : ' wi-settle-thumb-correct') +
+      '" data-speak="' + _escAttr(item.word) + '" onclick="wiSpeak(event,this)">' +
+      imgPart +
+      '<div class="wi-settle-thumb-label">' + _escHtml(item.word) + '</div>' +
+    '</div>';
+  };
+
+  var correctSection = correct > 0
+    ? '<div class="wi-settle-section">' +
+        '<div class="wi-settle-section-title wi-settle-correct-title">✅ 答對 ' + correct + ' 個</div>' +
+        '<div class="wi-settle-thumbs">' +
+          quizRoundCorrect.map(function(it) { return thumbHtml(it, false); }).join('') +
+        '</div>' +
+      '</div>'
+    : '';
+
+  var wrongSection = wrong > 0
+    ? '<div class="wi-settle-section">' +
+        '<div class="wi-settle-section-title wi-settle-wrong-title">❌ 答錯 ' + wrong + ' 個，下輪再練</div>' +
+        '<div class="wi-settle-thumbs">' +
+          quizWrong.map(function(it) { return thumbHtml(it, true); }).join('') +
+        '</div>' +
+      '</div>'
+    : '';
+
+  inner.innerHTML =
+    '<div class="wi-settle-wrap">' +
+      '<div class="wi-settle-round">第 ' + quizRound + ' 輪結算</div>' +
+      '<div class="wi-settle-score">' + correct + ' / ' + n + ' 答對</div>' +
+      correctSection +
+      wrongSection +
+      '<button class="wi-btn-primary wi-settle-continue" onclick="_nextRound()">繼續練習 →</button>' +
+    '</div>';
 }

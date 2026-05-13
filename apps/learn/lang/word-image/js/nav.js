@@ -47,27 +47,26 @@ function backToHub() {
   try { window.parent.postMessage({ type: 'word-image-back' }, '*'); } catch(e) {}
 }
 
-/* ── Result page ── */
+/* ── 最終慶祝畫面（全部輪次完成） ── */
 function renderResultPage(score, total, rounds) {
-  var pct       = total ? Math.round(score / total * 100) : 0;
-  var scoreText = score + ' / ' + total + ' 首輪答對';
-  var emoji = pct >= 90 ? '🎉' : pct >= 70 ? '👍' : '💪';
-  var msg   = pct >= 90 ? '太厲害了！' : pct >= 70 ? '繼續加油！' : '加油！';
-  var roundNote = (rounds && rounds > 1)
-    ? '<div class="wi-result-rounds">複習了 ' + (rounds - 1) + ' 輪，全部完成！</div>'
+  var pct   = total ? Math.round(score / total * 100) : 0;
+  var emoji = pct >= 90 ? '🎉' : pct >= 70 ? '🏆' : '💪';
+  var msg   = pct >= 90 ? '太厲害了！全部答對！' : pct >= 70 ? '做得很好！' : '加油，繼續練習！';
+  var roundNote = rounds > 1
+    ? '<div class="wi-celebrate-rounds">共練習了 ' + rounds + ' 輪完成！</div>'
     : '';
 
   var inner = document.querySelector('#page-result .wi-page-inner');
   if (!inner) return;
   inner.innerHTML =
-    '<div class="wi-result-wrap">' +
-      '<div class="wi-result-emoji">' + emoji + '</div>' +
-      '<div class="wi-result-score">' + _escHtml(scoreText) + '</div>' +
-      '<div class="wi-result-pct">' + pct + '%　' + msg + '</div>' +
+    '<div class="wi-celebrate-wrap">' +
+      '<div class="wi-celebrate-emoji">' + emoji + '</div>' +
+      '<div class="wi-celebrate-msg">' + _escHtml(msg) + '</div>' +
+      '<div class="wi-celebrate-score">' + score + ' / ' + total + ' 首輪答對</div>' +
+      '<div class="wi-celebrate-pct">' + pct + '%</div>' +
       roundNote +
       '<div class="wi-result-btns">' +
         '<button class="wi-btn-primary" onclick="startQuiz()">再玩一次</button>' +
-        '<button class="wi-btn-secondary" onclick="startBrowse()">🃏 圖卡瀏覽</button>' +
         '<button class="wi-btn-secondary" onclick="showPage(\'mode\', false)">← 回選單</button>' +
       '</div>' +
     '</div>';
