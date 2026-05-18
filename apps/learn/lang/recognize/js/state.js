@@ -9,13 +9,49 @@ var currentLessonData  = null; // { chars, words, lessonNum, name, grade }
 var charStatus = {};           // { '字': 'new'|'practiced'|'mastered' }
 var wordStatus = {};           // { '詞語': 'new'|'practiced'|'mastered' }
 var gradePool  = { chars: [], words: [] }; // 同冊備用誘答池
+var zhuyinCache = {};          // 注音快取 { '字': 'ㄗˇ' }
 
 // ── curriculum.js Hook：選課後初始化學習狀態 ──
+
+function preloadZhuyin(chars) {
+  var overrides = (currentLessonData && currentLessonData.charOverrides) || {};
+  var queue = [];
+  chars.forEach(function(c) {
+    if (overrides[c] && overrides[c].zhuyin) {
+      zhuyinCache[c] = overrides[c].zhuyin; // admin 覆寫，直接使用
+    } else if (!zhuyinCache[c]) {
+      queue.push(c);
+    }
+  });
+
+  var i = 0;
+  function next() {
+    if (i >= queue.length) return;
+    var c = queue[i++];
+    fetch('https://www.moedict.tw/' + encodeURIComponent(c) + '.json')
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(d) {
+        if (!d || !d.heteronyms || !d.heteronyms.length) return;
+        var best = d.heteronyms.reduce(function(a, b) {
+          return ((b.definitions || []).length > (a.definitions || []).length) ? b : a;
+        });
+        var bopo = best.bopomofo || d.heteronyms[0].bopomofo || '';
+        if (bopo) {
+          zhuyinCache[c] = bopo;
+          if (typeof updateCardZhuyin === 'function') updateCardZhuyin(c);
+        }
+      })
+      .catch(function() {})
+      .then(function() { setTimeout(next, 200); });
+  }
+  next();
+}
 
 function onCurriculumLessonSelected(lesson, verName, bookId, gradeData) {
   currentLessonData = lesson;
   (lesson.chars || []).forEach(function(c) { if (!charStatus[c]) charStatus[c] = 'new'; });
   (lesson.words || []).forEach(function(w) { if (!wordStatus[w]) wordStatus[w] = 'new'; });
+  preloadZhuyin(lesson.chars || []);
   gradePool.chars = gradeData.reduce(function(acc, l) {
     return acc.concat((l.chars || []).filter(function(c) { return (lesson.chars || []).indexOf(c) === -1; }));
   }, []);

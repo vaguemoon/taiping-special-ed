@@ -240,6 +240,14 @@ function renderHub() {
   document.getElementById('hub-avatar').textContent = currentStudent.avatar || '🐣';
   document.getElementById('hub-name').textContent   = currentStudent.nickname || currentStudent.name;
 
+  var bAvatar = document.getElementById('hub-bottom-avatar');
+  var bName   = document.getElementById('hub-bottom-name');
+  if (bAvatar) bAvatar.textContent = currentStudent.avatar || '🐣';
+  if (bName) {
+    var nm = currentStudent.nickname || currentStudent.name || '';
+    bName.textContent = nm.length > 5 ? nm.slice(0, 5) + '…' : (nm || '個人');
+  }
+
   var learnSubjects = SUBJECTS.filter(function(s) { return s.type !== 'quiz'; });
   var quizSubjects  = SUBJECTS.filter(function(s) { return s.type === 'quiz'; });
 

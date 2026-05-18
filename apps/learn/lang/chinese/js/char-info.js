@@ -217,6 +217,7 @@ function preloadCharInfoAll(charArray) {
         if (heteronyms[0] && heteronyms[0].wordDefPairs && heteronyms[0].wordDefPairs.length > 0) {
           setCharSpeakContext(c, heteronyms[0].wordDefPairs[0].word);
         }
+        if (typeof updateCardZhuyin === 'function') updateCardZhuyin(c);
       })
       .catch(function() {})
       .then(function() { setTimeout(next, 200); });

@@ -38,6 +38,8 @@ var totalRounds    = 0;
 var bestStreak     = 0;
 var categoryStats  = {
   length: { rounds: 0, stars: 0 },
+  weight: { rounds: 0, stars: 0 },
+  volume: { rounds: 0, stars: 0 },
   time:   { rounds: 0, stars: 0 },
   money:  { rounds: 0, stars: 0 }
 };

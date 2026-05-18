@@ -70,14 +70,30 @@ function renderMenu() {
     var onclick = examSelectMode
       ? 'onCardSelectToggle(' + i + ')'
       : 'onCardClick(event,' + i + ')';
+    var info = charInfoCache[c];
+    var zhuyin = (info && info.heteronyms && info.heteronyms[0]) ? info.heteronyms[0].bopomofo : '';
     return '<div class="' + card + '" id="card-' + i + '" onclick="' + onclick + '">'
       + (sel ? '<div class="char-card-select-check">✓</div>' : '<div class="char-card-check">✓</div>')
+      + '<div class="char-card-zhuyin">' + zhuyin + '</div>'
       + '<div class="char-card-glyph">' + c + '</div>'
       + '<div class="char-card-status ' + statusClass[st] + '">' + statusLabel[st] + '</div>'
       + '</div>';
   }).join('');
 
   _renderExamButtons();
+}
+
+function updateCardZhuyin(c) {
+  var idx = chars.indexOf(c);
+  if (idx < 0) return;
+  var card = document.getElementById('card-' + idx);
+  if (!card) return;
+  var el = card.querySelector('.char-card-zhuyin');
+  if (!el) return;
+  var info = charInfoCache[c];
+  if (info && info.heteronyms && info.heteronyms[0]) {
+    el.textContent = info.heteronyms[0].bopomofo || '';
+  }
 }
 
 /**

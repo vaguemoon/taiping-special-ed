@@ -122,8 +122,12 @@
             <span class="hub-bottom-label">測驗區</span>
           </button>
           <button class="hub-bottom-btn" id="hub-bottom-profile" onclick="switchHubTab('profile')">
-            <span class="hub-bottom-icon">⚙️</span>
-            <span class="hub-bottom-label">個人設定</span>
+            <span class="hub-bottom-icon" id="hub-bottom-avatar">🐣</span>
+            <span class="hub-bottom-label" id="hub-bottom-name">個人</span>
+          </button>
+          <button class="hub-bottom-btn hub-bottom-logout" onclick="showLogoutConfirm()">
+            <span class="hub-bottom-icon">🚪</span>
+            <span class="hub-bottom-label">登出</span>
           </button>
         </nav>
 

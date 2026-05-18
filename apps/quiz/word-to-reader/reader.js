@@ -57,6 +57,33 @@ var studentDocList  = document.getElementById('student-doc-list');
 var studentEmpty    = document.getElementById('student-empty');
 var studentLoading  = document.getElementById('student-loading');
 
+/* ── Library Management UI ── */
+var btnManageToggle    = document.getElementById('btn-manage-toggle');
+var libSearch          = document.getElementById('lib-search');
+var libGroupFilter     = document.getElementById('lib-group-filter');
+var libCountBadge      = document.getElementById('lib-count');
+var libBatchToolbar    = document.getElementById('lib-batch-toolbar');
+var batchCountLabel    = document.getElementById('batch-count-label');
+var batchDeleteBtn     = document.getElementById('batch-delete-btn');
+var batchGroupBtn      = document.getElementById('batch-group-btn');
+var batchClassBtn      = document.getElementById('batch-class-btn');
+var batchTagBtn        = document.getElementById('batch-tag-btn');
+var batchClearBtn      = document.getElementById('batch-clear-btn');
+var modalBatchGroup    = document.getElementById('modal-batch-group');
+var batchGroupInput    = document.getElementById('batch-group-input');
+var batchGroupDL       = document.getElementById('batch-group-datalist');
+var btnBatchGroupCancel = document.getElementById('btn-batch-group-cancel');
+var btnBatchGroupOk    = document.getElementById('btn-batch-group-ok');
+var modalBatchClass    = document.getElementById('modal-batch-class');
+var batchClassList     = document.getElementById('batch-class-list');
+var batchClassLoading  = document.getElementById('batch-class-loading');
+var btnBatchClassCancel = document.getElementById('btn-batch-class-cancel');
+var btnBatchClassOk    = document.getElementById('btn-batch-class-ok');
+var modalBatchTag      = document.getElementById('modal-batch-tag');
+var batchTagInput      = document.getElementById('batch-tag-input');
+var btnBatchTagCancel  = document.getElementById('btn-batch-tag-cancel');
+var btnBatchTagOk      = document.getElementById('btn-batch-tag-ok');
+
 /* ══ Utils ══════════════════════════════════════════════════ */
 function escapeHtml(s) {
   return String(s)
@@ -85,6 +112,12 @@ var rateValue       = 0.9;   /* 語速 */
 var fontValue       = 17;    /* 字體 px */
 var editIsFloat     = false; /* 編輯面板是否浮動 */
 var _dragState      = null;  /* 浮動面板拖曳狀態 */
+
+/* ── Library Management State ── */
+var _libEntries  = [];
+var _libMode     = 'card';
+var _libFilter   = { search: '', group: '', shareStatus: 'all' };
+var _libSelected = new Set();
 
 /* ══ Firebase ═══════════════════════════════════════════════ */
 var fbApp  = null;
@@ -154,13 +187,27 @@ function cloudRef(uid, filename) {
     .collection('reader-library').doc(filename);
 }
 
+function normalizeEntry(e) {
+  return {
+    name:         e.name,
+    title:        e.title,
+    group:        e.group || '未分類',
+    date:         e.date  || '',
+    html:         e.html  || '',
+    tags:         e.tags  || [],
+    sharedClasses: e.sharedClasses || []
+  };
+}
+
 function cloudSave(uid, entry) {
   return cloudRef(uid, entry.name).set({
-    name:  entry.name,
-    title: entry.title,
-    group: entry.group,
-    date:  entry.date,
-    html:  entry.html
+    name:         entry.name,
+    title:        entry.title,
+    group:        entry.group,
+    date:         entry.date,
+    html:         entry.html,
+    tags:         entry.tags || [],
+    sharedClasses: entry.sharedClasses || []
   });
 }
 
@@ -177,7 +224,8 @@ async function cloudSyncDown(uid) {
     procMsg.textContent = '雲端同步中 (' + (i + 1) + '/' + docs.length + ')…';
     try {
       var d = docs[i].data();
-      await idbPut({ name: d.name, title: d.title, group: d.group, date: d.date, html: d.html });
+      await idbPut({ name: d.name, title: d.title, group: d.group, date: d.date, html: d.html,
+                     tags: d.tags || [], sharedClasses: d.sharedClasses || [] });
       ok++;
     } catch(e) { fail++; }
   }
@@ -308,9 +356,47 @@ btnConfirmShare.addEventListener('click', async function() {
     });
     await batch.commit();
 
-    /* 更新卡片上的分享徽章 */
-    var statusEl = document.querySelector('.lib-card-share-status[data-doc="' + doc.name + '"]');
-    if (statusEl) refreshCardShareStatus(doc.name, statusEl);
+    /* 建立新的 sharedClasses 陣列 */
+    var newSharedClasses = [];
+    checks.forEach(function(cb) {
+      if (cb.checked) {
+        var cls = classes.find(function(c) { return c.id === cb.value; });
+        if (cls) newSharedClasses.push({ id: cls.id, name: cls.name });
+      }
+    });
+
+    /* 更新 IDB */
+    var libEntry = await idbGet(doc.name);
+    if (libEntry) { libEntry.sharedClasses = newSharedClasses; await idbPut(libEntry); }
+
+    /* 更新 Firestore library doc */
+    if (currentUser && fbDb) {
+      cloudRef(currentUser.uid, doc.name).update({ sharedClasses: newSharedClasses }).catch(function(){});
+    }
+
+    /* 更新記憶體快取 */
+    var ci = _libEntries.findIndex(function(e) { return e.name === doc.name; });
+    if (ci !== -1) _libEntries[ci].sharedClasses = newSharedClasses;
+
+    /* 更新卡片徽章 or 表格欄 */
+    if (_libMode === 'card') {
+      var statusEl = document.querySelector('.lib-card-share-status[data-doc="' + doc.name + '"]');
+      if (statusEl) {
+        statusEl.innerHTML = '';
+        newSharedClasses.forEach(function(cls) {
+          var badge = document.createElement('span');
+          badge.className   = 'share-badge';
+          badge.textContent = cls.name;
+          statusEl.appendChild(badge);
+        });
+      }
+    } else {
+      var tr = document.querySelector('#lib-table-body tr[data-name="' + doc.name + '"]');
+      if (tr) {
+        var cell = tr.querySelector('.col-classes');
+        if (cell) cell.innerHTML = formatSharedClasses(newSharedClasses);
+      }
+    }
 
     showToast('✅ 分享設定已儲存');
     closeShareModal();
@@ -1097,6 +1183,7 @@ btnConfirmEditItem.addEventListener('click', async function () {
 });
 
 
+/* ── loadLibrary: entry point ── */
 async function loadLibrary() {
   var entries;
   try {
@@ -1106,135 +1193,322 @@ async function loadLibrary() {
       '<div class="library-empty"><p>⚠️ 無法讀取報讀庫</p><small>' + escapeHtml(e.message) + '</small></div>';
     return;
   }
+  _libEntries = entries.map(normalizeEntry);
+  _libSelected.clear();
+  updateBatchToolbar();
+  renderLibraryFilters();
+  renderLibrary();
+}
 
-  if (entries.length === 0) {
+function getFilteredEntries() {
+  var f = _libFilter;
+  return _libEntries.filter(function(e) {
+    if (f.search && e.title.indexOf(f.search) === -1) return false;
+    if (f.group && e.group !== f.group) return false;
+    if (f.shareStatus === 'shared'   && !e.sharedClasses.length) return false;
+    if (f.shareStatus === 'unshared' &&  e.sharedClasses.length) return false;
+    return true;
+  });
+}
+
+function renderLibrary() {
+  var entries = getFilteredEntries();
+  libCountBadge.textContent = entries.length + ' 篇';
+  if (_libEntries.length === 0) {
     libraryContent.innerHTML =
       '<div class="library-empty"><p>報讀庫還沒有內容</p>' +
       '<small>使用「轉換」功能後按「存到報讀庫」，或點「匯入 .html 檔」加入已有檔案</small></div>';
     return;
   }
+  if (entries.length === 0) {
+    libraryContent.innerHTML =
+      '<div class="library-empty"><p>沒有符合條件的文章</p><small>請調整篩選條件</small></div>';
+    return;
+  }
+  if (_libMode === 'table') {
+    renderLibraryTable(entries);
+  } else {
+    renderLibraryCards(entries);
+  }
+}
 
-  /* 分組 */
+function renderLibraryFilters() {
+  var groups = new Set(_libEntries.map(function(e) { return e.group; }));
+  var saved = libGroupFilter.value;
+  libGroupFilter.innerHTML = '<option value="">所有群組</option>';
+  Array.from(groups).sort(function(a, b) {
+    if (a === '未分類') return 1; if (b === '未分類') return -1;
+    return a.localeCompare(b, 'zh');
+  }).forEach(function(g) {
+    var opt = document.createElement('option');
+    opt.value = g; opt.textContent = g;
+    if (g === saved) opt.selected = true;
+    libGroupFilter.appendChild(opt);
+  });
+}
+
+/* ── Card view ── */
+function renderLibraryCards(entries) {
   var groups = {};
-  entries.forEach(function (entry) {
+  entries.forEach(function(entry) {
     var g = entry.group || '未分類';
     if (!groups[g]) groups[g] = [];
     groups[g].push(entry);
   });
-
-  var groupNames = Object.keys(groups).sort(function (a, b) {
-    if (a === '未分類') return 1;
-    if (b === '未分類') return -1;
+  var groupNames = Object.keys(groups).sort(function(a, b) {
+    if (a === '未分類') return 1; if (b === '未分類') return -1;
     return a.localeCompare(b, 'zh');
   });
-
   libraryContent.innerHTML = '';
-  groupNames.forEach(function (gname) {
+  groupNames.forEach(function(gname) {
     var section = document.createElement('div');
     section.className = 'group-section';
-
     var label = document.createElement('div');
-    label.className   = 'group-label';
-    label.textContent = gname;
+    label.className = 'group-label'; label.textContent = gname;
     section.appendChild(label);
-
     var grid = document.createElement('div');
     grid.className = 'card-grid';
     section.appendChild(grid);
-
-    groups[gname].forEach(function (entry) {
-      var card = document.createElement('div');
-      card.className = 'lib-card';
-
-      var titleEl = document.createElement('div');
-      titleEl.className   = 'lib-card-title';
-      titleEl.textContent = entry.title;
-      card.appendChild(titleEl);
-
-      if (entry.date) {
-        var dateMeta = document.createElement('div');
-        dateMeta.className   = 'lib-card-meta';
-        dateMeta.textContent = entry.date;
-        card.appendChild(dateMeta);
-      }
-
-      var dlBtn = document.createElement('button');
-      dlBtn.className   = 'lib-card-dl';
-      dlBtn.title       = '下載 .html 檔案';
-      dlBtn.textContent = '⬇️';
-      card.appendChild(dlBtn);
-
-      var editBtn = document.createElement('button');
-      editBtn.className   = 'lib-card-edit';
-      editBtn.title       = '重新命名 / 更改群組';
-      editBtn.textContent = '✏️';
-      card.appendChild(editBtn);
-
-      var delBtn = document.createElement('button');
-      delBtn.className   = 'lib-card-del';
-      delBtn.title       = '從報讀庫刪除';
-      delBtn.textContent = '🗑';
-      card.appendChild(delBtn);
-
-      var editContentBtn = document.createElement('button');
-      editContentBtn.className   = 'lib-card-edit-content';
-      editContentBtn.title       = '編輯內容';
-      editContentBtn.textContent = '📝';
-      card.appendChild(editContentBtn);
-
-      var shareBtn = document.createElement('button');
-      shareBtn.className   = 'lib-card-share';
-      shareBtn.title       = '分享給班級';
-      shareBtn.textContent = '📤';
-      card.appendChild(shareBtn);
-
-      var shareStatus = document.createElement('div');
-      shareStatus.className      = 'lib-card-share-status';
-      shareStatus.dataset.doc    = entry.name;
-      card.appendChild(shareStatus);
-      /* 非同步載入分享狀態徽章 */
-      refreshCardShareStatus(entry.name, shareStatus);
-
-      card.addEventListener('click', function (e) {
-        if (e.target === delBtn || e.target === editBtn || e.target === dlBtn || e.target === editContentBtn || e.target === shareBtn) return;
-        openDocInViewer(entry.html, entry.title);
-      });
-      editContentBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        openLibraryItemForEdit(entry);
-      });
-      dlBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        downloadLibraryItem(entry.name, entry.html);
-      });
-      editBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        openEditItemModal(entry.name, entry.title, entry.group || '未分類');
-      });
-      shareBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        showShareModal(entry.name, entry.title, entry.html);
-      });
-      delBtn.addEventListener('click', async function (e) {
-        e.stopPropagation();
-        if (!confirm('確定要刪除「' + entry.title + '」？\n（本機及雲端都會刪除）')) return;
-        try {
-          await idbDelete(entry.name);
-          if (currentUser && fbDb) {
-            await cloudDelete(currentUser.uid, entry.name).catch(function() {});
-          }
-          showToast('🗑 已刪除「' + entry.title + '」');
-          loadLibrary();
-        } catch (err) {
-          showToast('⚠️ 刪除失敗：' + err.message);
-        }
-      });
-
-      grid.appendChild(card);
-    });
-
+    groups[gname].forEach(function(entry) { grid.appendChild(buildLibCard(entry)); });
     libraryContent.appendChild(section);
   });
+}
+
+function buildLibCard(entry) {
+  var card = document.createElement('div');
+  card.className = 'lib-card';
+
+  var titleEl = document.createElement('div');
+  titleEl.className = 'lib-card-title'; titleEl.textContent = entry.title;
+  card.appendChild(titleEl);
+
+  if (entry.date) {
+    var dateMeta = document.createElement('div');
+    dateMeta.className = 'lib-card-meta'; dateMeta.textContent = entry.date;
+    card.appendChild(dateMeta);
+  }
+
+  if (entry.tags && entry.tags.length) {
+    var tagsEl = document.createElement('div');
+    tagsEl.className = 'lib-card-tags';
+    entry.tags.forEach(function(t) {
+      var chip = document.createElement('span');
+      chip.className = 'tag-chip'; chip.textContent = t;
+      tagsEl.appendChild(chip);
+    });
+    card.appendChild(tagsEl);
+  }
+
+  var dlBtn = document.createElement('button');
+  dlBtn.className = 'lib-card-dl'; dlBtn.title = '下載 .html 檔案'; dlBtn.textContent = '⬇️';
+  card.appendChild(dlBtn);
+
+  var editBtn = document.createElement('button');
+  editBtn.className = 'lib-card-edit'; editBtn.title = '重新命名 / 更改群組'; editBtn.textContent = '✏️';
+  card.appendChild(editBtn);
+
+  var delBtn = document.createElement('button');
+  delBtn.className = 'lib-card-del'; delBtn.title = '從報讀庫刪除'; delBtn.textContent = '🗑';
+  card.appendChild(delBtn);
+
+  var editContentBtn = document.createElement('button');
+  editContentBtn.className = 'lib-card-edit-content'; editContentBtn.title = '編輯內容'; editContentBtn.textContent = '📝';
+  card.appendChild(editContentBtn);
+
+  var shareBtn = document.createElement('button');
+  shareBtn.className = 'lib-card-share'; shareBtn.title = '分享給班級'; shareBtn.textContent = '📤';
+  card.appendChild(shareBtn);
+
+  var shareStatus = document.createElement('div');
+  shareStatus.className = 'lib-card-share-status'; shareStatus.dataset.doc = entry.name;
+  entry.sharedClasses.forEach(function(cls) {
+    var badge = document.createElement('span');
+    badge.className = 'share-badge'; badge.textContent = cls.name || cls;
+    shareStatus.appendChild(badge);
+  });
+  card.appendChild(shareStatus);
+
+  card.addEventListener('click', function(e) {
+    if (e.target === delBtn || e.target === editBtn || e.target === dlBtn || e.target === editContentBtn || e.target === shareBtn) return;
+    openDocInViewer(entry.html, entry.title);
+  });
+  editContentBtn.addEventListener('click', function(e) { e.stopPropagation(); openLibraryItemForEdit(entry); });
+  dlBtn.addEventListener('click', function(e) { e.stopPropagation(); downloadLibraryItem(entry.name, entry.html); });
+  editBtn.addEventListener('click', function(e) { e.stopPropagation(); openEditItemModal(entry.name, entry.title, entry.group || '未分類'); });
+  shareBtn.addEventListener('click', function(e) { e.stopPropagation(); showShareModal(entry.name, entry.title, entry.html); });
+  delBtn.addEventListener('click', async function(e) {
+    e.stopPropagation();
+    if (!confirm('確定要刪除「' + entry.title + '」？\n（本機及雲端都會刪除）')) return;
+    await deleteSingleEntry(entry);
+    loadLibrary();
+  });
+  return card;
+}
+
+/* ── Table view ── */
+function renderLibraryTable(entries) {
+  var wrap  = document.createElement('div');
+  wrap.className = 'lib-table-wrap';
+  var table = document.createElement('table');
+  table.className = 'lib-table';
+
+  var thead = document.createElement('thead');
+  thead.innerHTML =
+    '<tr>' +
+    '<th class="col-check"><input type="checkbox" id="select-all-cb" title="全選"/></th>' +
+    '<th class="col-title">標題</th>' +
+    '<th class="col-group">群組</th>' +
+    '<th class="col-date">日期</th>' +
+    '<th class="col-tags">標籤</th>' +
+    '<th class="col-classes">已分享班級</th>' +
+    '<th class="col-actions">操作</th>' +
+    '</tr>';
+  table.appendChild(thead);
+
+  var tbody = document.createElement('tbody');
+  tbody.id  = 'lib-table-body';
+  entries.forEach(function(entry) { tbody.appendChild(buildLibTableRow(entry)); });
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  libraryContent.innerHTML = '';
+  libraryContent.appendChild(wrap);
+
+  var selectAllCb = document.getElementById('select-all-cb');
+  selectAllCb.addEventListener('change', function() {
+    var cbs = tbody.querySelectorAll('.row-check');
+    cbs.forEach(function(cb) {
+      cb.checked = selectAllCb.checked;
+      if (selectAllCb.checked) _libSelected.add(cb.value);
+      else _libSelected.delete(cb.value);
+    });
+    updateBatchToolbar();
+  });
+  updateSelectAllState(selectAllCb, entries);
+}
+
+function buildLibTableRow(entry) {
+  var tr = document.createElement('tr');
+  tr.dataset.name = entry.name;
+
+  /* Checkbox */
+  var tdCheck = document.createElement('td');
+  tdCheck.className = 'col-check';
+  var cb = document.createElement('input');
+  cb.type = 'checkbox'; cb.className = 'row-check'; cb.value = entry.name;
+  if (_libSelected.has(entry.name)) cb.checked = true;
+  cb.addEventListener('change', function() {
+    if (cb.checked) _libSelected.add(entry.name);
+    else            _libSelected.delete(entry.name);
+    updateBatchToolbar();
+    var saCb = document.getElementById('select-all-cb');
+    if (saCb) updateSelectAllState(saCb, getFilteredEntries());
+  });
+  tdCheck.appendChild(cb); tr.appendChild(tdCheck);
+
+  /* Title */
+  var tdTitle = document.createElement('td');
+  tdTitle.className = 'col-title';
+  var titleSpan = document.createElement('span');
+  titleSpan.className = 'row-title'; titleSpan.textContent = entry.title; titleSpan.title = entry.title;
+  tdTitle.appendChild(titleSpan); tr.appendChild(tdTitle);
+
+  /* Group */
+  var tdGroup = document.createElement('td');
+  tdGroup.className = 'col-group';
+  var gChip = document.createElement('span');
+  gChip.className = 'group-chip'; gChip.textContent = entry.group || '未分類';
+  tdGroup.appendChild(gChip); tr.appendChild(tdGroup);
+
+  /* Date */
+  var tdDate = document.createElement('td');
+  tdDate.className = 'col-date'; tdDate.textContent = entry.date || '—';
+  tr.appendChild(tdDate);
+
+  /* Tags */
+  var tdTags = document.createElement('td');
+  tdTags.className = 'col-tags';
+  if (entry.tags && entry.tags.length) {
+    entry.tags.forEach(function(t) {
+      var chip = document.createElement('span');
+      chip.className = 'tag-chip'; chip.textContent = t;
+      tdTags.appendChild(chip);
+    });
+  } else {
+    tdTags.innerHTML = '<span style="color:var(--fg2)">—</span>';
+  }
+  tr.appendChild(tdTags);
+
+  /* Shared Classes */
+  var tdCls = document.createElement('td');
+  tdCls.className = 'col-classes'; tdCls.innerHTML = formatSharedClasses(entry.sharedClasses);
+  tr.appendChild(tdCls);
+
+  /* Actions */
+  var tdAct = document.createElement('td');
+  tdAct.className = 'col-actions';
+
+  function rowBtn(title, text, cls, handler) {
+    var btn = document.createElement('button');
+    btn.className = 'row-action-btn' + (cls ? ' ' + cls : '');
+    btn.title = title; btn.textContent = text;
+    btn.addEventListener('click', handler);
+    tdAct.appendChild(btn);
+  }
+  rowBtn('開啟', '▶', '',       function() { openDocInViewer(entry.html, entry.title); });
+  rowBtn('編輯', '✏️', '',      function() { openEditItemModal(entry.name, entry.title, entry.group || '未分類'); });
+  rowBtn('分享', '📤', '',      function() { showShareModal(entry.name, entry.title, entry.html); });
+  rowBtn('刪除', '🗑', 'danger', async function() {
+    if (!confirm('確定要刪除「' + entry.title + '」？\n（本機及雲端都會刪除）')) return;
+    await deleteSingleEntry(entry);
+    loadLibrary();
+  });
+  tr.appendChild(tdAct);
+  return tr;
+}
+
+function formatSharedClasses(sharedClasses) {
+  if (!sharedClasses || !sharedClasses.length) return '<span style="color:var(--fg2)">—</span>';
+  var names = sharedClasses.map(function(c) { return escapeHtml(c.name || String(c)); });
+  var chips = names.slice(0, 3).map(function(n) { return '<span class="share-badge">' + n + '</span>'; }).join(' ');
+  if (names.length > 3) chips += ' <span class="share-badge-more">+' + (names.length - 3) + '班</span>';
+  return chips;
+}
+
+function updateSelectAllState(selectAllCb, entries) {
+  var total   = entries.length;
+  var checked = entries.filter(function(e) { return _libSelected.has(e.name); }).length;
+  selectAllCb.indeterminate = checked > 0 && checked < total;
+  selectAllCb.checked       = total > 0 && checked === total;
+}
+
+function updateBatchToolbar() {
+  var count = _libSelected.size;
+  var show  = count > 0 && _libMode === 'table';
+  libBatchToolbar.classList.toggle('active', show);
+  batchCountLabel.textContent = '已選 ' + count + ' 篇';
+}
+
+/* ── Delete single entry ── */
+async function deleteSingleEntry(entry) {
+  try {
+    await idbDelete(entry.name);
+    if (currentUser && fbDb) {
+      await cloudDelete(currentUser.uid, entry.name).catch(function(){});
+      var classes = await loadTeacherClasses();
+      if (classes.length) {
+        var batch = fbDb.batch();
+        classes.forEach(function(cls) {
+          batch.delete(fbDb.collection('classes').doc(cls.id).collection('sharedReaderDocs').doc(entry.name));
+        });
+        await batch.commit().catch(function(){});
+      }
+    }
+    _libEntries = _libEntries.filter(function(e) { return e.name !== entry.name; });
+    _libSelected.delete(entry.name);
+    showToast('🗑 已刪除「' + entry.title + '」');
+  } catch (err) {
+    showToast('⚠️ 刪除失敗：' + err.message);
+  }
 }
 
 
@@ -1248,6 +1522,236 @@ function downloadLibraryItem(name, html) {
   document.body.removeChild(a);
   setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
 }
+
+/* ══ Library — manage toggle ════════════════════════════════ */
+btnManageToggle.addEventListener('click', function() {
+  _libMode = _libMode === 'table' ? 'card' : 'table';
+  btnManageToggle.classList.toggle('active', _libMode === 'table');
+  btnManageToggle.textContent = _libMode === 'table' ? '☰ 卡片' : '⚙ 管理';
+  if (_libMode === 'card') { _libSelected.clear(); updateBatchToolbar(); }
+  renderLibrary();
+});
+
+/* ══ Library — filter events ════════════════════════════════ */
+libSearch.addEventListener('input', function() {
+  _libFilter.search = libSearch.value.trim();
+  renderLibrary();
+});
+libGroupFilter.addEventListener('change', function() {
+  _libFilter.group = libGroupFilter.value;
+  renderLibrary();
+});
+document.querySelectorAll('.lib-share-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.lib-share-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    _libFilter.shareStatus = btn.dataset.status;
+    renderLibrary();
+  });
+});
+
+/* ══ Library — batch toolbar clear ═════════════════════════ */
+batchClearBtn.addEventListener('click', function() {
+  _libSelected.clear();
+  updateBatchToolbar();
+  renderLibrary();
+});
+
+/* ══ Library — batch delete ═════════════════════════════════ */
+batchDeleteBtn.addEventListener('click', async function() {
+  var names = Array.from(_libSelected);
+  if (!names.length) return;
+  if (!confirm('確定要刪除已選的 ' + names.length + ' 篇文章？\n（本機、雲端及班級共享副本都會刪除）')) return;
+  var entries = _libEntries.filter(function(e) { return _libSelected.has(e.name); });
+  batchDeleteBtn.disabled = true; batchDeleteBtn.textContent = '刪除中…';
+  try {
+    for (var i = 0; i < entries.length; i++) { await idbDelete(entries[i].name); }
+    if (currentUser && fbDb) {
+      var classes = await loadTeacherClasses();
+      var ops = [];
+      entries.forEach(function(entry) {
+        ops.push({ type: 'lib', name: entry.name });
+        classes.forEach(function(cls) { ops.push({ type: 'share', classId: cls.id, name: entry.name }); });
+      });
+      var idx = 0;
+      while (idx < ops.length) {
+        var batch = fbDb.batch();
+        var chunk = ops.slice(idx, idx + 400);
+        chunk.forEach(function(op) {
+          if (op.type === 'lib') {
+            batch.delete(cloudRef(currentUser.uid, op.name));
+          } else {
+            batch.delete(fbDb.collection('classes').doc(op.classId).collection('sharedReaderDocs').doc(op.name));
+          }
+        });
+        await batch.commit();
+        idx += 400;
+      }
+    }
+    names.forEach(function(n) { _libSelected.delete(n); });
+    showToast('✅ 已刪除 ' + entries.length + ' 篇');
+    loadLibrary();
+  } catch(e) {
+    showToast('⚠️ 刪除失敗：' + e.message);
+  } finally {
+    batchDeleteBtn.disabled = false; batchDeleteBtn.textContent = '🗑 刪除';
+  }
+});
+
+/* ══ Library — batch change group ══════════════════════════ */
+batchGroupBtn.addEventListener('click', function() {
+  batchGroupDL.innerHTML = '';
+  var groups = new Set(_libEntries.map(function(e) { return e.group; }));
+  groups.forEach(function(g) {
+    if (g && g !== '未分類') {
+      var opt = document.createElement('option'); opt.value = g; batchGroupDL.appendChild(opt);
+    }
+  });
+  batchGroupInput.value = '';
+  modalBatchGroup.classList.add('show');
+  setTimeout(function() { batchGroupInput.focus(); }, 50);
+});
+btnBatchGroupCancel.addEventListener('click', function() { modalBatchGroup.classList.remove('show'); });
+modalBatchGroup.addEventListener('click', function(e) { if (e.target === modalBatchGroup) modalBatchGroup.classList.remove('show'); });
+
+btnBatchGroupOk.addEventListener('click', async function() {
+  var newGroup = batchGroupInput.value.trim() || '未分類';
+  var names = Array.from(_libSelected);
+  modalBatchGroup.classList.remove('show');
+  btnBatchGroupOk.disabled = true;
+  try {
+    for (var i = 0; i < names.length; i++) {
+      var entry = await idbGet(names[i]);
+      if (entry) { entry.group = newGroup; await idbPut(entry); }
+    }
+    if (currentUser && fbDb) {
+      var batch = fbDb.batch();
+      names.forEach(function(name) { batch.update(cloudRef(currentUser.uid, name), { group: newGroup }); });
+      await batch.commit();
+    }
+    names.forEach(function(name) {
+      var ci = _libEntries.findIndex(function(e) { return e.name === name; });
+      if (ci !== -1) _libEntries[ci].group = newGroup;
+    });
+    showToast('✅ 已將 ' + names.length + ' 篇改為群組「' + newGroup + '」');
+    renderLibraryFilters();
+    renderLibrary();
+  } catch(e) {
+    showToast('⚠️ 更新失敗：' + e.message);
+  } finally {
+    btnBatchGroupOk.disabled = false;
+  }
+});
+
+/* ══ Library — batch assign classes ════════════════════════ */
+batchClassBtn.addEventListener('click', async function() {
+  if (!currentUser) { showToast('請先登入才能使用分享功能'); return; }
+  batchClassList.innerHTML = '';
+  batchClassLoading.style.display = 'block';
+  btnBatchClassOk.disabled = true;
+  modalBatchClass.classList.add('show');
+  try {
+    var classes = await loadTeacherClasses();
+    batchClassLoading.style.display = 'none';
+    btnBatchClassOk.disabled = false;
+    if (!classes.length) {
+      batchClassList.innerHTML = '<div style="text-align:center;padding:16px;color:var(--fg2);font-size:.85rem;font-weight:600">尚未建立任何班級</div>';
+      return;
+    }
+    classes.forEach(function(cls) {
+      var row = document.createElement('div'); row.className = 'share-class-row';
+      var cb  = document.createElement('input'); cb.type = 'checkbox'; cb.id = 'batch-cls-' + cls.id; cb.value = cls.id;
+      var lbl = document.createElement('label'); lbl.htmlFor = cb.id; lbl.textContent = cls.name;
+      row.appendChild(cb); row.appendChild(lbl); batchClassList.appendChild(row);
+    });
+  } catch(e) {
+    batchClassLoading.style.display = 'none';
+    batchClassList.innerHTML = '<div style="color:var(--red);font-size:.85rem;padding:8px">載入失敗：' + escapeHtml(e.message) + '</div>';
+  }
+});
+btnBatchClassCancel.addEventListener('click', function() { modalBatchClass.classList.remove('show'); });
+modalBatchClass.addEventListener('click', function(e) { if (e.target === modalBatchClass) modalBatchClass.classList.remove('show'); });
+
+btnBatchClassOk.addEventListener('click', async function() {
+  var names   = Array.from(_libSelected);
+  var classes = await loadTeacherClasses();
+  var selected = classes.filter(function(cls) {
+    var cb = batchClassList.querySelector('#batch-cls-' + cls.id);
+    return cb && cb.checked;
+  });
+  modalBatchClass.classList.remove('show');
+  btnBatchClassOk.disabled = true;
+  try {
+    for (var i = 0; i < names.length; i++) {
+      var name  = names[i];
+      var entry = _libEntries.find(function(e) { return e.name === name; });
+      if (!entry) continue;
+      if (currentUser && fbDb) {
+        var batch = fbDb.batch();
+        classes.forEach(function(cls) {
+          batch.delete(fbDb.collection('classes').doc(cls.id).collection('sharedReaderDocs').doc(name));
+        });
+        selected.forEach(function(cls) {
+          batch.set(fbDb.collection('classes').doc(cls.id).collection('sharedReaderDocs').doc(name), {
+            title: entry.title, html: entry.html,
+            teacherUid: currentUser.uid,
+            sharedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        });
+        await batch.commit();
+      }
+      var newSC = selected.map(function(cls) { return { id: cls.id, name: cls.name }; });
+      var idbEntry = await idbGet(name);
+      if (idbEntry) { idbEntry.sharedClasses = newSC; await idbPut(idbEntry); }
+      if (currentUser && fbDb) { cloudRef(currentUser.uid, name).update({ sharedClasses: newSC }).catch(function(){}); }
+      var ci = _libEntries.findIndex(function(e) { return e.name === name; });
+      if (ci !== -1) _libEntries[ci].sharedClasses = newSC;
+    }
+    var label = selected.length ? selected.map(function(c) { return c.name; }).join(', ') : '（無班級）';
+    showToast('✅ 已將 ' + names.length + ' 篇分配至：' + label);
+    renderLibrary();
+  } catch(e) {
+    showToast('⚠️ 分配失敗：' + e.message);
+  } finally {
+    btnBatchClassOk.disabled = false;
+  }
+});
+
+/* ══ Library — batch add tags ═══════════════════════════════ */
+batchTagBtn.addEventListener('click', function() {
+  batchTagInput.value = '';
+  modalBatchTag.classList.add('show');
+  setTimeout(function() { batchTagInput.focus(); }, 50);
+});
+btnBatchTagCancel.addEventListener('click', function() { modalBatchTag.classList.remove('show'); });
+modalBatchTag.addEventListener('click', function(e) { if (e.target === modalBatchTag) modalBatchTag.classList.remove('show'); });
+
+btnBatchTagOk.addEventListener('click', async function() {
+  var raw = batchTagInput.value.trim();
+  if (!raw) { batchTagInput.focus(); return; }
+  var newTags = raw.split(/[,，\s]+/).map(function(t) { return t.trim(); }).filter(Boolean);
+  var names   = Array.from(_libSelected);
+  modalBatchTag.classList.remove('show');
+  try {
+    for (var i = 0; i < names.length; i++) {
+      var name     = names[i];
+      var idbEntry = await idbGet(name);
+      if (!idbEntry) continue;
+      var merged = Array.from(new Set((idbEntry.tags || []).concat(newTags)));
+      idbEntry.tags = merged;
+      await idbPut(idbEntry);
+      if (currentUser && fbDb) {
+        cloudRef(currentUser.uid, name).update({ tags: merged }).catch(function(){});
+      }
+      var ci = _libEntries.findIndex(function(e) { return e.name === name; });
+      if (ci !== -1) _libEntries[ci].tags = merged;
+    }
+    showToast('✅ 已為 ' + names.length + ' 篇加上標籤');
+    renderLibrary();
+  } catch(e) {
+    showToast('⚠️ 標籤更新失敗：' + e.message);
+  }
+});
 
 /* ══ Init ═══════════════════════════════════════════════════ */
 if (studentMode) {

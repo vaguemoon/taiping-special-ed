@@ -9,81 +9,128 @@
 'use strict';
 
 // ════════════════════════════════════════
-//  長度換算
+//  度量衡換算（長度/重量/容量）
+//  共用 msVisual 沙盒視覺資料
 // ════════════════════════════════════════
 
-var _LEN_PAIRS = {
-  'mm-cm': { factor: 10,   smallUnit: 'mm', bigUnit: 'cm' },
-  'cm-m':  { factor: 100,  smallUnit: 'cm', bigUnit: 'm'  },
-  'm-km':  { factor: 1000, smallUnit: 'm',  bigUnit: 'km' }
-};
-
-// 初階：答案為整數且數值小的數組
-var _LEN_VALS = {
+// merge 題組：{ l: 大單位數, r: 餘量小單位 }
+// split 題組：小單位總量（整數）
+var _MS_VALS = {
   'mm-cm': {
-    easy: {
-      toSmall: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-      toBig:   [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-    },
-    hard: {
-      toSmall: [11, 15, 20, 25, 50, 100, 150, 200],
-      toBig:   [110, 150, 200, 250, 500, 1000, 1500, 2000]
-    }
+    merge: [
+      {l:1,r:0},{l:2,r:0},{l:3,r:0},{l:4,r:0},{l:5,r:0},
+      {l:6,r:0},{l:7,r:0},{l:8,r:0},{l:9,r:0},
+      {l:1,r:5},{l:2,r:3},{l:3,r:7},{l:4,r:5},{l:5,r:5}
+    ],
+    split: [10,15,20,25,30,35,40,45,50,60,70,80,90]
   },
   'cm-m': {
-    easy: {
-      toSmall: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-      toBig:   [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
-    },
-    hard: {
-      toSmall: [15, 25, 50, 100, 150, 200, 500],
-      toBig:   [150, 250, 350, 550, 750, 1200, 1500]
-    }
+    merge: [
+      {l:1,r:0},{l:2,r:0},{l:3,r:0},{l:4,r:0},{l:5,r:0},
+      {l:6,r:0},{l:7,r:0},{l:8,r:0},{l:9,r:0},
+      {l:1,r:50},{l:2,r:30},{l:3,r:75},{l:4,r:25},{l:6,r:50}
+    ],
+    split: [100,150,200,250,300,350,400,450,500,600,700,800,900]
   },
   'm-km': {
-    easy: {
-      toSmall: [1, 2, 3, 4, 5],
-      toBig:   [1000, 2000, 3000, 4000, 5000]
-    },
-    hard: {
-      toSmall: [10, 20, 50, 100, 500],
-      toBig:   [1500, 2500, 3000, 5000, 10000]
-    }
+    merge: [
+      {l:1,r:0},{l:2,r:0},{l:3,r:0},{l:4,r:0},{l:5,r:0},
+      {l:6,r:0},{l:7,r:0},{l:8,r:0},{l:9,r:0},
+      {l:1,r:500},{l:2,r:200},{l:3,r:750},{l:4,r:500},{l:6,r:300}
+    ],
+    split: [1000,1500,2000,2500,3000,3500,4000,4500,5000,6000,7000,8000,9000]
+  },
+  'g-kg': {
+    merge: [
+      {l:1,r:0},{l:2,r:0},{l:3,r:0},{l:4,r:0},{l:5,r:0},
+      {l:6,r:0},{l:7,r:0},{l:8,r:0},{l:9,r:0},
+      {l:1,r:500},{l:2,r:300},{l:3,r:750},{l:4,r:500},{l:5,r:200}
+    ],
+    split: [1000,1500,2000,2500,3000,3500,4000,4500,5000,5500,6000,7000,8000,9000]
+  },
+  'kg-t': {
+    merge: [
+      {l:1,r:0},{l:2,r:0},{l:3,r:0},{l:4,r:0},{l:5,r:0},
+      {l:6,r:0},{l:7,r:0},{l:8,r:0},{l:9,r:0},
+      {l:1,r:500},{l:2,r:200},{l:3,r:500},{l:4,r:750},{l:2,r:750}
+    ],
+    split: [1000,1500,2000,2500,3000,3500,4000,4500,5000,6000,7000,8000,9000]
+  },
+  'ml-l': {
+    merge: [
+      {l:1,r:0},{l:2,r:0},{l:3,r:0},{l:4,r:0},{l:5,r:0},
+      {l:6,r:0},{l:7,r:0},{l:8,r:0},{l:9,r:0},
+      {l:1,r:500},{l:2,r:250},{l:3,r:750},{l:2,r:500},{l:4,r:500}
+    ],
+    split: [1000,1500,2000,2500,3000,3500,4000,4500,5000,6000,7000,8000,9000]
   }
 };
 
-function _makeLengthQuestions(subtype, difficulty) {
-  var subtypes = subtype === 'mixed'
-    ? ['mm-cm', 'cm-m', 'm-km']
-    : [subtype];
-
+function _makeMeasureQuestions(pair) {
+  var cfg  = _MS_CFG[pair];
+  if (!cfg) return [];
+  var vals = _MS_VALS[pair];
   var questions = [];
-  subtypes.forEach(function(st) {
-    var pair = _LEN_PAIRS[st];
-    var vals = _LEN_VALS[st][difficulty];
 
-    vals.toBig.forEach(function(v) {
-      var ans = v / pair.factor;
-      questions.push({
-        prompt:      v + ' ' + pair.smallUnit + ' = ？ ' + pair.bigUnit,
-        answerCount: 1,
-        answer:      [ans],
-        correctText: ans + ' ' + pair.bigUnit
-      });
-    });
-
-    vals.toSmall.forEach(function(v) {
-      var ans = v * pair.factor;
-      questions.push({
-        prompt:      v + ' ' + pair.bigUnit + ' = ？ ' + pair.smallUnit,
-        answerCount: 1,
-        answer:      [ans],
-        correctText: ans + ' ' + pair.smallUnit
-      });
+  // 大到小（merge）
+  vals.merge.forEach(function(v) {
+    var total = v.l * cfg.factor + v.r;
+    var promptLarge = v.l + cfg.largeLabel + (v.r > 0 ? v.r + cfg.smallLabel : '');
+    questions.push({
+      prompt:      promptLarge + ' = ？' + cfg.smallLabel,
+      answerCount: 1,
+      answer:      [total],
+      correctText: total + cfg.smallLabel,
+      msVisual:    { domain: cfg.domain, pair: pair, mode: 'merge', largeCount: v.l, remainSmall: v.r }
     });
   });
 
+  // 小到大（split）
+  vals.split.forEach(function(total) {
+    var lv = Math.floor(total / cfg.factor);
+    var rv = total % cfg.factor;
+    if (rv === 0) {
+      questions.push({
+        prompt:      total + cfg.smallLabel + ' = ？' + cfg.largeLabel,
+        answerCount: 1,
+        answer:      [lv],
+        correctText: lv + cfg.largeLabel,
+        msVisual:    { domain: cfg.domain, pair: pair, mode: 'split', totalSmall: total }
+      });
+    } else {
+      questions.push({
+        prompt:      total + cfg.smallLabel + ' = ？' + cfg.largeLabel + '？' + cfg.smallLabel,
+        answerCount: 2,
+        answer:      [lv, rv],
+        correctText: lv + cfg.largeLabel + rv + cfg.smallLabel,
+        msVisual:    { domain: cfg.domain, pair: pair, mode: 'split', totalSmall: total }
+      });
+    }
+  });
+
   return questions;
+}
+
+function _makeLengthQuestions(subtype) {
+  var pairs = subtype === 'mixed' ? ['mm-cm', 'cm-m', 'm-km'] : [subtype];
+  var questions = [];
+  pairs.forEach(function(p) {
+    questions = questions.concat(_makeMeasureQuestions(p));
+  });
+  return questions;
+}
+
+function _makeWeightQuestions(subtype) {
+  var pairs = subtype === 'mixed' ? ['g-kg', 'kg-t'] : [subtype];
+  var questions = [];
+  pairs.forEach(function(p) {
+    questions = questions.concat(_makeMeasureQuestions(p));
+  });
+  return questions;
+}
+
+function _makeVolumeQuestions(subtype) {
+  return _makeMeasureQuestions('ml-l');
 }
 
 // ════════════════════════════════════════
@@ -351,7 +398,9 @@ function _makeMoneyQuestions(subtype, difficulty) {
 
 function generateQuestionPool(category, subtype, difficulty) {
   var all = [];
-  if (category === 'length') all = _makeLengthQuestions(subtype, difficulty);
+  if      (category === 'length') all = _makeLengthQuestions(subtype);
+  else if (category === 'weight') all = _makeWeightQuestions(subtype);
+  else if (category === 'volume') all = _makeVolumeQuestions(subtype);
   else if (category === 'time')   all = _makeTimeQuestions(subtype, difficulty);
   else if (category === 'money')  all = _makeMoneyQuestions(subtype, difficulty);
   return shuffle(all).slice(0, ROUND_SIZE);

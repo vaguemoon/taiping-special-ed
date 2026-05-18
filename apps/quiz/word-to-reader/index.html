@@ -125,8 +125,21 @@
   <div class="library-wrap">
     <div class="library-toprow">
       <div class="library-heading">📚 報讀庫</div>
+      <button class="btn-ctrl" id="btn-manage-toggle">⚙ 管理</button>
       <label class="btn-pick" for="import-files-input">📥 匯入 .html 檔</label>
       <input type="file" id="import-files-input" accept=".html,.htm" multiple style="display:none"/>
+    </div>
+    <div class="lib-filter-bar" id="lib-filter-bar">
+      <input class="lib-search-input" id="lib-search" type="text" placeholder="🔍 搜尋標題…" autocomplete="off"/>
+      <select class="lib-group-select" id="lib-group-filter">
+        <option value="">所有群組</option>
+      </select>
+      <div class="lib-share-btns">
+        <button class="lib-share-btn active" data-status="all">全部</button>
+        <button class="lib-share-btn" data-status="shared">已分享</button>
+        <button class="lib-share-btn" data-status="unshared">未分享</button>
+      </div>
+      <span class="lib-count-badge" id="lib-count"></span>
     </div>
     <div id="library-content">
       <div class="library-empty">
@@ -134,6 +147,16 @@
         <small>使用「轉換」功能後按「存到報讀庫」，或點「匯入 .html 檔」加入已有檔案</small>
       </div>
     </div>
+  </div>
+  <div class="lib-batch-toolbar" id="lib-batch-toolbar">
+    <span class="batch-count-label" id="batch-count-label">已選 0 篇</span>
+    <div class="batch-actions-row">
+      <button class="batch-action-btn danger" id="batch-delete-btn">🗑 刪除</button>
+      <button class="batch-action-btn" id="batch-group-btn">🏷 改群組</button>
+      <button class="batch-action-btn" id="batch-class-btn">📤 分配班級</button>
+      <button class="batch-action-btn" id="batch-tag-btn">🔖 加標籤</button>
+    </div>
+    <button class="batch-clear-btn" id="batch-clear-btn">✕</button>
   </div>
 </div>
 
@@ -208,6 +231,53 @@
   <div class="proc-card">
     <div class="spinner"></div>
     <p id="proc-msg">正在解析 Word 檔案…</p>
+  </div>
+</div>
+
+<!-- ── Batch Group Modal ────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-batch-group">
+  <div class="modal-card">
+    <h3>🏷 批次改群組</h3>
+    <div class="form-group">
+      <label class="form-label" for="batch-group-input">新群組名稱</label>
+      <input class="form-input" id="batch-group-input" type="text"
+             placeholder="三年級" list="batch-group-datalist" autocomplete="off"/>
+      <datalist id="batch-group-datalist"></datalist>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" id="btn-batch-group-cancel">取消</button>
+      <button class="btn-modal-ok"     id="btn-batch-group-ok">✅ 確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Batch Class Modal ─────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-batch-class">
+  <div class="modal-card">
+    <h3>📤 批次分配班級</h3>
+    <p style="font-size:.8rem;color:var(--fg2);margin:-12px 0 16px;line-height:1.5">將取代所選文章的現有分享設定</p>
+    <div id="batch-class-list" style="max-height:240px;overflow-y:auto"></div>
+    <div id="batch-class-loading" style="text-align:center;padding:16px;font-size:.85rem;color:var(--fg2);display:none">載入班級中…</div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-modal-cancel" id="btn-batch-class-cancel">取消</button>
+      <button class="btn-modal-ok"     id="btn-batch-class-ok">✅ 確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Batch Tag Modal ──────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-batch-tag">
+  <div class="modal-card">
+    <h3>🔖 批次加標籤</h3>
+    <p style="font-size:.8rem;color:var(--fg2);margin:-12px 0 16px;line-height:1.5">標籤會累加，不會清除所選文章的現有標籤</p>
+    <div class="form-group">
+      <label class="form-label" for="batch-tag-input">輸入標籤（逗號或空格分隔）</label>
+      <input class="form-input" id="batch-tag-input" type="text" placeholder="門診, 期末, 複習"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" id="btn-batch-tag-cancel">取消</button>
+      <button class="btn-modal-ok"     id="btn-batch-tag-ok">✅ 確認</button>
+    </div>
   </div>
 </div>
 

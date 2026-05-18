@@ -380,6 +380,7 @@
 .char-card.dictated  { border-color: var(--orange); }
 .char-card-glyph  { font-size: 3.6rem; font-family: 'Noto Serif TC', serif; font-weight: 900; color: var(--text); line-height: 1; }
 .char-card-status { font-size: .72rem; font-weight: 800; padding: 3px 10px; border-radius: 20px; }
+.char-card-zhuyin { display: none; }
 .char-card-check  {
   position: absolute; top: 8px; right: 8px; width: 20px; height: 20px;
   border-radius: 50%; background: var(--green); color: white;
@@ -725,9 +726,6 @@
   .mode-select-char { width: 120px; height: 120px; font-size: 4.5rem; border-radius: 18px; }
   .mode-select-hint { font-size: .88rem; }
 
-  /* 生字卡字體 */
-  .char-card-glyph { font-size: clamp(2.4rem, 9vw, 3.6rem); }
-
   /* 測驗語音按鈕 */
   .btn-exam-voice        { padding: 14px 24px; }
   .exam-voice-label      { font-size: 1rem; }
@@ -735,6 +733,20 @@
   /* 步驟麵包屑 */
   .curr-crumb     { padding: 4px 10px; font-size: .74rem; }
   .curr-stepbar   { padding: 10px 14px 8px; gap: 4px; }
+
+  /* 成就節點：10欄→5欄，移除強制最小寬度 */
+  .ach-nodes      { grid-template-columns: repeat(5, 1fr); min-width: unset; }
+  .ach-node-circle{ width: 34px; height: 34px; font-size: 1rem; }
+}
+
+/* 生字選單：4 欄緊湊卡片（注音 + 字 + 狀態），寬度限定不依賴方向 */
+@media (max-width: 480px) {
+  .menu-body        { grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 12px 120px; }
+  .char-card        { padding: 8px 4px 6px; gap: 4px; border-radius: 12px; border-width: 2px; }
+  .char-card-glyph  { font-size: 2.2rem; }
+  .char-card-zhuyin { display: block; font-size: .7rem; font-weight: 700; color: var(--muted); line-height: 1; min-height: 1em; }
+  .char-card-status { font-size: .6rem; padding: 2px 5px; }
+  .char-card-check  { width: 16px; height: 16px; font-size: .55rem; top: 5px; right: 5px; }
 }
 
 /* 極窄手機（≤ 360px，直立） */

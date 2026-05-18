@@ -153,8 +153,13 @@ function startQuiz() {
         }
       }
 
+      // 手機直立時 sidebar 在格子下方會被捲動遮蓋，改用底部固定 bar 引導學生
       var bb = document.getElementById('bottom-bar');
-      if (bb) bb.style.display = 'none';
+      if (bb) {
+        bb.innerHTML = '<button class="btn-big btn-big-danger" onclick="switchToDict()">' +
+          '<span class="btn-big-icon">📝</span><span>開始默寫測驗</span></button>';
+        bb.style.display = '';
+      }
 
       saveProgress(); updateProgressBar();
     }
@@ -168,6 +173,8 @@ function restartQuiz() {
   if (qt) { qt.innerHTML = ''; qt.classList.remove('flash-green', 'flash-red'); }
   var inlineBtn = document.getElementById('btn-inline-dict');
   if (inlineBtn) inlineBtn.remove();
+  var bb = document.getElementById('bottom-bar');
+  if (bb) bb.style.display = 'none';
   quizWriter = null;
   switchPracticeTab('quiz');
 }

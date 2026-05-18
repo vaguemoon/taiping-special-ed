@@ -140,6 +140,23 @@
 }
 .menu-select-mode .menu-item-btn:not(.menu-item-selected) { opacity: .4; }
 
+/* 注音：按鈕改為 flex 直排，注音顯示在字上方 */
+.menu-item-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+}
+.menu-item-zhuyin {
+  font-size: 1.1rem; font-weight: 700; color: var(--muted);
+  line-height: 1; min-height: 1.1em; font-family: inherit;
+}
+
+/* ── 手機（≤ 480px）：4 欄緊湊卡片 ── */
+@media (max-width: 480px) {
+  .menu-body { padding: 10px 12px 90px; }
+  .menu-item-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .menu-item-btn { padding: 8px 4px 6px; font-size: 2.2rem; border-radius: 12px; border-width: 2px; gap: 2px; }
+  .menu-item-zhuyin { font-size: .9rem; }
+}
+
 .menu-action-bar {
   position: fixed; bottom: 0; left: 0; right: 0;
   display: flex; gap: 12px; padding: 12px 14px;

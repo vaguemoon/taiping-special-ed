@@ -292,19 +292,23 @@ function _renderLessonOverrideBody(key, body) {
   }
   var html =
     '<div style="font-size:.75rem;color:var(--muted);font-weight:600;margin-bottom:10px;line-height:1.6">' +
-      '輸入包含該字的<strong>詞語</strong>（國字），TTS 會讀出整個詞來引導正確讀音。' +
-      '例如：噸 → <code>公噸</code>、垃 → <code>垃圾桶</code>。留空則使用萌典預設。' +
+      '<b>注音</b>：直接輸入正確注音（如 ㄆㄤˋ），優先於萌典 API。' +
+      '　<b>詞語</b>：輸入含該字的詞，TTS 讀整個詞以引導正確讀音（如 胖 → 肥胖）。' +
     '</div>' +
     '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">';
   data.chars.forEach(function(char) {
     var ov = (data.charOverrides[char] && data.charOverrides[char].ttsText) || '';
-    var hi = ov ? 'border-color:var(--blue)' : '';
+    var zh = (data.charOverrides[char] && data.charOverrides[char].zhuyin)  || '';
+    var hi = (ov || zh) ? 'border-color:var(--blue)' : '';
     html +=
-      '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 6px;' +
-        'border:1.5px solid var(--border);' + hi + ';border-radius:10px;background:white;min-width:60px">' +
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px;' +
+        'border:1.5px solid var(--border);' + hi + ';border-radius:10px;background:white;min-width:64px">' +
         '<div style="font-size:1.4rem;font-family:\'Noto Sans TC\',sans-serif;font-weight:900;line-height:1">' + char + '</div>' +
+        '<input type="text" data-zhuyin="' + char + '" value="' + _escQ(zh) + '" placeholder="注音"' +
+          ' style="width:58px;border:1.5px solid var(--border);border-radius:6px;padding:3px 5px;' +
+          'font-size:.8rem;font-family:inherit;text-align:center;outline:none;color:var(--blue-dk)">' +
         '<input type="text" data-char="' + char + '" value="' + _escQ(ov) + '" placeholder="詞語"' +
-          ' style="width:56px;border:1.5px solid var(--border);border-radius:6px;padding:3px 5px;' +
+          ' style="width:58px;border:1.5px solid var(--border);border-radius:6px;padding:3px 5px;' +
           'font-size:.75rem;font-family:\'Noto Sans TC\',sans-serif;text-align:center;outline:none">' +
       '</div>';
   });
@@ -328,8 +332,15 @@ function saveLessonOverride(key) {
 
   var overrides = {};
   body.querySelectorAll('input[data-char]').forEach(function(input) {
-    var val = input.value.trim();
-    if (val) overrides[input.dataset.char] = { ttsText: val };
+    var c   = input.dataset.char;
+    var tts = input.value.trim();
+    var zhEl = body.querySelector('input[data-zhuyin="' + c + '"]');
+    var zh   = zhEl ? zhEl.value.trim() : '';
+    if (tts || zh) {
+      overrides[c] = {};
+      if (tts) overrides[c].ttsText = tts;
+      if (zh)  overrides[c].zhuyin  = zh;
+    }
   });
   data.charOverrides = overrides;
   saveCharOverrides(data.vId, data.lessonId, overrides, statusEl);

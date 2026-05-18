@@ -52,6 +52,20 @@
           <div class="cat-card-sub">mm・cm・m・km</div>
         </div>
       </button>
+      <button class="cat-card cat-card-weight" onclick="openCategory('weight')">
+        <div class="cat-card-icon">⚖️</div>
+        <div class="cat-card-info">
+          <div class="cat-card-title">重量換算</div>
+          <div class="cat-card-sub">公克・公斤・公噸</div>
+        </div>
+      </button>
+      <button class="cat-card cat-card-volume" onclick="openCategory('volume')">
+        <div class="cat-card-icon">🧪</div>
+        <div class="cat-card-info">
+          <div class="cat-card-title">容量換算</div>
+          <div class="cat-card-sub">毫升・公升</div>
+        </div>
+      </button>
       <button class="cat-card cat-card-time" onclick="openCategory('time')">
         <div class="cat-card-icon">⏰</div>
         <div class="cat-card-info">
@@ -153,6 +167,22 @@
         </div>
       </div>
 
+      <!-- 度量衡沙盒（長度/重量/容量） -->
+      <div id="ms-container" class="hidden">
+        <div class="ms-scene">
+          <div class="ms-hint" id="ms-hint"></div>
+          <div class="ms-stage" id="ms-stage"></div>
+          <div class="ms-legend" id="ms-legend">
+            <span class="ms-leg">■ 大單位</span>
+            <span class="ms-leg">■ 小單位</span>
+          </div>
+        </div>
+        <div class="ms-statusbar">
+          <span id="ms-status" class="ms-status">場景：0</span>
+          <button class="sb-clear-btn" onclick="msResetScene()">↺ 重置</button>
+        </div>
+      </div>
+
       <!-- 時間沙盒 -->
       <div id="ts-container" class="hidden">
         <div class="ts-scene">
@@ -225,6 +255,7 @@
 <script src="js/achievement.js"></script>
 <script src="js/sandbox.js"></script>
 <script src="js/timesandbox.js"></script>
+<script src="js/measuresandbox.js"></script>
 <script src="js/init.js"></script>
 <link rel="stylesheet" href="../../../../shared/report.css">
 <script src="../../../../shared/report.js"></script>

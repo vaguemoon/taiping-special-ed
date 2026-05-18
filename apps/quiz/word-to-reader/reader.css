@@ -406,7 +406,19 @@ body {
   grid-template-columns: repeat(2, 1fr);
   gap: 13px;
 }
-@media (max-width: 480px) { .card-grid { grid-template-columns: 1fr; } }
+@media (max-width: 480px) {
+  .card-grid { grid-template-columns: 1fr; }
+  /* 書單卡片：移除為懸浮按鈕預留的 200px 右側 padding */
+  .lib-card  { padding: 16px 18px; }
+  /* 操作按鈕（刪除/編輯）是老師功能，手機觸控無 hover，保持隱藏以免覆蓋內容 */
+  .lib-card-del,
+  .lib-card-edit,
+  .lib-card-dl,
+  .lib-card-edit-content,
+  .lib-card-share { display: none; }
+  /* 書單頁外層 padding 縮減 */
+  .library-wrap { padding: 16px 14px 72px; }
+}
 
 .lib-card {
   background: linear-gradient(160deg, rgba(255,255,255,.05), rgba(255,255,255,.01));
@@ -528,6 +540,140 @@ body.student-mode #topbar-title {
   background: var(--blue-lt); color: var(--blue-dk);
   padding: 1px 6px; border-radius: 6px; font-size: .82rem;
 }
+
+/* ══ Library Filter Bar ═════════════════════════════════════ */
+.lib-filter-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0 14px; flex-wrap: wrap;
+}
+.lib-search-input {
+  height: 38px; padding: 0 14px; flex: 1; min-width: 160px;
+  border: 2px solid var(--border); border-radius: 11px;
+  background: var(--white); color: var(--fg1);
+  font-family: var(--font-ui); font-size: .9rem; outline: none;
+  transition: border-color .2s;
+}
+.lib-search-input:focus { border-color: var(--blue); }
+.lib-group-select {
+  height: 38px; padding: 0 10px; min-width: 110px;
+  border: 2px solid var(--border); border-radius: 11px;
+  background: var(--white); color: var(--fg1);
+  font-size: .88rem; font-weight: 700; outline: none; cursor: pointer;
+}
+.lib-share-btns {
+  display: flex; border: 2px solid var(--border); border-radius: 11px; overflow: hidden;
+}
+.lib-share-btn {
+  height: 38px; padding: 0 13px;
+  border: none; background: var(--white); color: var(--fg2);
+  font-family: var(--font-ui); font-size: .82rem; font-weight: 800;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.lib-share-btn:not(:last-child) { border-right: 1px solid var(--border); }
+.lib-share-btn:hover  { background: var(--blue-lt); color: var(--blue-dk); }
+.lib-share-btn.active { background: var(--blue); color: #fff; }
+.lib-count-badge {
+  font-size: .78rem; font-weight: 800; color: var(--fg2);
+  white-space: nowrap; margin-left: auto;
+}
+#btn-manage-toggle.active {
+  background: var(--blue-lt); border-color: var(--blue); color: var(--blue-dk);
+}
+
+/* ══ Library Batch Toolbar ══════════════════════════════════ */
+.lib-batch-toolbar {
+  position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px;
+  background: var(--fg1); color: #fff;
+  padding: 10px 16px; border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.35);
+  z-index: 120; transition: bottom .25s ease;
+  max-width: calc(100vw - 32px); flex-wrap: wrap;
+}
+.lib-batch-toolbar.active { bottom: 20px; }
+.batch-count-label {
+  font-size: .85rem; font-weight: 900; color: rgba(255,255,255,.75);
+  white-space: nowrap; margin-right: 2px;
+}
+.batch-actions-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.batch-action-btn {
+  height: 34px; padding: 0 12px;
+  border: 1.5px solid rgba(255,255,255,.2); border-radius: 9px;
+  background: rgba(255,255,255,.12); color: #fff;
+  font-family: var(--font-ui); font-size: .82rem; font-weight: 800;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.batch-action-btn:hover        { background: rgba(255,255,255,.25); }
+.batch-action-btn:active       { transform: scale(.95); }
+.batch-action-btn.danger:hover { background: var(--red); border-color: var(--red); }
+.batch-action-btn:disabled     { opacity: .4; cursor: not-allowed; }
+.batch-clear-btn {
+  width: 30px; height: 30px; flex-shrink: 0;
+  border: 1.5px solid rgba(255,255,255,.2); border-radius: 50%;
+  background: rgba(255,255,255,.1); color: rgba(255,255,255,.8);
+  font-size: .8rem; cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.batch-clear-btn:hover { background: rgba(255,255,255,.25); }
+
+/* ══ Library Table ══════════════════════════════════════════ */
+.lib-table-wrap { overflow-x: auto; }
+.lib-table {
+  width: 100%; border-collapse: collapse; font-size: .88rem;
+}
+.lib-table th {
+  background: var(--blue-lt); color: var(--blue-dk);
+  font-size: .76rem; font-weight: 900; letter-spacing: .3px;
+  padding: 10px 12px; text-align: left; white-space: nowrap;
+  border-bottom: 2px solid var(--border);
+  position: sticky; top: 52px; z-index: 20;
+}
+.lib-table td {
+  padding: 9px 12px; border-bottom: 1px solid var(--border);
+  vertical-align: middle; color: var(--fg1);
+}
+.lib-table tbody tr:hover td { background: var(--blue-lt); }
+.lib-table tbody tr:last-child td { border-bottom: none; }
+.col-check   { width: 36px; text-align: center; }
+.col-title   { min-width: 140px; max-width: 240px; }
+.col-group   { width: 90px; }
+.col-date    { width: 90px; white-space: nowrap; font-size: .82rem; color: var(--fg2); }
+.col-tags    { min-width: 100px; }
+.col-classes { min-width: 110px; }
+.col-actions { width: 108px; white-space: nowrap; }
+.row-title {
+  display: block; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font-weight: 700; max-width: 220px;
+}
+.row-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--blue); }
+.group-chip {
+  display: inline-block;
+  background: var(--blue-lt); color: var(--blue-dk);
+  font-size: .76rem; font-weight: 800; padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+.share-badge-more {
+  font-size: .72rem; font-weight: 800; padding: 2px 7px;
+  border-radius: 20px; background: var(--border); color: var(--fg2);
+  white-space: nowrap;
+}
+.row-action-btn {
+  width: 28px; height: 28px; margin-right: 2px;
+  border: 1.5px solid var(--border); border-radius: 7px;
+  background: var(--white); color: var(--fg2); font-size: .78rem;
+  cursor: pointer; transition: all .12s;
+}
+.row-action-btn:hover        { background: var(--blue-lt); border-color: var(--blue); color: var(--blue-dk); }
+.row-action-btn.danger:hover { background: var(--red); border-color: var(--red); color: #fff; }
+
+/* ══ Tags ═══════════════════════════════════════════════════ */
+.lib-card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.tag-chip {
+  font-size: .7rem; font-weight: 700; padding: 2px 7px;
+  border-radius: 20px; background: #f3e8ff; color: #7c3aed;
+  white-space: nowrap;
+}
+body.dark .tag-chip { background: #3b1f5e; color: #c4b5fd; }
 
 /* ══ Save Modal ══════════════════════════════════════════════ */
 .modal-overlay {

@@ -12,12 +12,26 @@ var selectDifficulty = 'easy';
 
 var CAT_CONFIG = {
   length: {
-    icon: '📏', name: '長度換算',
+    icon: '📏', name: '長度換算', noDifficulty: true,
     subtypes: [
       { id: 'mm-cm', label: 'mm ↔ cm' },
       { id: 'cm-m',  label: 'cm ↔ m'  },
       { id: 'm-km',  label: 'm ↔ km'  },
       { id: 'mixed', label: '🎲 混合'  }
+    ]
+  },
+  weight: {
+    icon: '⚖️', name: '重量換算', noDifficulty: true,
+    subtypes: [
+      { id: 'g-kg',  label: 'g ↔ kg'  },
+      { id: 'kg-t',  label: 'kg ↔ t'  },
+      { id: 'mixed', label: '🎲 混合'  }
+    ]
+  },
+  volume: {
+    icon: '🧪', name: '容量換算', noDifficulty: true,
+    subtypes: [
+      { id: 'ml-l', label: 'ml ↔ L' }
     ]
   },
   time: {
@@ -73,17 +87,19 @@ function renderSelectPage() {
   });
   html += '</div></div>';
 
-  html += '<div class="select-section">';
-  html += '<div class="select-label">難度</div>';
-  html += '<div class="type-btn-group">';
-  [
-    { id: 'easy', label: '初階' },
-    { id: 'hard', label: '進階' }
-  ].forEach(function(d) {
-    html += '<button id="diff-' + d.id + '" class="type-btn' + (d.id === selectDifficulty ? ' active' : '') +
-      '" onclick="setDifficulty(\'' + d.id + '\')">' + d.label + '</button>';
-  });
-  html += '</div></div>';
+  if (!cfg.noDifficulty) {
+    html += '<div class="select-section">';
+    html += '<div class="select-label">難度</div>';
+    html += '<div class="type-btn-group">';
+    [
+      { id: 'easy', label: '初階' },
+      { id: 'hard', label: '進階' }
+    ].forEach(function(d) {
+      html += '<button id="diff-' + d.id + '" class="type-btn' + (d.id === selectDifficulty ? ' active' : '') +
+        '" onclick="setDifficulty(\'' + d.id + '\')">' + d.label + '</button>';
+    });
+    html += '</div></div>';
+  }
 
   if (currentCategory === 'time') {
     var isHard = selectDifficulty === 'hard';
@@ -199,6 +215,10 @@ function loadQuestion() {
   if (currentCategory === 'time' && typeof tsInitForQuestion === 'function') {
     setTimeout(function() { tsInitForQuestion(gameQ); }, 60);
   }
+  var isMeasure = (currentCategory === 'length' || currentCategory === 'weight' || currentCategory === 'volume');
+  if (isMeasure && typeof msInitForQuestion === 'function') {
+    setTimeout(function() { msInitForQuestion(gameQ); }, 60);
+  }
 }
 
 function renderQuestion() {
@@ -231,17 +251,20 @@ function renderQuestion() {
     updateSingleDisplay();
   }
 
-  var isMoney      = currentCategory === 'money';
-  var isTime       = currentCategory === 'time';
-  var isRightPanel = isMoney || isTime;
-  var gameRight    = document.getElementById('game-right');
-  var gameLayout   = document.getElementById('game-layout');
+  var isMoney   = currentCategory === 'money';
+  var isTime    = currentCategory === 'time';
+  var isMeasure = (currentCategory === 'length' || currentCategory === 'weight' || currentCategory === 'volume');
+  var isRightPanel = isMoney || isTime || isMeasure;
+  var gameRight  = document.getElementById('game-right');
+  var gameLayout = document.getElementById('game-layout');
   if (gameRight)  gameRight.classList.toggle('hidden', !isRightPanel);
   if (gameLayout) gameLayout.classList.toggle('game-layout-single', !isRightPanel);
   var sbContainer = document.getElementById('sb-container');
   var tsContainer = document.getElementById('ts-container');
+  var msContainer = document.getElementById('ms-container');
   if (sbContainer) sbContainer.classList.toggle('hidden', !isMoney);
   if (tsContainer) tsContainer.classList.toggle('hidden', !isTime);
+  if (msContainer) msContainer.classList.toggle('hidden', !isMeasure);
 }
 
 function updateSingleDisplay() {

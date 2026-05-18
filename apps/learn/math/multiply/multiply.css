@@ -486,3 +486,19 @@
   .option-pair-btn { font-size: 1.6rem; }
   .fill-btn      { font-size: 2rem; min-height: 72px; }
 }
+
+/* ═══ 手機（≤ 480px）補齊 ═══ */
+@media (max-width: 480px) {
+  /* 題目框縮小，節省垂直空間 */
+  .q-display      { font-size: 3rem; padding: 16px 14px; min-height: 100px; }
+  .q-display-exam { font-size: 3rem; min-height: 100px; }
+  /* 測驗頂列三格允許換行，避免擠壓 */
+  .exam-toprow    { flex-wrap: wrap; gap: 4px; justify-content: center; }
+  /* 輪間結算 / 結果頁：縮減大 padding */
+  .exam-summary-panel { padding: 24px 16px; gap: 12px; }
+  .result-wrap        { padding: 24px 16px; gap: 12px; }
+  /* 填空鍵盤按鈕縮小 */
+  .fill-btn { padding: 14px 8px; min-height: 58px; }
+  /* 乘法因數選擇頁：首頁卡片縮減 padding */
+  .mode-card { padding: 20px 16px; }
+}

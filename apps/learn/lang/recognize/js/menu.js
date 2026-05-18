@@ -33,9 +33,13 @@ function renderMenu() {
       var st  = charStatus[c] || 'new';
       var btn = document.createElement('button');
       btn.className = 'menu-item-btn menu-item-' + st;
-      btn.textContent = c;
       btn.dataset.item = c;
       btn.onclick = function() { onMenuItemClick(this, c); };
+      var zEl = document.createElement('span');
+      zEl.className = 'menu-item-zhuyin';
+      zEl.textContent = zhuyinCache[c] || '';
+      btn.appendChild(zEl);
+      btn.appendChild(document.createTextNode(c));
       charGrid.appendChild(btn);
     });
     charSec.appendChild(charGrid);
@@ -128,6 +132,13 @@ function startSelectPractice() {
   var selected = pracSelectedItems.size ? Array.from(pracSelectedItems) : null;
   exitSelectMode();
   startPractice(selected);
+}
+
+function updateCardZhuyin(c) {
+  var btn = document.querySelector('#menu-body .menu-item-btn[data-item="' + c + '"]');
+  if (!btn) return;
+  var zEl = btn.querySelector('.menu-item-zhuyin');
+  if (zEl && zhuyinCache[c]) zEl.textContent = zhuyinCache[c];
 }
 
 function renderNormalActionBar() {

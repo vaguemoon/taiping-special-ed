@@ -91,3 +91,36 @@
   background: #d5f5e3; color: #1e8449;
   border-radius: 20px; font-size: .72rem; font-weight: 900;
 }
+
+/* ══ 手機（≤ 480px）響應式 ══════════════════════════════════ */
+@media (max-width: 480px) {
+  /* 步驟標題縮小 */
+  .curr-step-title { font-size: 1.3rem; margin: 4px 0 12px; }
+
+  /* 出版社：大正方卡片→緊湊橫列按鈕 */
+  .curr-ver-cards {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .curr-ver-card {
+    flex-direction: row;
+    padding: 14px 20px;
+    aspect-ratio: unset;
+    gap: 16px;
+    justify-content: flex-start;
+  }
+  .curr-ver-icon { font-size: 2.4rem; }
+  .curr-ver-name { font-size: 1.3rem; text-align: left; }
+
+  /* 冊次：大圖示與字體縮小 */
+  .curr-book-card  { padding: 10px 6px; gap: 4px; }
+  .curr-book-icon  { font-size: 2rem; }
+  .curr-book-label { font-size: 1.4rem; }
+  .curr-book-meta  { font-size: .78rem; }
+
+  /* 課次：文字縮小 */
+  .curr-lesson-card  { padding: 10px 12px; }
+  .curr-lesson-name  { font-size: 1rem; }
+  .curr-lesson-chars { font-size: .82rem; }
+  .curr-lesson-num   { font-size: .82rem; }
+}
